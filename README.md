@@ -4,7 +4,9 @@ important commands to run in terminal:
 
 
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate  
+
+Pi5: source .venv\Scripts\activate
 
 pip install Flask
 
