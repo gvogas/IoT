@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
 import sqlite3
 import re
 
@@ -43,7 +43,7 @@ def send_success():
     print("SUCCESS: Customer information is correct.")
 
     GPIO.output(LEDBLUE, GPIO.HIGH)
-    sleep(5)
+    sleep(3)
     GPIO.output(LEDBLUE, GPIO.LOW)
 
 
@@ -96,7 +96,7 @@ def submit():
 
         send_error()
 
-        return "ERROR: Please fill in all the fields.", 400
+        return jsonify(error="Please fill in all the fields."), 400
 
 
     # -------------------------
@@ -109,7 +109,7 @@ def submit():
 
         send_error()
 
-        return "ERROR: Please enter a valid email address.", 400
+        return jsonify(error="Please enter a valid email address."), 400
 
 
     # -------------------------
@@ -122,7 +122,7 @@ def submit():
 
         send_error()
 
-        return "ERROR: Please enter a valid phone number.", 400
+        return jsonify(error="Please enter a valid phone number."), 400
 
 
     # -------------------------
@@ -158,7 +158,7 @@ def submit():
 
         send_success()
 
-        return "SUCCESS: Customer information was added successfully.", 200
+        return jsonify(success="Customer information was added successfully."), 200
 
 
     except sqlite3.IntegrityError:
@@ -167,14 +167,14 @@ def submit():
 
         send_error()
 
-        return "ERROR: This email or phone number is already registered.", 400
+        return jsonify(error="This email or phone number is already registered."), 400
 
 
     except sqlite3.Error as err:
 
         send_error()
 
-        return f"ERROR: Database error: {err}", 400
+        return jsonify(error=f"Database error: {err}"), 400
 
 
     finally:
