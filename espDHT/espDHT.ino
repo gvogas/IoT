@@ -8,11 +8,15 @@ https://www.electronicshub.org/esp32-dht11-tutorial/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "DHT.h"
-#define DHT11PIN 26
+#define DHT11PIN1 27 //frige 1
+#define DHT11PIN2 26 //firige 2
+
 // #include <Wire.h>
 // #include <Adafruit_BME280.h>
 // #include <Adafruit_Sensor.h>
-DHT dht(DHT11PIN, DHT11);
+DHT dht1(DHT11PIN1, DHT11);
+DHT dht2(DHT11PIN2, DHT11);
+
 
 // Replace the next variables with your SSID/Password combination
 // const char* ssid = "REPLACE_WITH_YOUR_SSID";
@@ -24,6 +28,11 @@ const char* password = "14730078";
 //const char* mqtt_server = "192.168.1.144";
 //const char* mqtt_server = "YOUR_MQTT_BROKER_IP_ADDRESS";
 const char* mqtt_server = "192.168.50.107";
+
+const char* frig1 = "frig1/temperature";
+const char* frig1h = "frig1/humidity";
+const char* frig2 = "frig2/temperature";
+const char* frig2h = "frig2/humidity";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -49,7 +58,8 @@ const int ledPin = 4;
 
 void setup() {
   Serial.begin(115200);
-  dht.begin();
+  dht1.begin();
+  dht2.begin();
   // default settings
   // (you can also pass in a Wire library object like &Wire2)
   //status = bme.begin();  
@@ -136,13 +146,13 @@ void loop() {
     reconnect();
   }
   client.loop();
-  float humi = dht.readHumidity();
-  float temp = dht.readTemperature();
+  float humi = dht1.readHumidity();
+  float temp = dht1.readTemperature();
   char tempString[8];
   dtostrf(temp, 6, 2, tempString);
   Serial.print("Temperature: ");
   Serial.println(tempString);
-  client.publish("esp32/temperature", tempString);
+  client.publish(frig1, tempString);
 
   //humidity = bme.readHumidity();
     
@@ -151,7 +161,28 @@ void loop() {
   dtostrf(humi, 6, 2, humString);
   Serial.print("Humidity: ");
   Serial.println(humString);
-  client.publish("esp32/humidity", humString);
+  client.publish(frig1h, humString);
+
+
+
+ Serial.println("-----------------------------------------");
+  Serial.println("Frigew 2");
+  float humi2 = dht2.readHumidity();
+  float temp2 = dht2.readTemperature();
+  char tempString2[8];
+  dtostrf(temp2, 6, 2, tempString2);
+  Serial.print("Temperature: ");
+  Serial.println(tempString2);
+  client.publish(frig2, tempString2);
+
+  //humidity = bme.readHumidity();
+    
+    // Convert the value to a char array
+  char humString2[8];
+  dtostrf(humi2, 6, 2, humString2);
+  Serial.print("Humidity: ");
+  Serial.println(humString2);
+  client.publish(frig2h, humString2);
 
   // long now = millis();
   // if (now - lastMsg > 5000) {

@@ -1,12 +1,17 @@
 import paho.mqtt.client as mqtt
-
+frig1 = "frig1/temperature"
+frig1h = "frig1/humidity"
+frig2 = "frig2/temperature"
+frig2h = "frig2/humidity"
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("esp32/temperature")
-    client.subscribe("esp32/humidity")
+    client.subscribe(frig1)
+    client.subscribe(frig1h)
+    client.subscribe(frig2)
+    client.subscribe(frig2h)
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
