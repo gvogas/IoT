@@ -23,7 +23,7 @@ cursor.execute("SELECT COUNT(*) FROM Fridge")
 if cursor.fetchone()[0] == 0:
     cursor.execute('''
         INSERT INTO Fridge (fridgeName, temp_threshold)
-        VALUES ('Fridge 1', 6.0), ('Fridge 2', 6.0);
+        VALUES ('Fridge 1', 50.0), ('Fridge 2', 50.0);
     ''')
 conn.commit()
 conn.close()
