@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template, request
 import sqlite3
 import re
+import paho.mqtt.client as mqtt
 
 # Raspberry Pi
 import RPi.GPIO as GPIO
@@ -23,6 +24,36 @@ GPIO.setup(BUZZER, GPIO.OUT, initial=GPIO.LOW)
 
 
 app = Flask(__name__)
+
+
+# -------------------------
+# MQTT: keep the latest fridge readings
+# -------------------------
+
+MQTT_BROKER = "192.168.50.107"
+
+# Latest values, e.g. readings[1]["temperature"]
+readings = {
+    1: {"temperature": None, "humidity": None, "fan": "OFF"},
+    2: {"temperature": None, "humidity": None, "fan": "OFF"},
+}
+
+def on_mqtt_connect(client, userdata, flags, reason_code, properties):
+    client.subscribe("frig1/#")
+    client.subscribe("frig2/#")
+
+# Topics look like "frig1/temperature", "frig2/humidity", "frig1/fan"
+def on_mqtt_message(client, userdata, msg):
+    fridge, kind = msg.topic.split("/")
+    fridge_id = int(fridge.replace("frig", ""))
+    if fridge_id in readings and kind in readings[fridge_id]:
+        readings[fridge_id][kind] = msg.payload.decode().strip()
+
+mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+mqtt_client.on_connect = on_mqtt_connect
+mqtt_client.on_message = on_mqtt_message
+mqtt_client.connect(MQTT_BROKER, 1883, 60)
+mqtt_client.loop_start()  # runs in the background next to Flask
 
 
 # -------------------------
@@ -73,6 +104,52 @@ def send_error():
 @app.route("/")
 def home():
     return render_template("customerDashboard.html")
+
+
+# -------------------------
+# Fridge dashboard
+# -------------------------
+
+@app.route("/fridges")
+def fridges():
+    return render_template("fridgeDashboard.html")
+
+
+# Latest readings + thresholds, the page asks for this every 2 seconds
+@app.route("/api/fridges")
+def api_fridges():
+    conn = get_db_connection()
+    rows = conn.execute("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge").fetchall()
+    conn.close()
+
+    result = []
+    for row in rows:
+        data = readings.get(row["fridgeID"], {})
+        result.append({
+            "id": row["fridgeID"],
+            "name": row["fridgeName"],
+            "threshold": row["temp_threshold"],
+            "temperature": data.get("temperature"),
+            "humidity": data.get("humidity"),
+            "fan": data.get("fan"),
+        })
+    return jsonify(result)
+
+
+# Change a fridge's threshold
+@app.route("/api/fridges/<int:fridge_id>/threshold", methods=["POST"])
+def set_threshold(fridge_id):
+    try:
+        threshold = float(request.form.get("threshold", ""))
+    except ValueError:
+        return jsonify(error="Please enter a number."), 400
+
+    conn = get_db_connection()
+    conn.execute("UPDATE Fridge SET temp_threshold = ? WHERE fridgeID = ?", (threshold, fridge_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify(success=f"Threshold set to {threshold}"), 200
 
 
 # -------------------------
