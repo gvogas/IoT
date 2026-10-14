@@ -8,26 +8,30 @@ https://www.electronicshub.org/esp32-dht11-tutorial/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "DHT.h"
+
+// DHT11 sensor pin
 #define DHT11PIN1 27 //frige 1
 #define DHT11PIN2 26 //firige 2
 
-// #include <Wire.h>
-// #include <Adafruit_BME280.h>
-// #include <Adafruit_Sensor.h>
+
 DHT dht1(DHT11PIN1, DHT11);
 DHT dht2(DHT11PIN2, DHT11);
 
 
-// Replace the next variables with your SSID/Password combination
-// const char* ssid = "REPLACE_WITH_YOUR_SSID";
-// const char* password = "REPLACE_WITH_YOUR_PASSWORD";
+//*School wifi
+// const char* ssid = "iotvanier";
+// const char* password = "14730078";
+
+//*home wifi
 const char* ssid = "iotvanier";
 const char* password = "14730078";
 
-// Add your MQTT Broker IP address, example:
-//const char* mqtt_server = "192.168.1.144";
-//const char* mqtt_server = "YOUR_MQTT_BROKER_IP_ADDRESS";
+//*school MQTT broker
 const char* mqtt_server = "192.168.50.107";
+const int mqtt_port = 1883;
+
+//*Home MQTT broker
+// const char* mqtt_server = "192.168.50.107";
 
 const char* frig1 = "frig1/temperature";
 const char* frig1h = "frig1/humidity";
@@ -36,49 +40,12 @@ const char* frig2h = "frig2/humidity";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-long lastMsg = 0;
-char msg[50];
-int value = 0;
 
-//uncomment the following lines if you're using SPI
-/*#include <SPI.h>
-#define BME_SCK 18
-#define BME_MISO 19
-#define BME_MOSI 23
-#define BME_CS 5*/
-
-//Adafruit_BME280 bme; // I2C
-//Adafruit_BME280 bme(BME_CS); // hardware SPI
-//Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
-//float temperature = 0;
-//float humidity = 0;
-
-// LED Pin
-const int ledPin = 4;
-
-void setup() {
-  Serial.begin(115200);
-  dht1.begin();
-  dht2.begin();
-  // default settings
-  // (you can also pass in a Wire library object like &Wire2)
-  //status = bme.begin();  
-  // if (!bme.begin(0x76)) {
-  //   Serial.println("Could not find a valid BME280 sensor, check wiring!");
-  //   while (1);
-  // }
-  setup_wifi();
-  client.setServer(mqtt_server, 1883);
- // client.setCallback(callback);
-
-  pinMode(ledPin, OUTPUT);
-}
 
 void setup_wifi() {
   delay(10);
   // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to Wifi:");
   Serial.println(ssid);
 
   WiFi.begin(ssid, password);
@@ -88,11 +55,95 @@ void setup_wifi() {
     Serial.print(".");
   }
 
-  Serial.println("");
-  Serial.println("WiFi connected");
+  Serial.println("\nWiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 }
+
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP32-Fridges")) {
+      Serial.println("connected");
+     
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+// Read sensor data and publish to MQTT
+void readAndPubData(DHT &sensor, const char* tempTopic, const char* humTopic, const char* sensorName) {
+  float temperature = sensor.readTemperature();
+  float humidity = sensor.readHumidity();
+
+  // DHT11 fails to read; skip publishing bad values
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.print(sensorName);
+    Serial.println(": failed to read from DHT sensor");
+    return;
+  }
+
+  // Convert readings to strings
+  char tempString[8];
+  char humString[8];
+
+  dtostrf(temperature, 6, 2, tempString);
+  dtostrf(humidity, 6, 2, humString);
+
+  // Display readings
+  Serial.println("-------------------------");
+  Serial.println(sensorName);
+
+  Serial.print("Temperature: ");
+  Serial.print(tempString);
+  Serial.println(" °C");
+
+  Serial.print("Humidity: ");
+  Serial.print(humString);
+  Serial.println(" %");
+
+  // Publish readings to MQTT
+  client.publish(tempTopic, tempString);
+  client.publish(humTopic, humString);
+}
+
+
+void setup() {
+  Serial.begin(115200);
+  dht1.begin();
+  dht2.begin();
+
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
+  //firge1
+  readAndPubData(dht1,frig1,frig1h,"Fridge 1");
+
+  //frigde 2
+   readAndPubData(dht2,frig2,frig2h,"Fridge 2");
+
+  
+  client.publish("vanier", "I am ESP32");
+  delay(2000);
+}
+
+
+
 
 // void callback(char* topic, byte* message, unsigned int length) {
 //   Serial.print("Message arrived on topic: ");
@@ -106,10 +157,10 @@ void setup_wifi() {
 //   }
 //   Serial.println();
 
-//   // Feel free to add more if statements to control more GPIOs with MQTT
+// Feel free to add more if statements to control more GPIOs with MQTT
 
-//   // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
-//   // Changes the output state according to the message
+// If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+// Changes the output state according to the message
 //   if (String(topic) == "esp32/output") {
 //     Serial.print("Changing output to ");
 //     if(messageTemp == "on"){
@@ -117,99 +168,8 @@ void setup_wifi() {
 //       digitalWrite(ledPin, HIGH);
 //     }
 //     else if(messageTemp == "off"){
-//       Serial.println("off");
+//       Serial.println("off"); 
 //       digitalWrite(ledPin, LOW);
 //     }
 //   }
 // }
-
-void reconnect() {
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("ESP8266Client")) {
-      Serial.println("connected");
-      // Subscribe
-      //client.subscribe("esp32/output");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
-void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-  float humi = dht1.readHumidity();
-  float temp = dht1.readTemperature();
-  char tempString[8];
-  dtostrf(temp, 6, 2, tempString);
-  Serial.print("Temperature: ");
-  Serial.println(tempString);
-  client.publish(frig1, tempString);
-
-  //humidity = bme.readHumidity();
-    
-    // Convert the value to a char array
-  char humString[8];
-  dtostrf(humi, 6, 2, humString);
-  Serial.print("Humidity: ");
-  Serial.println(humString);
-  client.publish(frig1h, humString);
-
-
-
- Serial.println("-----------------------------------------");
-  Serial.println("Frigew 2");
-  float humi2 = dht2.readHumidity();
-  float temp2 = dht2.readTemperature();
-  char tempString2[8];
-  dtostrf(temp2, 6, 2, tempString2);
-  Serial.print("Temperature: ");
-  Serial.println(tempString2);
-  client.publish(frig2, tempString2);
-
-  //humidity = bme.readHumidity();
-    
-    // Convert the value to a char array
-  char humString2[8];
-  dtostrf(humi2, 6, 2, humString2);
-  Serial.print("Humidity: ");
-  Serial.println(humString2);
-  client.publish(frig2h, humString2);
-
-  // long now = millis();
-  // if (now - lastMsg > 5000) {
-  //   lastMsg = now;
-    
-  //   // Temperature in Celsius
-  //   temperature = bme.readTemperature();   
-  //   // Uncomment the next line to set temperature in Fahrenheit 
-  //   // (and comment the previous temperature line)
-  //   //temperature = 1.8 * bme.readTemperature() + 32; // Temperature in Fahrenheit
-    
-  //   // Convert the value to a char array
-  //   char tempString[8];
-  //   dtostrf(temperature, 1, 2, tempString);
-  //   Serial.print("Temperature: ");
-  //   Serial.println(tempString);
-  //   client.publish("esp32/temperature", tempString);
-
-  //   humidity = bme.readHumidity();
-    
-  //   // Convert the value to a char array
-  //   char humString[8];
-  //   dtostrf(humidity, 1, 2, humString);
-  //   Serial.print("Humidity: ");
-  //   Serial.println(humString);
-  //   client.publish("esp32/humidity", humString);
-  // }
-  client.publish("vanier", "I am ESP32");
-  delay(2000);
-}

@@ -6,14 +6,14 @@ SMTP_SERVER = "smtp.gmail.com"  # e.g., smtp.office365.com for Outlook
 SMTP_PORT = 587                 # Standard port for TLS encryption
 SENDER_EMAIL = ""
 SENDER_PASSWORD = "" 
-RECEIVER_EMAIL = "jose.fehime@gmail.com"
+RECEIVER_EMAIL = ""
 
 # 2. Construct the email message
 msg = EmailMessage()
-msg["Subject"] = "Jew day"
+msg["Subject"] = ""
 msg["From"] = SENDER_EMAIL
 msg["To"] = RECEIVER_EMAIL
-msg.set_content("Hello jew, today is a very good day, 9/11 day. agreeeeeeeeeeeeeeeeeeeeeeeeeee .")
+msg.set_content("")
 
 # 3. Establish a secure connection and send the email
 try:
