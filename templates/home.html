@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Store{% endblock %}
+
+{% block content %}
+    <h2>Store Dashboards</h2>
+
+    <!-- Add a new card here for each new dashboard -->
+    <div class="dashboards">
+        <a class="card" href="/fridges">
+            <h3>Fridges</h3>
+            <p>Temperature, humidity and fan of each fridge</p>
+        </a>
+        <a class="card" href="/customers">
+            <h3>Customers</h3>
+            <p>All the customers in the database</p>
+        </a>
+    </div>
+{% endblock %}

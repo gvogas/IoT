@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!-- Every page uses this file for the menu. Each page starts with {% raw %}{% extends "base.html" %}{% endraw %} and puts its stuff in the content block -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Store{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/fridges">Fridges</a>
+        <a href="/customers">Customers</a>
+        <a href="/signup" class="signup">Sign Up</a>
+        {% if session.name %}
+        <a href="/signout">Sign Out ({{ session.name }})</a>
+        {% else %}
+        <a href="/signin">Sign In</a>
+        {% endif %}
+    </nav>
+
+    <main>
+{% block content %}{% endblock %}
+    </main>
+</body>
+</html>

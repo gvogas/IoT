@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Fridge Dashboard{% endblock %}
+
+{% block content %}
+    <h2>Fridge Dashboard</h2>
+    <p id="message" role="status"></p>
+
+    <div id="fridges"></div>
+
+    <script>
+        const fridgesDiv = document.getElementById("fridges");
+        const message = document.getElementById("message");
+
+        // Make one card for each fridge (only the first time)
+        function makeCard(fridge) {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+                <h3></h3>
+                <p>Temperature: <span class="big" id="temp-${fridge.id}">--</span> °C</p>
+                <p>Humidity: <span id="hum-${fridge.id}">--</span> %</p>
+                <p>Fan: <span id="fan-${fridge.id}">--</span></p>
+                <p>Threshold: <span id="threshold-${fridge.id}">--</span> °C</p>
+                <form id="form-${fridge.id}">
+                    <label>New threshold:</label>
+                    <input type="number" step="0.5" name="threshold" required>
+                    <button type="submit">Save</button>
+                </form>
+            `;
+            // textContent shows the name as plain text, so it can't turn into HTML
+            card.querySelector("h3").textContent = fridge.name;
+            fridgesDiv.appendChild(card);
+
+            // Save a new threshold
+            const form = card.querySelector("form");
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                try {
+                    const response = await fetch(`/api/fridges/${fridge.id}/threshold`, {
+                        method: "POST",
+                        body: new FormData(form)
+                    });
+                    const result = await response.json();
+                    message.textContent = `${fridge.name}: ${result.error || result.success}`;
+                    message.style.color = result.error ? "red" : "green";
+                    if (response.ok) {
+                        form.reset();
+                        update();
+                    }
+                } catch (error) {
+                    message.textContent = "Unable to save the threshold. Please try again.";
+                    message.style.color = "red";
+                }
+            });
+        }
+
+        // Get the latest readings from the server and show them
+        async function update() {
+            try {
+                const response = await fetch("/api/fridges");
+                const fridges = await response.json();
+                if (!response.ok) {
+                    message.textContent = fridges.error;
+                    message.style.color = "red";
+                    return;
+                }
+
+                for (const fridge of fridges) {
+                    if (!document.getElementById(`temp-${fridge.id}`)) {
+                        makeCard(fridge);
+                    }
+                    document.getElementById(`temp-${fridge.id}`).textContent = fridge.temperature ?? "--";
+                    document.getElementById(`hum-${fridge.id}`).textContent = fridge.humidity ?? "--";
+                    document.getElementById(`threshold-${fridge.id}`).textContent = fridge.threshold;
+
+                    const fan = document.getElementById(`fan-${fridge.id}`);
+                    fan.textContent = fridge.fan;
+                    fan.className = fridge.fan === "ON" ? "fan-on" : "fan-off";
+                }
+            } catch (error) {
+                message.textContent = "Cannot reach the server.";
+                message.style.color = "red";
+            }
+        }
+
+        update();
+        setInterval(update, 2000);  // refresh every 2 seconds
+    </script>
+{% endblock %}
