@@ -1,6 +1,8 @@
 import sqlite3
 
-conn = sqlite3.connect('customer.db')
+from config import DB_PATH
+
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 cursor.execute(''' 
@@ -9,7 +11,10 @@ cursor.execute('''
         customerName VARCHAR(100) NOT NULL,
         address VARCHAR(255) NOT NULL,
         phoneNumber VARCHAR(20) NOT NULL UNIQUE,
-        email VARCHAR(255) NOT NULL UNIQUE);
+        email VARCHAR(255) NOT NULL UNIQUE,
+        passwordHash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'customer'
+            CHECK (role IN ('customer', 'admin')));
     ''')
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS Fridge (
@@ -18,7 +23,8 @@ cursor.execute('''
         temp_threshold FLOAT NOT NULL
     );''')
 
-# Only seed the fridges the first time
+# Add the 2 fridges only the first time
+# (after that, change the threshold on the Fridges page of the website)
 cursor.execute("SELECT COUNT(*) FROM Fridge")
 if cursor.fetchone()[0] == 0:
     cursor.execute('''
@@ -27,4 +33,4 @@ if cursor.fetchone()[0] == 0:
     ''')
 conn.commit()
 conn.close()
-print("SQLite db initialized successfully!")
+print("SQLite db initialized successfully:", DB_PATH)

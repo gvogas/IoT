@@ -1,0 +1,7 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Database, made by init_db.py (each computer has its own)
+*.db

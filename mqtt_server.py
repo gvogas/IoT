@@ -1,70 +1,93 @@
 import sqlite3
 import paho.mqtt.client as mqtt
 
-from fan import Fan
+from config import DB_PATH, MQTT_BROKER, MQTT_PORT, FAN_PINS
+from hardware.fan import Fan
+from models.fridge import Fridge
 
-frig1 = "frig1/temperature"
-frig1h = "frig1/humidity"
-frig2 = "frig2/temperature"
-frig2h = "frig2/humidity"
+# app.py starts this with mqtt_server.start(). It runs in the background while the website runs
+# (you can also run it by itself with: python mqtt_server.py)
 
-# Fan on the Pi through the motor driver (BCM pin numbers)
-fan = Fan(22, 27, 17)
+# The fan, connected to the Pi through the motor driver
+fan = Fan(*FAN_PINS)
 
-# temperature topic -> (fridgeID in customer.db, fan topic, fan); None = no fan wired yet
-fans = {
-    frig1: (1, "frig1/fan", fan),
-    frig2: (2, "frig2/fan", None),
-}
+# Fridge 2 has no fan wired yet
+fridges = [
+    Fridge(1, fan),
+    Fridge(2),
+]
 
-def get_threshold(fridge_id):
-    conn = sqlite3.connect("customer.db")
-    row = conn.execute("SELECT temp_threshold FROM Fridge WHERE fridgeID = ?", (fridge_id,)).fetchone()
-    conn.close()
-    return row[0] if row else None
+# The newest readings, for the dashboard. Like readings[1]["temperature"]
+readings = {}
+for fridge in fridges:
+    readings[fridge.id] = {"temperature": None, "humidity": None, "fan": "OFF"}
+
 
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
 
-    client.subscribe(frig1)
-    client.subscribe(frig1h)
-    client.subscribe(frig2)
-    client.subscribe(frig2h)
+    for fridge in fridges:
+        client.subscribe(fridge.temp_topic)
+        client.subscribe(fridge.hum_topic)
+        client.subscribe(fridge.fan_topic)
 
-# The callback for when a PUBLISH message is received from the server.
+# This runs every time a new message comes in from the broker
 def on_message(client, userdata, msg):
     value = msg.payload.decode().strip()
     print(msg.topic+": "+value)
 
-    # Turn the fridge's fan on when its temperature is over the threshold
-    if msg.topic in fans:
-        fridge_id, fan_topic, fridge_fan = fans[msg.topic]
-        threshold = get_threshold(fridge_id)
-        if threshold is None:
+    for fridge in fridges:
+        # Save the newest value for the dashboard
+        if msg.topic == fridge.temp_topic:
+            readings[fridge.id]["temperature"] = value
+        elif msg.topic == fridge.hum_topic:
+            readings[fridge.id]["humidity"] = value
+        elif msg.topic == fridge.fan_topic:
+            readings[fridge.id]["fan"] = value
+
+        # Turn this fridge's fan on if its temperature is higher than the threshold
+        if msg.topic != fridge.temp_topic:
+            continue
+        try:
+            state = fridge.check_temperature(float(value))
+        except ValueError:
+            print(f"  not a number: {value}")
             return
-        state = "ON" if float(value) > threshold else "OFF"
+        except sqlite3.Error as err:
+            print(f"  database error: {err}")
+            return
+        if state is None:
+            print(f"  no threshold for fridge {fridge.id} in {DB_PATH}")
+            return
 
-        if fridge_fan:
-            if state == "ON":
-                fridge_fan.on()
-            else:
-                fridge_fan.off()
-
-        # So the dashboard can show the fan state
-        client.publish(fan_topic, state, retain=True)
-        print(f"  threshold {threshold} -> {fan_topic} {state}")
+        # Send the fan state so the dashboard can show it
+        client.publish(fridge.fan_topic, state, retain=True)
+        print(f"  threshold {fridge.get_threshold()} -> {fridge.fan_topic} {state}")
 
 mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 
-#school ip
-mqttc.connect("192.168.50.107", 1883, 60)
 
-#home
-#mqttc.connect("192.168.50.107", 1883, 60)
+# Connect to the broker and start listening in the background. app.py calls this
+def start():
+    print("Using database:", DB_PATH)
+    # The broker IP (school or home) is in config.py
+    mqttc.connect(MQTT_BROKER, MQTT_PORT, 60)
+    mqttc.loop_start()
 
-try:
-    mqttc.loop_forever()
-finally:
-    fan.cleanup()
+
+# Stop listening and turn the fan off. app.py calls this when it closes
+def stop():
+    mqttc.loop_stop()
+    fan.off()
+
+
+# This part only runs when you run this file by itself, not when app.py uses it
+if __name__ == "__main__":
+    print("Using database:", DB_PATH)
+    mqttc.connect(MQTT_BROKER, MQTT_PORT, 60)
+    try:
+        mqttc.loop_forever()
+    finally:
+        fan.cleanup()
