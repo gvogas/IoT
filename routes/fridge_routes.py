@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, render_template, request
 import sqlite3
 
-from models.fridge import Fridge, all_fridges
+from models.fridge import Fridge
 from routes.auth_routes import is_admin
-from mqtt_server import readings   # newest values from the sensors
+from controllers.mqtt_controller import mqtt_controller
 
 # The fridge pages. app.py adds them with app.register_blueprint(fridge_routes)
 fridge_routes = Blueprint("fridge_routes", __name__)
@@ -18,7 +18,7 @@ def fridges():
     if not is_admin():
         return render_template("signin.html", error="Only admins can see this page."), 403
 
-    return render_template("fridgeDashboard.html")
+    return render_template("fridge_dashboard.html")
 
 
 # Newest readings and thresholds. The page asks for this every 2 seconds
@@ -28,21 +28,19 @@ def api_fridges():
         return jsonify(error="Only admins can see this."), 403
 
     try:
-        fridges = all_fridges()
+        fridges = Fridge.get_all()
         result = []
         for fridge in fridges:
-            info = fridge.get_info()
-            data = readings.get(fridge.id, {})
+            data = mqtt_controller.readings.get(fridge.id, {})
             result.append({
                 "id": fridge.id,
-                "name": info["fridgeName"],
-                "threshold": info["temp_threshold"],
+                "name": fridge.name,
+                "threshold": fridge.threshold,
                 "temperature": data.get("temperature"),
                 "humidity": data.get("humidity"),
-                "fan": data.get("fan"),
             })
     except sqlite3.Error as err:
-        # like "no such table: Fridge" if you forgot to run init_db.py
+        # like "no such table: Fridge" if you forgot to run python -m tools.init_database
         return jsonify(error=f"Database error: {err}"), 500
     return jsonify(result)
 

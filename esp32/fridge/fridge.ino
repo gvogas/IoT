@@ -4,7 +4,6 @@ https://www.electronicshub.org/esp32-dht11-tutorial/
   Complete project details at https://randomnerdtutorials.com  
 *********/
 
-//#include <WiFi.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "config.h"        // WiFi, broker and pin settings
@@ -77,35 +76,3 @@ void loop() {
   client.publish("vanier", "I am ESP32");
   delay(2000);
 }
-
-
-
-
-// void callback(char* topic, byte* message, unsigned int length) {
-//   Serial.print("Message arrived on topic: ");
-//   Serial.print(topic);
-//   Serial.print(". Message: ");
-//   String messageTemp;
-  
-//   for (int i = 0; i < length; i++) {
-//     Serial.print((char)message[i]);
-//     messageTemp += (char)message[i];
-//   }
-//   Serial.println();
-
-// Feel free to add more if statements to control more GPIOs with MQTT
-
-// If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
-// Changes the output state according to the message
-//   if (String(topic) == "esp32/output") {
-//     Serial.print("Changing output to ");
-//     if(messageTemp == "on"){
-//       Serial.println("on");
-//       digitalWrite(ledPin, HIGH);
-//     }
-//     else if(messageTemp == "off"){
-//       Serial.println("off"); 
-//       digitalWrite(ledPin, LOW);
-//     }
-//   }
-// }

@@ -3,5 +3,5 @@ __pycache__/
 *.pyc
 .venv/
 
-# Database, made by init_db.py (each computer has its own)
+# Database, made by tools/init_database.py (each computer has its own)
 *.db

@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-from time import sleep
 
 # Use the GPIO numbers, not the order of the pins on the board
 GPIO.setmode(GPIO.BCM)

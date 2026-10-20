@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Fridge Dashboard{% endblock %}
+
+{% block content %}
+    <h2>Fridge Dashboard</h2>
+    <p id="message" role="status"></p>
+
+    <div id="fridges"></div>
+
+    <section class="card" aria-labelledby="shared-fan-title">
+        <h3 id="shared-fan-title">Shared fan</h3>
+        <p>Commanded status: <span id="fan-state" role="status">UNKNOWN</span></p>
+        <button type="button" id="fan-off">Turn fan off</button>
+        <p id="fan-message" role="status"></p>
+    </section>
+
+    <script src="{{ url_for('static', filename='js/fridge_dashboard.js') }}"></script>
+{% endblock %}

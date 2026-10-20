@@ -1,14 +1,14 @@
 import re
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models.db import connect
+from models.database import connect
 
 EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 PHONE_REGEX = r"^\+?[1-9]\d{7,14}$"
 # A name can have letters (also letters like é), and words can be joined by a space, - or '
 NAME_REGEX = r"^[^\W\d_]+([ '-][^\W\d_]+)*$"
 
-# The longest each one can be. These match the sizes in init_db.py
+# The longest each one can be. These match the sizes in tools/init_database.py
 MAX_NAME = 100
 MAX_ADDRESS = 255
 MAX_EMAIL = 255

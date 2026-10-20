@@ -2,11 +2,13 @@ from flask import Flask, render_template
 
 from config import SECRET_KEY
 
-import mqtt_server
+from controllers.mqtt_controller import mqtt_controller
+from controllers.fan_controller import fan_controller
 from hardware import signals
 from routes.auth_routes import auth_routes
 from routes.customer_routes import customer_routes
 from routes.fridge_routes import fridge_routes
+from routes.fan_routes import fan_routes
 
 
 app = Flask(__name__)
@@ -19,6 +21,7 @@ app.register_blueprint(auth_routes)
 app.register_blueprint(customer_routes)
 # The fridge page and the fridge data are in routes/fridge_routes.py
 app.register_blueprint(fridge_routes)
+app.register_blueprint(fan_routes)
 
 
 # The main page. It has a link to each dashboard.
@@ -33,10 +36,9 @@ def home():
 
 if __name__ == "__main__":
 
-    # Start listening to the sensors and controlling the fan. It keeps going while the website runs.
-    mqtt_server.start()
-
     try:
+        # Start listening to the sensors while the website runs.
+        mqtt_controller.start()
 
         app.run(
             host="0.0.0.0",
@@ -47,5 +49,10 @@ if __name__ == "__main__":
 
     finally:
 
-        mqtt_server.stop()
-        signals.cleanup()
+        try:
+            mqtt_controller.stop()
+        finally:
+            try:
+                fan_controller.turn_off()
+            finally:
+                signals.cleanup()
