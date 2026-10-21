@@ -1,17 +1,18 @@
 
 import email
 import imaplib
+import time
+
 import paho.mqtt.client as mqtt
+from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, FAN_COMMAND_TOPIC, IMAP_SERVER, MQTT_BROKER, MQTT_PORT
 
-# Replace with your details
-username = ""
-password = ""
-imap_server = "imap.gmail.com"
+# Same Gmail account that sends the alerts (set in config.py)
+username = ALERT_EMAIL
+password = ALERT_EMAIL_PASSWORD
+imap_server = IMAP_SERVER
 
-# MQTT broker configuration
-mqtt_broker = "192.168.0.120"  # Replace with your Raspberry Pi's IP address
-mqtt_port = 1883
-fan_topic = "fan/command"
+# The app listens on this topic and turns the fan on (see controllers/mqtt_controller.py)
+fan_topic = FAN_COMMAND_TOPIC
 
 
 def check_email_replies():
@@ -33,8 +34,8 @@ def check_email_replies():
         email_ids = response[0].split()
 
         # Connect to the MQTT broker
-        client = mqtt.Client()
-        client.connect(mqtt_broker, mqtt_port, 60)
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.loop_start()
 
         try:
@@ -112,10 +113,8 @@ def check_email_replies():
         mail.logout()
 
 
-if __name__ == "__main__":
-    # Check for replies every 15 seconds
-    import time
-
+# Check for replies every 15 seconds. app.py runs this in the background
+def check_forever():
     while True:
         try:
             check_email_replies()
@@ -123,3 +122,7 @@ if __name__ == "__main__":
             print(f"An error occurred: {e}")
 
         time.sleep(15)
+
+
+if __name__ == "__main__":
+    check_forever()

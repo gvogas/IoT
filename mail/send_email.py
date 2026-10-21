@@ -1,20 +1,20 @@
 import smtplib
 from email.message import EmailMessage
 
-# 1. Setup email configuration variables
-SMTP_SERVER = "smtp.gmail.com"  # e.g., smtp.office365.com for Outlook
-SMTP_PORT = 587                 # Standard port for TLS encryption
-SENDER_EMAIL = ""
-SENDER_PASSWORD = ""
-RECEIVER_EMAIL = ""
+# The email settings are in config.py
+from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_TO, SMTP_PORT, SMTP_SERVER
 
 
 def send_temperature_alert(fridge_id, temperature, threshold):
-    # 2. Construct the email message
+    if not (ALERT_EMAIL and ALERT_EMAIL_PASSWORD and ALERT_TO):
+        print("Email alert not sent: set ALERT_EMAIL, ALERT_EMAIL_PASSWORD and ALERT_TO (see config.py)")
+        return
+
+    # 1. Construct the email message
     msg = EmailMessage()
     msg["Subject"] = f"Temperature Alert - Frig{fridge_id}"
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = RECEIVER_EMAIL
+    msg["From"] = ALERT_EMAIL
+    msg["To"] = ALERT_TO
 
     msg.set_content(
         f"The current temperature in Frig{fridge_id} is {temperature}°C.\n"
@@ -23,12 +23,12 @@ def send_temperature_alert(fridge_id, temperature, threshold):
         "Reply YES to turn on the fan, or NO to take no action."
     )
 
-    # 3. Establish a secure connection and send the email
+    # 2. Establish a secure connection and send the email
     try:
         # Use smtplib.SMTP as a context manager to ensure proper connection closure
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
             server.starttls()  # Secure the connection using TLS encryption
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.login(ALERT_EMAIL, ALERT_EMAIL_PASSWORD)
             server.send_message(msg)
 
         print(f"Email sent successfully for Frig{fridge_id}!")
