@@ -8,6 +8,12 @@
     <div id="fridges"></div>
 
     <section class="card" aria-labelledby="shared-fan-title">
+        <img id="fan-image"
+            data-on-src="{{ url_for('static', filename='assets/images/fan_on.png') }}"
+            data-off-src="{{ url_for('static', filename='assets/images/fan_off.png') }}"
+            src="{{ url_for('static', filename='assets/images/fan_off.png') }}"
+            alt="Fan status unknown"
+            width="120" height="120">
         <h3 id="shared-fan-title">Shared fan</h3>
         <p>Commanded status: <span id="fan-state" role="status">UNKNOWN</span></p>
         <button type="button" id="fan-off">Turn fan off</button>

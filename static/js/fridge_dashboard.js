@@ -3,6 +3,7 @@ const message = document.getElementById("message");
 const fanState = document.getElementById("fan-state");
 const fanMessage = document.getElementById("fan-message");
 const fanOff = document.getElementById("fan-off");
+const fanImage = document.getElementById("fan-image");
 
 async function updateFan() {
     if (fanOff.disabled) return;
@@ -10,10 +11,10 @@ async function updateFan() {
         const response = await fetch("/api/fan", { cache: "no-store" });
         const result = await response.json();
         if (!fanOff.disabled) {
-            fanState.textContent = response.ok ? result.state : "UNKNOWN";
+            setFanState(response.ok ? result.state : "UNKNOWN");
         }
     } catch (error) {
-        if (!fanOff.disabled) fanState.textContent = "UNKNOWN";
+        if (!fanOff.disabled) setFanState("UNKNOWN")
     }
 }
 
@@ -23,10 +24,10 @@ fanOff.addEventListener("click", async () => {
     try {
         const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
-        fanState.textContent = response.ok ? result.state : "UNKNOWN";
+        setFanState(response.ok ? result.state : "UNKNOWN");
         fanMessage.textContent = result.error || result.success;
     } catch (error) {
-        fanState.textContent = "UNKNOWN";
+        setFanState("UNKNOWN");
         fanMessage.textContent = "Unable to reach the server. Fan off is not confirmed.";
     } finally {
         fanOff.disabled = false;
@@ -98,6 +99,22 @@ async function update() {
     } catch (error) {
         message.textContent = "Cannot reach the server.";
         message.style.color = "red";
+    }
+}
+
+function setFanState(state) {
+    fanState.textContent = state;
+
+    if (state === "ON") {
+        fanImage.src = fanImage.dataset.onSrc;
+        fanImage.alt = "Fan is on";
+    } else if (state === "OFF") {
+        fanImage.src = fanImage.dataset.offSrc;
+        fanImage.alt = "Fan is off";
+    } else {
+        // UNKNOWN: pick whichever default you prefer
+        fanImage.src = fanImage.dataset.offSrc;
+        fanImage.alt = "Fan status unknown";
     }
 }
 
