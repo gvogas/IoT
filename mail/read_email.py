@@ -1,48 +1,125 @@
+
 import email
 import imaplib
+import paho.mqtt.client as mqtt
 
 # Replace with your details
 username = ""
 password = ""
 imap_server = "imap.gmail.com"
 
-# Connect to server
-mail = imaplib.IMAP4_SSL(imap_server)
-mail.login(username, password)
-
-# Select the inbox folder
-mail.select("inbox")
-
-# Search for all emails
-status, response = mail.search(None, "ALL")
-email_ids = response[0].split()
+# MQTT broker configuration
+mqtt_broker = "192.168.0.120"  # Replace with your Raspberry Pi's IP address
+mqtt_port = 1883
+fan_topic = "fan/command"
 
 
-for e_id in email_ids[-5:]:  # Loop through the last 5 emails
-  # Fetch the email data by ID
-  res, msg_data = mail.fetch(e_id, "(RFC822)")
- 
-  for response_part in msg_data:
-    if isinstance(response_part, tuple):
-      # Parse bytes into an email message object
-      msg = email.message_from_bytes(response_part[1])
- 
-      sender = msg["From"]
-      print(f"From: {sender}")
- 
-      # Extract the body text
-      if msg.is_multipart():
-        for part in msg.walk():
-          # Skip attachments that happen to be plain text
-          if part.get_content_type() == "text/plain" and part.get_content_disposition() != "attachment":
-            body = part.get_payload(decode=True).decode(errors="replace")
-            print(f"Body: {body}\n")
-            break  # only print the first text body
-      else:
-        body = msg.get_payload(decode=True).decode(errors="replace")
-        print(f"Body: {body}\n")
- 
-      print("-----")
- 
-# Close the connection
-mail.logout()
+def check_email_replies():
+    # Connect to server
+    mail = imaplib.IMAP4_SSL(imap_server)
+
+    try:
+        mail.login(username, password)
+
+        # Select the inbox folder
+        mail.select("inbox")
+
+        # Search for unread emails
+        status, response = mail.search(None, "UNSEEN")
+
+        if status != "OK":
+            return
+
+        email_ids = response[0].split()
+
+        # Connect to the MQTT broker
+        client = mqtt.Client()
+        client.connect(mqtt_broker, mqtt_port, 60)
+        client.loop_start()
+
+        try:
+            for e_id in email_ids:
+                # Fetch the email data by ID
+                res, msg_data = mail.fetch(e_id, "(RFC822)")
+
+                if res != "OK":
+                    continue
+
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        # Parse bytes into an email message object
+                        msg = email.message_from_bytes(response_part[1])
+
+                        subject = msg.get("Subject", "").lower()
+
+                        # Only handle replies to refrigerator temperature alerts
+                        if not (
+                            "temperature alert - frig1" in subject
+                            or "temperature alert - frig2" in subject
+                        ):
+                            continue
+
+                        # Extract the body text
+                        body = ""
+
+                        if msg.is_multipart():
+                            for part in msg.walk():
+                                # Skip attachments that happen to be plain text
+                                if (
+                                    part.get_content_type() == "text/plain"
+                                    and part.get_content_disposition() != "attachment"
+                                ):
+                                    payload = part.get_payload(decode=True)
+                                    if payload:
+                                        body = payload.decode(errors="replace")
+                                        break  # only print the first text body
+                        else:
+                            payload = msg.get_payload(decode=True)
+                            if payload:
+                                body = payload.decode(errors="replace")
+
+                        # Check the first word of the reply
+                        answer = body.strip().split(maxsplit=1)[0].strip(".,!?").upper() if body.strip() else ""
+
+                        print(f"Subject: {msg.get('Subject', '')}")
+                        print(f"Body: {body}")
+
+                        if answer == "YES":
+                            # Send an MQTT command to the Raspberry Pi's fan controller
+                            client.publish(fan_topic, "ON", qos=1)
+                            print("YES received. Fan ON command sent.")
+
+                        elif answer == "NO":
+                            # Do not send a command, so the fan state stays unchanged
+                            print("NO received. No action taken.")
+
+                        else:
+                            # Ignore replies that do not start with YES or NO
+                            print("Reply ignored. Please reply YES or NO.")
+
+                            continue
+
+                        # Mark the processed email as read
+                        mail.store(e_id, "+FLAGS", "\\Seen")
+                        print("-----")
+
+        finally:
+            client.loop_stop()
+            client.disconnect()
+
+    finally:
+        # Close the connection
+        mail.logout()
+
+
+if __name__ == "__main__":
+    # Check for replies every 15 seconds
+    import time
+
+    while True:
+        try:
+            check_email_replies()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+        time.sleep(15)
