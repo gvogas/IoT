@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
-
+config.py
+./config.h
 # Database, made by tools/init_database.py (each computer has its own)
 *.db

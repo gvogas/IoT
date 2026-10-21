@@ -89,12 +89,3 @@ class MqttController:
 
 # Flask routes and app.py use the same readings and MQTT connection.
 mqtt_controller = MqttController()
-
-
-# Run from the project folder: python -m controllers.mqtt_controller
-if __name__ == "__main__":
-    mqtt_controller.client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    try:
-        mqtt_controller.client.loop_forever()
-    finally:
-        mqtt_controller.client.disconnect()

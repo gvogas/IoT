@@ -121,8 +121,4 @@ def check_forever():
         except Exception as e:
             print(f"An error occurred: {e}")
 
-        time.sleep(15)
-
-
-if __name__ == "__main__":
-    check_forever()
+        time.sleep(8)
