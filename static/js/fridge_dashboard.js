@@ -1,9 +1,19 @@
 const fridgesDiv = document.getElementById("fridges");
 const message = document.getElementById("message");
+const alertsDiv = document.getElementById("alerts");
 const fanState = document.getElementById("fan-state");
 const fanMessage = document.getElementById("fan-message");
 const fanOff = document.getElementById("fan-off");
 const fanImage = document.getElementById("fan-image");
+
+
+
+const TEMP_MIN = -5;    
+const TEMP_MAX = 25;    
+const HUM_MIN = 0;
+const HUM_MAX = 100;
+
+const cards = {};
 
 async function updateFan() {
     if (fanOff.disabled) return;
@@ -35,25 +45,44 @@ fanOff.addEventListener("click", async () => {
 });
 
 // Make one card for each fridge (only the first time)
+async function updateAlerts() {
+    try {
+        const response = await fetch("/api/alerts", { cache: "no-store" });
+        const alerts = await response.json();
+        if (!response.ok) return;
+ 
+        alertsDiv.replaceChildren();
+        for (const alert of alerts) {
+            const p = document.createElement("p");
+            if (alert.status === "sent") {
+                p.textContent = `${alert.name} temperature high. Email sent to ${alert.email} at ${alert.time}.`;
+                p.style.color = "darkorange";
+            } else {
+                p.textContent = `${alert.name} temperature high. Failed to send email to ${alert.email}.`;
+                p.style.color = "red";
+            }
+            alertsDiv.appendChild(p);
+        }
+    } catch (error) {
+        // keep showing the current alerts if the server can't be reached
+    }
+}
+ 
+ 
+// For the needle
+function fraction(value, min, max) {
+    return (Math.min(Math.max(value, min), max) - min) / (max - min);
+}
+ 
+// Make one card for each fridge (only the first time)
 function makeCard(fridge) {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-        <h3></h3>
-        <p>Temperature: <span class="big" id="temp-${fridge.id}">--</span> °C</p>
-        <p>Humidity: <span id="hum-${fridge.id}">--</span> %</p>
-        <p>Threshold: <span id="threshold-${fridge.id}">--</span> °C</p>
-        <form id="form-${fridge.id}">
-            <label>New threshold:</label>
-            <input type="number" step="0.5" name="threshold" required>
-            <button type="submit">Save</button>
-        </form>
-    `;
-    // textContent shows the name as plain text, so it can't turn into HTML
-    card.querySelector("h3").textContent = fridge.name;
+    const template = document.getElementById("fridge-template");
+    const card = template.content.firstElementChild.cloneNode(true);
+ 
+    card.querySelector(".fridge-name").textContent = fridge.name;
     fridgesDiv.appendChild(card);
-
-    // Save a new threshold
+    cards[fridge.id] = card;
+ 
     const form = card.querySelector("form");
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -86,15 +115,34 @@ async function update() {
             message.style.color = "red";
             return;
         }
-
+ 
         for (const fridge of fridges) {
-            if (!document.getElementById(`temp-${fridge.id}`)) {
-                makeCard(fridge);
+            if (!cards[fridge.id]) makeCard(fridge);
+            const card = cards[fridge.id];
+ 
+            card.querySelector(".temp").textContent = fridge.temperature ?? "--";
+            card.querySelector(".hum").textContent = fridge.humidity ?? "--";
+            card.querySelector(".threshold").textContent = fridge.threshold;
+ 
+            // Thermometer: fill level, threshold marker, red when too warm
+            const thermo = card.querySelector(".thermo");
+            const temp = parseFloat(fridge.temperature);
+            const threshold = parseFloat(fridge.threshold);
+ 
+            if (!Number.isNaN(threshold)) {
+                thermo.style.setProperty("--threshold-level", fraction(threshold, TEMP_MIN, TEMP_MAX));
             }
-            document.getElementById(`temp-${fridge.id}`).textContent = fridge.temperature ?? "--";
-            document.getElementById(`hum-${fridge.id}`).textContent = fridge.humidity ?? "--";
-            document.getElementById(`threshold-${fridge.id}`).textContent = fridge.threshold;
-
+            if (!Number.isNaN(temp)) {
+                thermo.style.setProperty("--level", fraction(temp, TEMP_MIN, TEMP_MAX));
+                card.classList.toggle("hot", !Number.isNaN(threshold) && temp > threshold);
+            }
+ 
+            // Humidity needle
+            const hum = parseFloat(fridge.humidity);
+            if (!Number.isNaN(hum)) {
+                card.querySelector(".dial").style
+                    .setProperty("--level", fraction(hum, HUM_MIN, HUM_MAX));
+            }
         }
     } catch (error) {
         message.textContent = "Cannot reach the server.";
@@ -102,23 +150,9 @@ async function update() {
     }
 }
 
-function setFanState(state) {
-    fanState.textContent = state;
-
-    if (state === "ON") {
-        fanImage.src = fanImage.dataset.onSrc;
-        fanImage.alt = "Fan is on";
-    } else if (state === "OFF") {
-        fanImage.src = fanImage.dataset.offSrc;
-        fanImage.alt = "Fan is off";
-    } else {
-        // UNKNOWN: pick whichever default you prefer
-        fanImage.src = fanImage.dataset.offSrc;
-        fanImage.alt = "Fan status unknown";
-    }
-}
-
 update();
 updateFan();
+updateAlerts();
 setInterval(updateFan, 2000);
 setInterval(update, 2000);  // refresh every 2 seconds
+setInterval(updateAlerts, 2000);

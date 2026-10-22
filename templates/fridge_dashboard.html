@@ -4,7 +4,9 @@
 {% block content %}
     <h2>Fridge Dashboard</h2>
     <p id="message" role="status"></p>
+    <div id="alerts" role="status"></div>
 
+    <!-- JS fills this with one card per fridge -->
     <div id="fridges"></div>
 
     <section class="card" aria-labelledby="shared-fan-title">
@@ -19,6 +21,42 @@
         <button type="button" id="fan-off">Turn fan off</button>
         <p id="fan-message" role="status"></p>
     </section>
+
+    <!-- Blueprint for a fridge card. Not shown until JS clones it. -->
+    <template id="fridge-template">
+        <div class="card">
+            <h3 class="fridge-name"></h3>
+
+            <div class="gauges">
+                <div class="gauge">
+                    <div class="thermo">
+                        <div class="tube"><div class="fill"></div><div class="threshold-line"></div></div>
+                        <div class="bulb"></div>
+                        <img src="{{ url_for('static', filename='images/temperature1.png') }}" alt="Temperature gauge">
+                    </div>
+                    <p class="gauge-label">Temperature</p>
+                </div>
+
+                <div class="gauge">
+                    <div class="dial">
+                        <img src="{{ url_for('static', filename='images/humidity1.webp') }}" alt="Humidity gauge">
+                        <div class="needle"></div>
+                        <div class="hub"></div>
+                    </div>
+                    <p class="gauge-label">Humidity</p>
+                </div>
+            </div>
+
+            <p>Temperature: <span class="big temp">--</span> °C</p>
+            <p>Humidity: <span class="hum">--</span> %</p>
+            <p>Threshold: <span class="threshold">--</span> °C</p>
+            <form>
+                <label>New threshold:</label>
+                <input type="number" step="0.5" name="threshold" required>
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </template>
 
     <script src="{{ url_for('static', filename='js/fridge_dashboard.js') }}"></script>
 {% endblock %}
