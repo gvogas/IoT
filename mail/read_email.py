@@ -113,7 +113,7 @@ def check_email_replies():
         mail.logout()
 
 
-# Check for replies every 15 seconds. app.py runs this in the background
+# Check for replies every 8 seconds. app.py runs this in the background
 def check_forever():
     while True:
         try:

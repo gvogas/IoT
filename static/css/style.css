@@ -277,13 +277,13 @@ th {
     transition: bottom 0.8s ease;
 }
 
-/* ---------- Needle dial (humidity1.webp, ~1060x580) ---------- */
+/* ---------- Needle dial (humidity1.png, 1059x585) ---------- */
 .dial {
     position: relative;
     width: 100%;
-    aspect-ratio: 1060 / 580;   /* set to your image's real width / height */
+    aspect-ratio: 1059 / 585;   /* set to your image's real width / height */
     --pivot-x: 50%;             /* where the needle pivots */
-    --pivot-y: 91.4%;
+    --pivot-y: 90.6%;
     --needle-len: 33%;          /* as a % of the dial's width */
 }
 .dial img {

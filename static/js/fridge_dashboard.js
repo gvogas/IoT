@@ -15,16 +15,45 @@ const HUM_MAX = 100;
 
 const cards = {};
 
+// Show the fan state and the matching picture
+function setFanState(state) {
+    fanState.textContent = state;
+
+    if (state === "ON") {
+        fanImage.src = fanImage.dataset.onSrc;
+        fanImage.alt = "Fan is on";
+    } else {
+        fanImage.src = fanImage.dataset.offSrc;
+        fanImage.alt = state === "OFF" ? "Fan is off" : "Fan status unknown";
+    }
+}
+
+// The server says 403 when nobody is signed in as admin (a restart of the app signs everyone out)
+function showSignedOut() {
+    const link = document.createElement("a");
+    link.href = "/signin";
+    link.textContent = "Sign in again";
+    message.replaceChildren("You are signed out (the app may have restarted). ", link);
+    message.style.color = "red";
+}
+
 async function updateFan() {
     if (fanOff.disabled) return;
     try {
         const response = await fetch("/api/fan", { cache: "no-store" });
         const result = await response.json();
-        if (!fanOff.disabled) {
-            setFanState(response.ok ? result.state : "UNKNOWN");
+        if (fanOff.disabled) return;
+        if (response.status === 403) {
+            showSignedOut();
+            setFanState("UNKNOWN");
+            return;
         }
+        setFanState(response.ok ? result.state : "UNKNOWN");
     } catch (error) {
-        if (!fanOff.disabled) setFanState("UNKNOWN")
+        if (!fanOff.disabled) {
+            setFanState("UNKNOWN");
+            fanMessage.textContent = "Cannot reach the server.";
+        }
     }
 }
 
@@ -34,6 +63,7 @@ fanOff.addEventListener("click", async () => {
     try {
         const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
+        if (response.status === 403) showSignedOut();
         setFanState(response.ok ? result.state : "UNKNOWN");
         fanMessage.textContent = result.error || result.success;
     } catch (error) {
@@ -110,6 +140,10 @@ async function update() {
     try {
         const response = await fetch("/api/fridges");
         const fridges = await response.json();
+        if (response.status === 403) {
+            showSignedOut();
+            return;
+        }
         if (!response.ok) {
             message.textContent = fridges.error;
             message.style.color = "red";
