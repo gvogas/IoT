@@ -2,17 +2,17 @@
 {% block title %}Store{% endblock %}
 
 {% block content %}
-    <h2>Store Dashboards</h2>
+    <!-- Home page when nobody is signed in -->
+    <h2>Store</h2>
 
-    <!-- Add a new card here for each new dashboard -->
     <div class="dashboards">
-        <a class="card" href="/fridges">
-            <h3>Fridges</h3>
-            <p>Temperature, humidity and threshold of each fridge</p>
+        <a class="card" href="/signin">
+            <h3>Sign In</h3>
+            <p>See your points and purchases</p>
         </a>
-        <a class="card" href="/customers">
-            <h3>Customers</h3>
-            <p>All the customers in the database</p>
+        <a class="card" href="/signup">
+            <h3>Sign Up</h3>
+            <p>Get a membership number</p>
         </a>
     </div>
 {% endblock %}

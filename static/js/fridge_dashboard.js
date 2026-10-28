@@ -1,23 +1,18 @@
 const fridgesDiv = document.getElementById("fridges");
 const message = document.getElementById("message");
-const alertsDiv = document.getElementById("alerts");
+const summary = document.getElementById("summary");
 const fanState = document.getElementById("fan-state");
 const fanMessage = document.getElementById("fan-message");
 const fanOff = document.getElementById("fan-off");
 const fanImage = document.getElementById("fan-image");
 
-
-
-const TEMP_MIN = -5;    
-const TEMP_MAX = 25;    
-const HUM_MIN = 0;
-const HUM_MAX = 100;
-
-const cards = {};
+const tiles = {};
+let latestFridges = [];
 
 // Show the fan state and the matching picture
 function setFanState(state) {
     fanState.textContent = state;
+    fanState.className = state === "ON" ? "ok" : "";
 
     if (state === "ON") {
         fanImage.src = fanImage.dataset.onSrc;
@@ -26,15 +21,7 @@ function setFanState(state) {
         fanImage.src = fanImage.dataset.offSrc;
         fanImage.alt = state === "OFF" ? "Fan is off" : "Fan status unknown";
     }
-}
-
-// The server says 403 when nobody is signed in as admin (a restart of the app signs everyone out)
-function showSignedOut() {
-    const link = document.createElement("a");
-    link.href = "/signin";
-    link.textContent = "Sign in again";
-    message.replaceChildren("You are signed out (the app may have restarted). ", link);
-    message.style.color = "red";
+    showSummary();
 }
 
 async function updateFan() {
@@ -44,7 +31,7 @@ async function updateFan() {
         const result = await response.json();
         if (fanOff.disabled) return;
         if (response.status === 403) {
-            showSignedOut();
+            showSignedOut(message);
             setFanState("UNKNOWN");
             return;
         }
@@ -63,7 +50,7 @@ fanOff.addEventListener("click", async () => {
     try {
         const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
-        if (response.status === 403) showSignedOut();
+        if (response.status === 403) showSignedOut(message);
         setFanState(response.ok ? result.state : "UNKNOWN");
         fanMessage.textContent = result.error || result.success;
     } catch (error) {
@@ -74,74 +61,72 @@ fanOff.addEventListener("click", async () => {
     }
 });
 
-// Make one card for each fridge (only the first time)
-async function updateAlerts() {
-    try {
-        const response = await fetch("/api/alerts", { cache: "no-store" });
-        const alerts = await response.json();
-        if (!response.ok) return;
- 
-        alertsDiv.replaceChildren();
-        for (const alert of alerts) {
-            const p = document.createElement("p");
-            if (alert.status === "sent") {
-                p.textContent = `${alert.name} temperature high. Email sent to ${alert.email} at ${alert.time}.`;
-                p.style.color = "darkorange";
-            } else {
-                p.textContent = `${alert.name} temperature high. Failed to send email to ${alert.email}.`;
-                p.style.color = "red";
-            }
-            alertsDiv.appendChild(p);
-        }
-    } catch (error) {
-        // keep showing the current alerts if the server can't be reached
-    }
+// The line at the top of the page
+function showSummary() {
+    if (!latestFridges.length) return;
+    const counts = { ok: 0, hot: 0, offline: 0, waiting: 0 };
+    for (const fridge of latestFridges) counts[fridgeStatus(fridge)]++;
+
+    const parts = [];
+    if (counts.ok) parts.push(`${counts.ok} OK`);
+    if (counts.hot) parts.push(`${counts.hot} too warm`);
+    if (counts.offline) parts.push(`${counts.offline} offline`);
+    if (counts.waiting) parts.push(`${counts.waiting} waiting for data`);
+
+    summary.textContent = `${latestFridges.length} fridges: ${parts.join(", ")}. Fan is ${fanState.textContent}.`;
+    summary.className = counts.hot ? "hot" : "";
 }
- 
- 
-// For the needle
-function fraction(value, min, max) {
-    return (Math.min(Math.max(value, min), max) - min) / (max - min);
+
+// Make one tile for each fridge (only the first time)
+function makeTile(fridge) {
+    const template = document.getElementById("tile-template");
+    const tile = template.content.firstElementChild.cloneNode(true);
+    tile.href = `/fridges/${fridge.id}`;
+    tile.querySelector(".fridge-name").textContent = fridge.name;
+    fridgesDiv.appendChild(tile);
+    tiles[fridge.id] = tile;
 }
- 
-// Make one card for each fridge (only the first time)
-function makeCard(fridge) {
-    const template = document.getElementById("fridge-template");
-    const card = template.content.firstElementChild.cloneNode(true);
- 
-    card.querySelector(".fridge-name").textContent = fridge.name;
-    fridgesDiv.appendChild(card);
-    cards[fridge.id] = card;
- 
-    const form = card.querySelector("form");
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        try {
-            const response = await fetch(`/api/fridges/${fridge.id}/threshold`, {
-                method: "POST",
-                body: new FormData(form)
-            });
-            const result = await response.json();
-            message.textContent = `${fridge.name}: ${result.error || result.success}`;
-            message.style.color = result.error ? "red" : "green";
-            if (response.ok) {
-                form.reset();
-                update();
-            }
-        } catch (error) {
-            message.textContent = "Unable to save the threshold. Please try again.";
-            message.style.color = "red";
-        }
-    });
+
+// Put one fridge's newest data on its tile
+function showTile(fridge) {
+    const tile = tiles[fridge.id];
+    const status = fridgeStatus(fridge);
+
+    setStatus(tile.querySelector(".fridge-status"), status);
+    tile.classList.toggle("hot", status === "hot");
+    tile.classList.toggle("stale", status === "offline" || status === "waiting");
+    tile.setAttribute("aria-label", `${fridge.name}: ${STATUS_TEXT[status]}, ${oneDecimal(fridge.temperature)} °C. View details`);
+
+    const temp = tile.querySelector(".temp");
+    temp.textContent = oneDecimal(fridge.temperature);
+    tile.querySelector(".temp-value").className = `temp-value ${status === "hot" ? "hot" : ""}`;
+    setTrend(tile.querySelector(".trend"), fridge.stats);
+
+    // Limit bar
+    const top = scaleTop(fridge.threshold, fridge.temperature);
+    const percent = (value) => `${(Math.min(Math.max(value, 0), top) / top) * 100}%`;
+    tile.querySelector(".limit-safe").style.width = percent(fridge.threshold);
+    tile.querySelector(".limit-mark").style.left = percent(fridge.threshold);
+    const now = tile.querySelector(".limit-now");
+    now.hidden = fridge.temperature === null;
+    if (fridge.temperature !== null) now.style.left = percent(fridge.temperature);
+    const label = tile.querySelector(".limit-label");
+    label.textContent = `limit ${oneDecimal(fridge.threshold)} °C`;
+    label.style.left = percent(fridge.threshold);
+    tile.querySelector(".scale-top").textContent = `${top} °C`;
+
+    tile.querySelector(".tile-sentence").textContent = fridgeSentence(fridge, fanState.textContent);
+    tile.querySelector(".hum").textContent = fridge.humidity === null ? "--" : Math.round(fridge.humidity);
+    tile.querySelector(".last-reading").textContent = fridge.age === null ? "No reading yet" : `Last reading ${timeAgo(fridge.age)}`;
 }
 
 // Get the latest readings from the server and show them
 async function update() {
     try {
-        const response = await fetch("/api/fridges");
+        const response = await fetch("/api/fridges", { cache: "no-store" });
         const fridges = await response.json();
         if (response.status === 403) {
-            showSignedOut();
+            showSignedOut(message);
             return;
         }
         if (!response.ok) {
@@ -149,35 +134,19 @@ async function update() {
             message.style.color = "red";
             return;
         }
- 
+        message.textContent = "";
+
+        // Too warm fridges first
+        const order = { hot: 0, offline: 1, waiting: 2, ok: 3 };
+        fridges.sort((a, b) => order[fridgeStatus(a)] - order[fridgeStatus(b)] || a.id - b.id);
+
+        latestFridges = fridges;
         for (const fridge of fridges) {
-            if (!cards[fridge.id]) makeCard(fridge);
-            const card = cards[fridge.id];
- 
-            card.querySelector(".temp").textContent = fridge.temperature ?? "--";
-            card.querySelector(".hum").textContent = fridge.humidity ?? "--";
-            card.querySelector(".threshold").textContent = fridge.threshold;
- 
-            // Thermometer: fill level, threshold marker, red when too warm
-            const thermo = card.querySelector(".thermo");
-            const temp = parseFloat(fridge.temperature);
-            const threshold = parseFloat(fridge.threshold);
- 
-            if (!Number.isNaN(threshold)) {
-                thermo.style.setProperty("--threshold-level", fraction(threshold, TEMP_MIN, TEMP_MAX));
-            }
-            if (!Number.isNaN(temp)) {
-                thermo.style.setProperty("--level", fraction(temp, TEMP_MIN, TEMP_MAX));
-                card.classList.toggle("hot", !Number.isNaN(threshold) && temp > threshold);
-            }
- 
-            // Humidity needle
-            const hum = parseFloat(fridge.humidity);
-            if (!Number.isNaN(hum)) {
-                card.querySelector(".dial").style
-                    .setProperty("--level", fraction(hum, HUM_MIN, HUM_MAX));
-            }
+            if (!tiles[fridge.id]) makeTile(fridge);
+            showTile(fridge);
+            fridgesDiv.appendChild(tiles[fridge.id]);
         }
+        showSummary();
     } catch (error) {
         message.textContent = "Cannot reach the server.";
         message.style.color = "red";
@@ -186,7 +155,5 @@ async function update() {
 
 update();
 updateFan();
-updateAlerts();
 setInterval(updateFan, 2000);
 setInterval(update, 2000);  // refresh every 2 seconds
-setInterval(updateAlerts, 2000);

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Customers{% endblock %}
+{% block main_class %}wide{% endblock %}
 
 {% block content %}
     <h2>Customers</h2>
+    <p id="message" role="status"></p>
 
     <div class="card table-box">
     {% if customers %}
@@ -13,7 +15,11 @@
                 <th>Address</th>
                 <th>Email</th>
                 <th>Phone Number</th>
+                <th>Membership #</th>
+                <th>Points</th>
+                <th>Joined</th>
                 <th>Role</th>
+                <th></th>
             </tr>
             {% for customer in customers %}
             <tr>
@@ -22,7 +28,21 @@
                 <td>{{ customer.address }}</td>
                 <td>{{ customer.email }}</td>
                 <td>{{ customer.phoneNumber }}</td>
-                <td>{{ customer.role }}</td>
+                <td>{{ customer.membershipNumber }}</td>
+                <td>{{ customer.totalPoints }}</td>
+                <td>{{ customer.createdAt[:10] }}</td>
+                <td class="role {{ customer.role }}">{{ customer.role }}</td>
+                <td>
+                    {% if customer.customerID == session.id %}
+                    <span class="muted">You</span>
+                    {% else %}
+                    <button type="button" class="role-button small" data-id="{{ customer.customerID }}"
+                        data-name="{{ customer.customerName }}"
+                        data-role="{{ 'customer' if customer.role == 'admin' else 'admin' }}">
+                        {{ 'Make customer' if customer.role == 'admin' else 'Make admin' }}
+                    </button>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </table>
@@ -30,4 +50,6 @@
         <p>No customers yet. <a href="/signup">Sign up the first one.</a></p>
     {% endif %}
     </div>
+
+    <script src="{{ url_for('static', filename='js/customers.js') }}"></script>
 {% endblock %}

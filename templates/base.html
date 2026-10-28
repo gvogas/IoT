@@ -10,17 +10,22 @@
 <body>
     <nav>
         <a href="/">Home</a>
+        {% if session.role == "admin" %}
         <a href="/fridges">Fridges</a>
         <a href="/customers">Customers</a>
-        <a href="/signup" class="signup">Sign Up</a>
-        {% if session.name %}
-        <a href="/signout">Sign Out ({{ session.name }})</a>
+        {% elif session.id %}
+        <a href="/account">My Account</a>
+        {% endif %}
+
+        {% if session.id %}
+        <a href="/signout" class="right">Sign Out ({{ session.name }})</a>
         {% else %}
-        <a href="/signin">Sign In</a>
+        <a href="/signin" class="right">Sign In</a>
+        <a href="/signup">Sign Up</a>
         {% endif %}
     </nav>
 
-    <main>
+    <main class="{% block main_class %}{% endblock %}">
 {% block content %}{% endblock %}
     </main>
 </body>

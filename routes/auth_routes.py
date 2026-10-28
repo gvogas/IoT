@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, session
 
-from models.customer import check_sign_in
+from models.customer import check_sign_in, get_customer
 
 # The sign in and sign out pages. app.py adds them with app.register_blueprint(auth_routes)
 auth_routes = Blueprint("auth_routes", __name__)
@@ -11,7 +11,20 @@ auth_routes = Blueprint("auth_routes", __name__)
 #     if not is_admin():
 #         return render_template("signin.html", error="Only admins can see this page."), 403
 def is_admin():
-    return session.get("role") == "admin"
+    if "id" not in session:
+        return False
+    # Check the database so a role change works right away
+    customer = get_customer(session["id"])
+    if customer is None:
+        session.clear()
+        return False
+    session["role"] = customer["role"]
+    return customer["role"] == "admin"
+
+
+# Gives back True if someone is signed in
+def is_signed_in():
+    return "id" in session
 
 
 # -------------------------

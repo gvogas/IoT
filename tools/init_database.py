@@ -6,7 +6,7 @@ def main():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute(''' 
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS Customer (
             customerID INTEGER PRIMARY KEY AUTOINCREMENT,
             customerName VARCHAR(100) NOT NULL,
@@ -15,7 +15,10 @@ def main():
             email VARCHAR(255) NOT NULL UNIQUE,
             passwordHash VARCHAR(255) NOT NULL,
             role VARCHAR(20) NOT NULL DEFAULT 'customer'
-                CHECK (role IN ('customer', 'admin')));
+                CHECK (role IN ('customer', 'admin')),
+            membershipNumber VARCHAR(12) NOT NULL UNIQUE,
+            totalPoints INTEGER NOT NULL DEFAULT 0 CHECK (totalPoints >= 0),
+            createdAt DATETIME NOT NULL);
         ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Fridge (
@@ -23,6 +26,17 @@ def main():
             fridgeName VARCHAR(100) NOT NULL,
             temp_threshold FLOAT NOT NULL
         );''')
+
+    # Readings saved once a minute, for the history chart
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Reading (
+            readingID INTEGER PRIMARY KEY AUTOINCREMENT,
+            fridgeID INTEGER NOT NULL REFERENCES Fridge(fridgeID),
+            temperature FLOAT,
+            humidity FLOAT,
+            recordedAt DATETIME NOT NULL
+        );''')
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_reading_fridge_time ON Reading(fridgeID, recordedAt)")
 
     # Add the 2 fridges only the first time
     # (after that, change the threshold on the Fridges page of the website)

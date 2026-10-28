@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+    <!-- Add a new card here for each new dashboard -->
+    <h2>Store Dashboards</h2>
+
+    <div class="dashboards">
+        <a class="card" href="/fridges">
+            <h3>Fridges</h3>
+            <p>Temperature, humidity and threshold of each fridge</p>
+        </a>
+        <a class="card" href="/customers">
+            <h3>Customers ({{ customer_count }})</h3>
+            <p>All the customers in the database</p>
+        </a>
+    </div>
+{% endblock %}

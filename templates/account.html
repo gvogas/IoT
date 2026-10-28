@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}My Account{% endblock %}
+
+{% block content %}
+    <h2>My Account</h2>
+
+    <div class="card">
+        <h3>{{ customer.customerName }}</h3>
+        <table>
+            <tr><th>Membership number</th><td class="member-number">{{ customer.membershipNumber }}</td></tr>
+            <tr><th>Points</th><td>{{ customer.totalPoints }}</td></tr>
+            <tr><th>Email</th><td>{{ customer.email }}</td></tr>
+            <tr><th>Phone Number</th><td>{{ customer.phoneNumber }}</td></tr>
+            <tr><th>Address</th><td>{{ customer.address }}</td></tr>
+            <tr><th>Member since</th><td>{{ customer.createdAt[:10] }}</td></tr>
+        </table>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h3>Purchase History</h3>
+        <!-- TODO: show receipts once checkout is built -->
+        <p class="muted">No purchases yet.</p>
+    </div>
+{% endblock %}

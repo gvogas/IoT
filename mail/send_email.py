@@ -5,10 +5,11 @@ from email.message import EmailMessage
 from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_TO, SMTP_PORT, SMTP_SERVER
 
 
+# Gives back True if the email was sent, False if not
 def send_temperature_alert(fridge_id, temperature, threshold):
     if not (ALERT_EMAIL and ALERT_EMAIL_PASSWORD and ALERT_TO):
         print("Email alert not sent: set ALERT_EMAIL, ALERT_EMAIL_PASSWORD and ALERT_TO (see config.py)")
-        return
+        return False
 
     # 1. Construct the email message
     msg = EmailMessage()
@@ -32,6 +33,8 @@ def send_temperature_alert(fridge_id, temperature, threshold):
             server.send_message(msg)
 
         print(f"Email sent successfully for Frig{fridge_id}!")
+        return True
 
     except Exception as e:
         print(f"An error occurred: {e}")
+        return False

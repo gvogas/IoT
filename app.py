@@ -1,5 +1,7 @@
 import threading
 
+import sqlite3
+
 from flask import Flask, render_template
 
 from config import SECRET_KEY
@@ -8,8 +10,9 @@ from mail.read_email import check_forever
 from controllers.mqtt_controller import mqtt_controller
 from controllers.fan_controller import fan_controller
 from hardware import signals
-from routes.auth_routes import auth_routes
-from routes.customer_routes import customer_routes
+from models.customer import all_customers
+from routes.auth_routes import auth_routes, is_admin, is_signed_in
+from routes.customer_routes import customer_routes, show_account
 from routes.fridge_routes import fridge_routes
 from routes.fan_routes import fan_routes
 
@@ -27,9 +30,19 @@ app.register_blueprint(fridge_routes)
 app.register_blueprint(fan_routes)
 
 
-# The main page. It has a link to each dashboard.
+# The main page. It is different for admins, customers and people not signed in
 @app.route("/")
 def home():
+    if is_admin():
+        try:
+            customers = all_customers()
+        except sqlite3.Error as err:
+            return f"Database error: {err}", 500
+        return render_template("admin_home.html", customer_count=len(customers))
+
+    if is_signed_in():
+        return show_account()
+
     return render_template("home.html")
 
 

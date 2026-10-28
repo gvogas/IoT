@@ -1,4 +1,6 @@
 import re
+import secrets
+from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from models.database import connect
@@ -16,15 +18,37 @@ MIN_PASSWORD = 8
 
 ROLES = ("customer", "admin")
 
+# Membership numbers look like VM12345678
+MEMBERSHIP_PREFIX = "VM"
+
+
+# Make a membership number that no one has yet
+def new_membership_number(conn):
+    while True:
+        number = f"{MEMBERSHIP_PREFIX}{secrets.randbelow(10**8):08d}"
+        taken = conn.execute("SELECT 1 FROM Customer WHERE membershipNumber = ?", (number,)).fetchone()
+        if taken is None:
+            return number
+
 
 # Get every customer from the database, for the customers page
 def all_customers():
     conn = connect()
     try:
-        rows = conn.execute("SELECT customerID, customerName, address, email, phoneNumber, role FROM Customer ORDER BY customerID").fetchall()
+        rows = conn.execute("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer ORDER BY customerID").fetchall()
     finally:
         conn.close()
     return rows
+
+
+# Get one customer, or None if that ID is not there
+def get_customer(customer_id):
+    conn = connect()
+    try:
+        row = conn.execute("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer WHERE customerID = ?", (customer_id,)).fetchone()
+    finally:
+        conn.close()
+    return row
 
 
 # For sign in: gives back the customer if the email and password are right, or None if not
@@ -124,16 +148,19 @@ class Customer:
             conn.close()
         return row is not None
 
-    # Add the customer to the database
+    # Add the customer to the database and give back their new membership number
     # If the email or phone number is already used, this gives an IntegrityError
     def save(customer):
         conn = connect()
         try:
+            customer.membership_number = new_membership_number(conn)
             conn.execute(
                 # New people always start as "customer". Use tools/set_role.py to make someone an admin
-                "INSERT INTO Customer (customerName, address, email, phoneNumber, passwordHash) VALUES (?, ?, ?, ?, ?)",
-                (customer.name, customer.address, customer.email, customer.phone_number, generate_password_hash(customer.password)),
+                "INSERT INTO Customer (customerName, address, email, phoneNumber, passwordHash, membershipNumber, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (customer.name, customer.address, customer.email, customer.phone_number, generate_password_hash(customer.password),
+                 customer.membership_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             )
             conn.commit()
         finally:
             conn.close()
+        return customer.membership_number
