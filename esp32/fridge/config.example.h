@@ -4,25 +4,15 @@
 // WiFi
 // -------------------------
 
-// school wifi
-#define WIFI_SSID      "iotvanier"
-#define WIFI_PASSWORD  "14730078"
-
-// home wifi
-// #define WIFI_SSID      "iotvanier"
-// #define WIFI_PASSWORD  "14730078"
+#define WIFI_SSID      "your-wifi"
+#define WIFI_PASSWORD  "your-wifi-password"
 
 
 // -------------------------
 // MQTT broker (the Raspberry Pi). Use the same IP as MQTT_BROKER in config.py on the Pi
 // -------------------------
 
-// school
-#define MQTT_BROKER    "192.168.50.107"
-
-// home
-// #define MQTT_BROKER    "192.168.50.107"
-
+#define MQTT_BROKER    "192.168.0.100"
 #define MQTT_PORT      1883
 #define MQTT_CLIENT    "ESP32-Fridges"
 

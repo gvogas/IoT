@@ -4,29 +4,51 @@ Fridge monitor: an ESP32 with 2 DHT11 sensors sends the temperature and humidity
 and a Flask website shows the fridges and signs up customers.
 
 There is one fan, with a separate driver in hardware/fan.py.
-Admins can turn it off from the fridge dashboard.
-Sensor readings do not switch it automatically. The planned email approval flow
-for readings below a fridge's threshold is not implemented yet.
+When a fridge goes over its threshold, the app emails an alert. Replying YES turns the fan on.
+Admins can turn it off from the fridge dashboard. Sensor readings never switch it by themselves.
+
+For a map of how all the parts fit together, see [docs/architecture.md](docs/architecture.md).
 
 ## Folders
 
 ```
-app.py              run this: website (customer sign up + fridge dashboard)
-config.py           all the settings: broker ip, GPIO pins, database path
+app.py              run this: website 
+config.py           all the settings: broker ip, GPIO pins, database path 
 
-models/             talks to the database (database.py, customer.py, fridge.py)
+models/             talks to the database (database.py has query, query_one and execute; customer.py, fridge.py, reading.py)
 controllers/        MqttController receives readings; FanController controls the shared fan
 hardware/           talks to the Pi pins (fan.py, signals.py = LEDs + buzzer)
 routes/             Flask pages and API endpoints for auth, customers, fridges and fan
 templates/          the HTML pages
 static/             shared CSS and page JavaScript (signup.js, fridge_dashboard.js)
 tools/              database setup and customer role management
-mail/               standalone email scripts (not connected to sensor readings yet)
+mail/               sends the temperature alert and reads the YES/NO replies
 esp32/fridge/       ESP32 code (both DHT11 sensors on one board), open fridge.ino in Arduino IDE
-docs/               project documents (Phase 2 PDF)
+docs/               project documents
 ```
 
 ## Setup
+
+The settings files have passwords, so they are not in git. Make your own copies first:
+
+```
+cp config.example.py config.py
+cp esp32/fridge/config.example.h esp32/fridge/config.h
+```
+
+Then fill in your own values:
+
+| File | Setting | What to put |
+|---|---|---|
+| config.py | `MQTT_BROKER` | IP of the Pi running the MQTT broker |
+| config.py | `ALERT_EMAIL` | Gmail account that sends the alerts |
+| config.py | `ALERT_EMAIL_PASSWORD` | Gmail app password for that account (not the normal password) |
+| config.py | `ALERT_TO` | Email address that gets the alerts |
+| config.py | `FRIDGES_ENABLED` | `False` to run without the broker, ESP32 and sensors |
+| config.h | `WIFI_SSID`, `WIFI_PASSWORD` | WiFi the ESP32 joins |
+| config.h | `MQTT_BROKER` | Same IP as `MQTT_BROKER` in config.py |
+
+The email settings can also come from the `ALERT_EMAIL`, `ALERT_EMAIL_PASSWORD` and `ALERT_TO` environment variables.
 
 ```
 python -m venv .venv
@@ -47,12 +69,9 @@ python app.py               then go to http://127.0.0.1:5000/
                             Fridges + Customers need a customer with the admin role (see below)
 ```
 
-Only run `python -m controllers.mqtt_controller` alone to test sensor reception without the website, never at the same time as app.py.
-
-Models hold customer and fridge data. Controllers handle MQTT and the shared fan.
-Routes receive browser requests and call the models or controllers. Templates and
-static files display the pages. The fan and MQTT controller instances are shared
-within the application process.
+When someone opens a page, a route in routes/ handles it. The route asks the models for data from
+the database, or asks a controller for the live readings and the fan, then fills in a template.
+There is only one MQTT controller and one fan controller, and the whole app shares them.
 
 ## Tools
 
@@ -60,6 +79,7 @@ within the application process.
 python -m tools.set_role          make a customer an admin (or a normal customer again)
 ```
 
-First admin: sign up on the website, then run `python -m tools.set_role` and give yourself the admin role.
+To make the first admin, sign up on the website, then run `python -m tools.set_role` and give yourself the admin role.
 
-To start over with an empty database: delete `store.db` and run `python -m tools.init_database` again.
+To start over with an empty database, delete `store.db` and run `python -m tools.init_database` again.
+

@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models.database import connect
+from models.database import execute, query, query_one
 
 EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 PHONE_REGEX = r"^\+?[1-9]\d{7,14}$"
@@ -23,41 +23,27 @@ MEMBERSHIP_PREFIX = "VM"
 
 
 # Make a membership number that no one has yet
-def new_membership_number(conn):
+def new_membership_number():
     while True:
         number = f"{MEMBERSHIP_PREFIX}{secrets.randbelow(10**8):08d}"
-        taken = conn.execute("SELECT 1 FROM Customer WHERE membershipNumber = ?", (number,)).fetchone()
+        taken = query_one("SELECT 1 FROM Customer WHERE membershipNumber = ?", (number,))
         if taken is None:
             return number
 
 
 # Get every customer from the database, for the customers page
 def all_customers():
-    conn = connect()
-    try:
-        rows = conn.execute("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer ORDER BY customerID").fetchall()
-    finally:
-        conn.close()
-    return rows
+    return query("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer ORDER BY customerID")
 
 
 # Get one customer, or None if that ID is not there
 def get_customer(customer_id):
-    conn = connect()
-    try:
-        row = conn.execute("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer WHERE customerID = ?", (customer_id,)).fetchone()
-    finally:
-        conn.close()
-    return row
+    return query_one("SELECT customerID, customerName, address, email, phoneNumber, role, membershipNumber, totalPoints, createdAt FROM Customer WHERE customerID = ?", (customer_id,))
 
 
 # For sign in: gives back the customer if the email and password are right, or None if not
 def check_sign_in(email, password):
-    conn = connect()
-    try:
-        row = conn.execute("SELECT customerID, customerName, role, passwordHash FROM Customer WHERE email = ?", (email.strip().lower(),)).fetchone()
-    finally:
-        conn.close()
+    row = query_one("SELECT customerID, customerName, role, passwordHash FROM Customer WHERE email = ?", (email.strip().lower(),))
     if row and check_password_hash(row["passwordHash"], password):
         return row
     return None
@@ -67,13 +53,7 @@ def check_sign_in(email, password):
 def set_role(customer_id, role):
     if role not in ROLES:
         raise ValueError(f"Role must be one of {ROLES}")
-    conn = connect()
-    try:
-        cursor = conn.execute("UPDATE Customer SET role = ? WHERE customerID = ?", (role, customer_id))
-        conn.commit()
-    finally:
-        conn.close()
-    return cursor.rowcount > 0
+    return execute("UPDATE Customer SET role = ? WHERE customerID = ?", (role, customer_id)) > 0
 
 
 class Customer:
@@ -133,34 +113,19 @@ class Customer:
         return errors
 
     def email_taken(customer):
-        conn = connect()
-        try:
-            row = conn.execute("SELECT 1 FROM Customer WHERE LOWER(email) = ?", (customer.email,)).fetchone()
-        finally:
-            conn.close()
-        return row is not None
+        return query_one("SELECT 1 FROM Customer WHERE LOWER(email) = ?", (customer.email,)) is not None
 
     def phone_taken(customer):
-        conn = connect()
-        try:
-            row = conn.execute("SELECT 1 FROM Customer WHERE phoneNumber = ?", (customer.phone_number,)).fetchone()
-        finally:
-            conn.close()
-        return row is not None
+        return query_one("SELECT 1 FROM Customer WHERE phoneNumber = ?", (customer.phone_number,)) is not None
 
     # Add the customer to the database and give back their new membership number
     # If the email or phone number is already used, this gives an IntegrityError
     def save(customer):
-        conn = connect()
-        try:
-            customer.membership_number = new_membership_number(conn)
-            conn.execute(
-                # New people always start as "customer". Use tools/set_role.py to make someone an admin
-                "INSERT INTO Customer (customerName, address, email, phoneNumber, passwordHash, membershipNumber, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (customer.name, customer.address, customer.email, customer.phone_number, generate_password_hash(customer.password),
-                 customer.membership_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        customer.membership_number = new_membership_number()
+        execute(
+            # New people always start as "customer". Use tools/set_role.py to make someone an admin
+            "INSERT INTO Customer (customerName, address, email, phoneNumber, passwordHash, membershipNumber, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (customer.name, customer.address, customer.email, customer.phone_number, generate_password_hash(customer.password),
+             customer.membership_number, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        )
         return customer.membership_number

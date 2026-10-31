@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from models.database import connect
+from models.database import connect, execute, query
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -15,28 +15,19 @@ def to_number(value):
 
 # Save one reading
 def save_reading(fridge_id, temperature, humidity):
-    conn = connect()
-    try:
-        conn.execute(
-            "INSERT INTO Reading (fridgeID, temperature, humidity, recordedAt) VALUES (?, ?, ?, ?)",
-            (fridge_id, temperature, humidity, datetime.now().strftime(TIME_FORMAT)),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    execute(
+        "INSERT INTO Reading (fridgeID, temperature, humidity, recordedAt) VALUES (?, ?, ?, ?)",
+        (fridge_id, temperature, humidity, datetime.now().strftime(TIME_FORMAT)),
+    )
 
 
 # Readings from the last few hours, for the history chart
 def get_history(fridge_id, hours):
     since = (datetime.now() - timedelta(hours=hours)).strftime(TIME_FORMAT)
-    conn = connect()
-    try:
-        rows = conn.execute(
-            "SELECT recordedAt, temperature, humidity FROM Reading WHERE fridgeID = ? AND recordedAt >= ? ORDER BY recordedAt",
-            (fridge_id, since),
-        ).fetchall()
-    finally:
-        conn.close()
+    rows = query(
+        "SELECT recordedAt, temperature, humidity FROM Reading WHERE fridgeID = ? AND recordedAt >= ? ORDER BY recordedAt",
+        (fridge_id, since),
+    )
     return [{"time": row["recordedAt"], "temperature": row["temperature"], "humidity": row["humidity"]} for row in rows]
 
 

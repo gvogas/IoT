@@ -2,7 +2,10 @@
 __pycache__/
 *.pyc
 .venv/
-config.py
-./config.h
-# Database, made by tools/init_database.py (each computer has its own)
+
+# Local settings with passwords 
+/config.py
+esp32/fridge/config.h
+
+# Database, made by tools/init_database.py 
 *.db

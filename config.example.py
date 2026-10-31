@@ -21,15 +21,40 @@ SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
 
 
 # -------------------------
+# Fridges (Phase 2)
+# -------------------------
+
+# False = don't connect to MQTT or check alert emails, so the app runs
+# without the broker, the ESP32 or the sensors
+FRIDGES_ENABLED = False
+
+
+# -------------------------
 # MQTT broker (the program on the Pi that passes the sensor messages along)
 # -------------------------
 
-# school ip
-MQTT_BROKER = "192.168.50.107"
-# home
-# MQTT_BROKER = "192.168.50.107"
+# IP of the Raspberry Pi running the broker
+MQTT_BROKER = "192.168.0.100"
 
 MQTT_PORT = 1883
+
+# Send "ON" or "OFF" here to control the fan (a YES reply to an alert email sends "ON")
+FAN_COMMAND_TOPIC = "fan/command"
+
+# -------------------------
+# Email alerts (sent when a fridge goes over its threshold)
+# -------------------------
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+IMAP_SERVER = "imap.gmail.com"
+ALERT_EMAIL = os.environ.get("ALERT_EMAIL", "you@gmail.com")
+ALERT_EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "your-gmail-app-password")
+ALERT_TO = os.environ.get("ALERT_TO", "alerts-go-here@gmail.com")
+
+# After an alert, the fridge must cool this many degrees below the threshold
+# before another alert can be sent (stops a flood of emails near the threshold)
+ALERT_RESET_MARGIN = 1.0
 
 
 # -------------------------

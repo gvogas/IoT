@@ -4,7 +4,7 @@ import sqlite3
 
 from flask import Flask, render_template
 
-from config import SECRET_KEY
+from config import FRIDGES_ENABLED, SECRET_KEY
 from mail.read_email import check_forever
 
 from controllers.mqtt_controller import mqtt_controller
@@ -53,11 +53,12 @@ def home():
 if __name__ == "__main__":
 
     try:
-        # Start listening to the sensors while the website runs.
-        mqtt_controller.start()
+        if FRIDGES_ENABLED:
+            # Start listening to the sensors while the website runs.
+            mqtt_controller.start()
 
-        # Check the inbox for YES/NO replies to alert emails while the website runs.
-        threading.Thread(target=check_forever, daemon=True).start()
+            # Check the inbox for YES/NO replies to alert emails while the website runs.
+            threading.Thread(target=check_forever, daemon=True).start()
 
         app.run(
             host="0.0.0.0",
@@ -69,7 +70,8 @@ if __name__ == "__main__":
     finally:
 
         try:
-            mqtt_controller.stop()
+            if FRIDGES_ENABLED:
+                mqtt_controller.stop()
         finally:
             try:
                 fan_controller.turn_off()

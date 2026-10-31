@@ -1,4 +1,4 @@
-from models.database import connect
+from models.database import execute, query, query_one
 
 
 class Fridge:
@@ -15,13 +15,7 @@ class Fridge:
     # Load all details in one query and return Fridge objects.
     @staticmethod
     def get_all():
-        conn = connect()
-        try:
-            rows = conn.execute(
-                "SELECT fridgeID, fridgeName, temp_threshold FROM Fridge ORDER BY fridgeID"
-            ).fetchall()
-        finally:
-            conn.close()
+        rows = query("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge ORDER BY fridgeID")
         return [
             Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
             for row in rows
@@ -30,14 +24,7 @@ class Fridge:
     # Return one Fridge object, or None if the ID is not there.
     @staticmethod
     def get_by_id(fridge_id):
-        conn = connect()
-        try:
-            row = conn.execute(
-                "SELECT fridgeID, fridgeName, temp_threshold FROM Fridge WHERE fridgeID = ?",
-                (fridge_id,),
-            ).fetchone()
-        finally:
-            conn.close()
+        row = query_one("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge WHERE fridgeID = ?", (fridge_id,))
         if row is None:
             return None
         return Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
@@ -50,13 +37,8 @@ class Fridge:
 
     # Gives back False if the fridge is not in the database
     def set_threshold(fridge, threshold):
-        conn = connect()
-        try:
-            cursor = conn.execute("UPDATE Fridge SET temp_threshold = ? WHERE fridgeID = ?", (threshold, fridge.id))
-            conn.commit()
-        finally:
-            conn.close()
-        if cursor.rowcount == 0:
+        changed = execute("UPDATE Fridge SET temp_threshold = ? WHERE fridgeID = ?", (threshold, fridge.id))
+        if changed == 0:
             return False
         fridge.threshold = threshold
         return True
