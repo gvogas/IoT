@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block content %}
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">Products</h2>
+            <p class="text-secondary mb-0">Each product is defined once. Deliveries are recorded on the product page.</p>
+        </div>
+        <a class="btn btn-primary" href="/products/new">Add product</a>
+    </div>
+
+    {% if products %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <input type="search" class="form-control search-box" placeholder="Search by name, UPC, category or producer" aria-label="Search products" data-search>
+        <span class="text-secondary small ms-md-auto" data-count></span>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 stock-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Producer</th>
+                        <th class="text-end">Price</th>
+                        <th>UPC</th>
+                        <th class="text-end">In stock</th>
+                        <th>Status</th>
+                        <th><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for product in products %}
+                    <tr data-search-row data-search="{{ (product.productName ~ ' ' ~ product.categoryName ~ ' ' ~ product.producerName ~ ' ' ~ product.upc)|lower }}">
+                        <td data-label="Product"><a href="/products/{{ product.productID }}" class="fw-semibold link-body-emphasis text-decoration-none">{{ product.productName }}</a></td>
+                        <td data-label="Category">{{ product.categoryName }}</td>
+                        <td data-label="Producer">{{ product.producerName }}</td>
+                        <td class="text-end" data-label="Price">${{ '%.2f'|format(product.price) }}</td>
+                        <td data-label="UPC"><code>{{ product.upc }}</code></td>
+                        <td class="text-end fw-bold" data-label="In stock">{{ product.inStock }}</td>
+                        <td data-label="Status">
+                            {% if product.isActive %}
+                            <span class="badge text-bg-success">Shown</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">Hidden</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end" data-label="">
+                            <a class="btn btn-outline-secondary btn-sm" href="/products/{{ product.productID }}/edit">Edit</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No products match your search.</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <h3 class="h5">No products yet</h3>
+            <p class="text-secondary">Add the first product to start tracking stock.</p>
+            <a class="btn btn-primary" href="/products/new">Add product</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+{% endblock %}

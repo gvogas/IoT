@@ -2,11 +2,11 @@
 
 This is the database for the self-checkout store. It keeps the products, the deliveries, the RFID-tagged items, the customers and their receipts.
 
-Everything is in one SQLite file, `store.db` (the path is `DB_PATH` in `config.py`). You create it with `python -m tools.init_database`. The Phase 2 tables, `Fridge` and `Reading`, are still in the file, but this document doesn't cover them.
+Everything is in one SQLite file, `store.db` (the path is `DB_PATH` in `config.py`). You create it with `python -m tools.init_database`. Run the same command again after an update: it only adds what is missing and never removes data. The Phase 2 tables, `Fridge` and `Reading`, are still in the file, but this document doesn't cover them.
 
 ## One EPC per item
 
-A Product is defined once, with its name, price and UPC barcode. Every can or box on the shelf has its own RFID tag, and each tag's EPC is one row in ProductItem. So if we have 24 Cokes, there is 1 Coke product and 24 Coke items.
+A Product is defined once, with its name, price, UPC barcode. Every can or box on the shelf has its own RFID tag, and each tag's EPC is one row in ProductItem. So if we have 24 Cokes, there is 1 Coke product and 24 Coke items.
 
 At checkout the RFID reader picks up every tag in the basket at once. Three Cokes give three EPCs, which means a quantity of 3. Once an item is paid for it is marked `sold`, so the same tag can't go through checkout twice.
 
@@ -43,6 +43,7 @@ erDiagram
         VARCHAR upc UK
         VARCHAR imagePath
         INTEGER lowStockThreshold
+        VARCHAR description
         INTEGER isActive
         DATETIME createdAt
     }
@@ -106,7 +107,7 @@ erDiagram
 ## Tables
 
 ### Category and Producer
-These are small lookup tables. They keep names consistent (no "Beverage" in one place and "beverages" in another), and the admin form uses them for its dropdowns.
+These are small lookup tables. They keep names consistent (no "Beverage" in one place and "beverages" in another). The product form suggests the names already here as you type, and a name that isn't there is added when the product is saved. Names match ignoring capitals.
 
 ### Product
 | Field | Type | Rules |
@@ -119,6 +120,7 @@ These are small lookup tables. They keep names consistent (no "Beverage" in one 
 | upc | VARCHAR(13) | required, unique, ≤ 13 chars |
 | imagePath | VARCHAR(255) | optional |
 | lowStockThreshold | INTEGER | default 5, ≥ 0. Low stock when stock ≤ this |
+| description | VARCHAR(500) | optional, notes for the staff |
 | isActive | INTEGER | 1 / 0. Used instead of deleting a product that has history |
 | createdAt | DATETIME | default now |
 
@@ -127,13 +129,13 @@ These are small lookup tables. They keep names consistent (no "Beverage" in one 
 |---|---|---|
 | receptionID | INTEGER | PK |
 | productID | INTEGER | FK → Product, required |
-| quantityReceived | INTEGER | > 0, equals the number of EPCs scanned |
+| quantityReceived | INTEGER | equals the number of units (one EPC each) |
 | dateReceived | DATE | required |
 
 ### ProductItem (one tagged unit)
 | Field | Type | Rules |
 |---|---|---|
-| epc | VARCHAR(24) | PK, the RFID tag |
+| epc | VARCHAR(24) | PK, the unit's EPC. Typed in or scanned from the tag (hex) |
 | productID | INTEGER | FK → Product, required |
 | receptionID | INTEGER | FK → Reception, required |
 | status | VARCHAR(10) | `in_stock` (default), `sold` or `removed` |
@@ -182,11 +184,18 @@ A receipt has one line per product, with the quantity on it (`UNIQUE (purchaseID
 
 ## How the app uses it
 
+### Adding and editing a product
+The admin fills in the name, category, producer company, price, UPC (digits, up to 13), and an optional description and low stock level. The UPC is unique.
+
 ### Receiving a delivery
-1. The admin picks the product, or scans its UPC, and puts the tagged units on the reader.
-2. The app saves 1 Reception and then 1 ProductItem for each EPC, all in one transaction.
-3. If one of the EPCs is already in the database, the whole delivery is rejected and nothing is saved.
-4. Once it's saved, the app sends a new delivery notification, like "3 × Coke received on 2026-10-30".
+1. The admin opens the product and enters the date received, then adds the EPC of each unit. They either type the EPCs or scan each RFID tag (a scanner types the EPC into the box). One per line, or separated by spaces or commas. The number of EPCs is the quantity.
+2. The app checks them: each must be hex (0-9, A-F, up to 24 characters), none can repeat in the list, and none can already be in the database. If anything is wrong, the whole delivery is rejected and nothing is saved.
+3. The app saves 1 Reception and then 1 ProductItem for each EPC, all in one transaction.
+4. Once it's saved, the app shows a notification, like "3 units of Coca-Cola 500ml received on 2026-10-30".
+
+### Finding units
+- The product page has a Units list with every unit's EPC, the date it was received, the delivery it came in, and its status. It can be filtered by status and searched by EPC. It shows the newest 500 units.
+- The Inventory page has a "Find a unit by EPC" box. It finds any unit whose EPC contains the text, across all products, and shows up to 50 matches.
 
 ### Checkout
 1. The reader scans the basket and the app looks up each EPC in ProductItem. An EPC we don't know shows "Unrecognized item", and one that is already `sold` shows "Item already purchased".
@@ -205,7 +214,7 @@ Members get 1 point per whole dollar of the subtotal. Guests get none. The point
 
 - Every connection runs `PRAGMA foreign_keys = ON` (in `models/database.py`). SQLite ignores foreign keys without it.
 - Dates have no default, because SQLite's defaults are in UTC. The app passes the local date and time when it saves a row.
-- We never delete a product that already has items or receipts. We set `isActive = 0` instead, so old receipts still make sense.
+- A product that has deliveries or sales is never deleted. The app sets `isActive = 0` instead, so it is hidden from stock but old receipts still make sense. A product with no history is deleted.
 - An item must have the same `productID` as its reception. The app takes care of this when receiving, since both come from the same form.
 
 The full SQL is in [tools/init_database.py](../tools/init_database.py).

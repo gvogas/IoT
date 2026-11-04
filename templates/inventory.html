@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block main_class %}wide{% endblock %}
+
+{% block content %}
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">Inventory</h2>
+            <p class="text-secondary mb-0">Stock in hand, counted from the RFID tags still on the shelf.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="/inventory.csv">Download CSV</a>
+            <a class="btn btn-primary" href="/products/new">Add product</a>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
+        <div class="col">
+            <div class="card h-100"><div class="card-body py-3"><div class="small text-secondary">Units in stock</div><div class="fs-3 fw-semibold">{{ units }}</div>
+            </div></div>
+        </div>
+        <div class="col">
+            <div class="card h-100"><div class="card-body py-3"><div class="small text-secondary">Products</div><div class="fs-3 fw-semibold">{{ rows|length }}</div>
+            </div></div>
+        </div>
+        <div class="col">
+            <div class="card h-100"><div class="card-body py-3"><div class="small text-secondary">Low stock</div><div class="fs-3 fw-semibold {{ 'text-danger' if low }}">{{ low }}</div>
+            </div></div>
+        </div>
+        <div class="col">
+            <div class="card h-100"><div class="card-body py-3"><div class="small text-secondary">Out of stock</div><div class="fs-3 fw-semibold {{ 'text-danger' if out }}">{{ out }}</div>
+            </div></div>
+        </div>
+        <div class="col">
+            <div class="card h-100"><div class="card-body py-3"><div class="small text-secondary">Last delivery</div><div class="fs-5 fw-semibold">{{ last or "None yet" }}</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="/inventory" class="d-flex flex-wrap align-items-center gap-2" role="search">
+                <label for="epc-lookup" class="fw-semibold me-md-2">Find a unit by EPC</label>
+                <input id="epc-lookup" name="epc" class="form-control search-box font-monospace" value="{{ epc_query }}" placeholder="Type or paste part of an EPC">
+                <button type="submit" class="btn btn-outline-primary">Find</button>
+            </form>
+            {% if epc_query %}
+            <div class="mt-3">
+                {% if matches %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 stock-table">
+                        <thead><tr><th>EPC</th><th>Product</th><th>Date received</th><th>Status</th></tr></thead>
+                        <tbody>
+                        {% for unit in matches %}
+                            <tr>
+                                <td data-label="EPC" class="font-monospace">{{ unit.epc }}</td>
+                                <td data-label="Product"><a href="/products/{{ unit.productID }}" class="fw-semibold text-decoration-none">{{ unit.productName }}</a></td>
+                                <td data-label="Date received">{{ unit.dateReceived }}</td>
+                                <td data-label="Status">
+                                    {% if unit.status == 'in_stock' %}
+                                    <span class="badge text-bg-success">In stock</span>
+                                    {% elif unit.status == 'sold' %}
+                                    <span class="badge text-bg-secondary">Sold</span>
+                                    {% else %}
+                                    <span class="badge text-bg-danger">Removed</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-secondary mb-0">No unit has an EPC containing "{{ epc_query }}".</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if rows %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <input type="search" class="form-control search-box" placeholder="Search by name or category" aria-label="Search products" data-search>
+        <div class="btn-group" role="group" aria-label="Filter by stock">
+            <button type="button" class="btn btn-outline-secondary btn-sm active" data-status-filter="all">All</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-status-filter="low">Low stock</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-status-filter="out">Out of stock</button>
+        </div>
+        <span class="text-secondary small ms-md-auto" data-count></span>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 stock-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-end">In stock</th>
+                        <th class="text-end">Sold</th>
+                        <th>Last received</th>
+                        <th>Status</th>
+                        <th><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                {% set status = 'out' if row.inStock == 0 else ('low' if row.lowStock else 'ok') %}
+                    <tr data-search-row data-search="{{ (row.productName ~ ' ' ~ row.categoryName)|lower }}" data-status="{{ status }}">
+                        <td data-label="Product"><a href="/products/{{ row.productID }}" class="fw-semibold link-body-emphasis text-decoration-none">{{ row.productName }}</a></td>
+                        <td data-label="Category">{{ row.categoryName }}</td>
+                        <td class="text-end" data-label="Price">${{ '%.2f'|format(row.price) }}</td>
+                        <td class="text-end fw-bold" data-label="In stock">
+                            <span>{{ row.inStock }} <span class="small text-secondary fw-normal">alert at {{ row.lowStockThreshold }}</span></span>
+                        </td>
+                        <td class="text-end" data-label="Sold">{{ row.totalSold }}</td>
+                        <td data-label="Last received">{{ row.lastReceived or "Never" }}</td>
+                        <td data-label="Status">
+                            {% if status == 'ok' %}
+                            <span class="badge text-bg-success">In stock</span>
+                            {% elif status == 'low' %}
+                            <span class="badge text-bg-warning">Low stock</span>
+                            {% else %}
+                            <span class="badge text-bg-danger">Out of stock</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end" data-label="">
+                            <a class="btn btn-outline-primary btn-sm" href="/products/{{ row.productID }}#receive">Receive</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No products match your search.</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <h3 class="h5">No products yet</h3>
+            <p class="text-secondary">Add a product first, then receive its first delivery.</p>
+            <a class="btn btn-primary" href="/products/new">Add product</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+{% endblock %}

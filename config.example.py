@@ -69,3 +69,12 @@ LEDBLUE = 26
 BUZZER = 24
 
 
+# -------------------------
+# RFID reader (CF600, used to scan the EPC of each unit when receiving stock)
+# -------------------------
+
+# The reader's USB serial port. Change it to /dev/ttyACM0 if that is what shows up
+RFID_PORT = "/dev/ttyUSB0"
+
+# The CF600's serial baud rate
+RFID_BAUD = 115200

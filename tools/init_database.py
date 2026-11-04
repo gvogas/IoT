@@ -59,8 +59,26 @@ def main():
             imagePath VARCHAR(255),
             lowStockThreshold INTEGER NOT NULL DEFAULT 5 CHECK (lowStockThreshold >= 0),
             isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
-            createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            description VARCHAR(500)
         );''')
+
+    # Databases made before these columns existed get them here (CREATE TABLE above skips old tables)
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(Product)")}
+    if "lowStockThreshold" not in existing:
+        cursor.execute("ALTER TABLE Product ADD COLUMN lowStockThreshold INTEGER NOT NULL DEFAULT 5 CHECK (lowStockThreshold >= 0)")
+    if "description" not in existing:
+        cursor.execute("ALTER TABLE Product ADD COLUMN description VARCHAR(500)")
+    # A product has no EPC of its own. Each unit has one (ProductItem), so an EPC column from an earlier try is removed
+    if "epc" in existing:
+        cursor.execute("DROP INDEX IF EXISTS idx_product_epc")
+        cursor.execute("ALTER TABLE Product DROP COLUMN epc")
+    # Each unit's EPC is scanned or typed in when it is received, so the company prefix and item reference are removed
+    if "companyPrefix" in existing or "itemReference" in existing:
+        cursor.execute("DROP INDEX IF EXISTS idx_product_epc_prefix")
+    for column in ("companyPrefix", "itemReference"):
+        if column in existing:
+            cursor.execute(f"ALTER TABLE Product DROP COLUMN {column}")
 
     # One row per delivery of a product
     cursor.execute('''
@@ -118,7 +136,9 @@ def main():
 
     # Stock in hand = number of unsold tags, for the inventory dashboard
     cursor.execute('''
-        CREATE VIEW IF NOT EXISTS ProductStock AS
+        DROP VIEW IF EXISTS ProductStock;''')
+    cursor.execute('''
+        CREATE VIEW ProductStock AS
         SELECT p.productID,
                p.productName,
                c.categoryName,

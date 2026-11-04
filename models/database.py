@@ -38,3 +38,18 @@ def execute(sql, args=()):
         return cursor.rowcount
     finally:
         conn.close()
+
+
+# Run several writes as one: they are all saved, or none of them are
+# work is a function that takes the connection and does the writes
+def transaction(work):
+    conn = connect()
+    try:
+        result = work(conn)
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

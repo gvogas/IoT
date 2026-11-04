@@ -36,36 +36,6 @@ h2 {
 
 
 /* -------------------------
-   Top menu
-   ------------------------- */
-nav {
-    display: flex;
-    background: var(--primary);
-    padding: 12px 20px;
-}
-
-nav a {
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    margin-right: 20px;
-}
-
-nav a:hover {
-    text-decoration: underline;
-}
-
-/* Sign In / Sign Out on the right side of the menu */
-nav .right {
-    margin-left: auto;
-}
-
-nav a:last-child {
-    margin-right: 0;
-}
-
-
-/* -------------------------
    Cards
    ------------------------- */
 .card {
@@ -691,4 +661,118 @@ main.wide {
     .gauge-panels {
         grid-template-columns: 1fr;
     }
+}
+
+
+
+/* -------------------------
+   Inventory and products (Bootstrap does the components; these are the extras)
+   ------------------------- */
+
+/* The base styles above change every button and label, so put the Bootstrap ones back */
+.btn {
+    margin-top: 0;
+}
+
+/* The base label and input styles above would move the floating labels and the switches */
+label.form-check-label,
+.form-floating > label {
+    margin: 0;
+    font-weight: normal;
+}
+
+.form-check-input {
+    padding: 0;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.search-box {
+    flex: 1 1 260px;
+    max-width: 380px;
+}
+
+/* Product details list */
+.facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 16px;
+}
+
+.facts dt {
+    color: var(--muted);
+    font-weight: normal;
+}
+
+.facts dd {
+    margin: 0;
+    word-break: break-all;
+}
+
+/* Phones: the wide tables become a stack of cards, one per row */
+@media (max-width: 767.98px) {
+    .stock-table thead {
+        display: none;
+    }
+
+    .stock-table,
+    .stock-table tbody,
+    .stock-table tr,
+    .stock-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .stock-table tr {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+    }
+
+    .stock-table tr[hidden] {
+        display: none;
+    }
+
+    .stock-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: none;
+        padding: 4px 0;
+        text-align: right;
+    }
+
+    .stock-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 13px;
+        text-align: left;
+    }
+
+    .stock-table td:first-child {
+        font-size: 17px;
+        padding-bottom: 6px;
+    }
+
+    .stock-table td:first-child::before,
+    .stock-table td[data-label=""]::before {
+        content: none;
+    }
+
+
+    .search-box {
+        max-width: none;
+    }
+}
+
+/* The suggestion list under the category and producer boxes: a normal dropdown panel that scrolls when it's long */
+.combo-menu {
+    z-index: 1050;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.combo-menu .dropdown-item {
+    cursor: pointer;
 }

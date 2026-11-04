@@ -11,10 +11,12 @@ from controllers.mqtt_controller import mqtt_controller
 from controllers.fan_controller import fan_controller
 from hardware import signals
 from models.customer import all_customers
+from models.product import all_products
 from routes.auth_routes import auth_routes, is_admin, is_signed_in
 from routes.customer_routes import customer_routes, show_account
 from routes.fridge_routes import fridge_routes
 from routes.fan_routes import fan_routes
+from routes.product_routes import product_routes
 
 
 app = Flask(__name__)
@@ -28,6 +30,8 @@ app.register_blueprint(customer_routes)
 # The fridge page and the fridge data are in routes/fridge_routes.py
 app.register_blueprint(fridge_routes)
 app.register_blueprint(fan_routes)
+# The inventory, products and receiving pages are in routes/product_routes.py
+app.register_blueprint(product_routes)
 
 
 # The main page. It is different for admins, customers and people not signed in
@@ -36,9 +40,10 @@ def home():
     if is_admin():
         try:
             customers = all_customers()
+            products = all_products()
         except sqlite3.Error as err:
             return f"Database error: {err}", 500
-        return render_template("admin_home.html", customer_count=len(customers))
+        return render_template("admin_home.html", customer_count=len(customers), product_count=len(products))
 
     if is_signed_in():
         return show_account()
