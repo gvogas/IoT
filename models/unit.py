@@ -1,4 +1,4 @@
-from models.database import query
+from models.database import query, transaction
 
 
 UNIT_LIMIT = 500
@@ -31,9 +31,19 @@ def find_units(text):
     """, (f"%{text}%",))
 
 
-# Which of these EPCs are already units in the database? Gives back a set
+# Which of these EPCs are already units in the database, Gives back a set
 def known_epcs(epcs):
     if not epcs:
         return set()
     rows = query(f"SELECT epc FROM ProductItem WHERE epc IN ({','.join('?' * len(epcs))})", list(epcs))
     return {row["epc"] for row in rows}
+
+
+# For testing: delete every unit (EPC) and delivery of one product, so its tags can be received again.
+# The product and customer receipts are kept. Gives back how many units were deleted
+def clear_product_units(product_id):
+    def work(conn):
+        count = conn.execute("DELETE FROM ProductItem WHERE productID = ?", (product_id,)).rowcount
+        conn.execute("DELETE FROM Reception WHERE productID = ?", (product_id,))
+        return count
+    return transaction(work)

@@ -124,6 +124,9 @@
         <div class="card-body">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                 <h3 class="h5 mb-0 me-auto">Units <span class="text-secondary fw-normal">({{ unit_total }})</span></h3>
+                <form action="/products/{{ product.productID }}/clear-epcs" method="POST" data-confirm="Delete ALL EPCs (in stock and sold) and all deliveries of {{ product.productName }}? Customer receipts are kept. This can't be undone.">
+                    <button type="submit" class="btn btn-outline-danger btn-sm mt-0"{% if not unit_total and not history %} disabled{% endif %}>Clear all EPCs</button>
+                </form>
                 <input type="search" class="form-control search-box" placeholder="Search by EPC" aria-label="Search units by EPC" data-search>
                 <div class="btn-group" role="group" aria-label="Filter by status">
                     <button type="button" class="btn btn-outline-secondary btn-sm active" data-status-filter="all">All</button>

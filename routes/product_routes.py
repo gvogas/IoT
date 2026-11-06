@@ -9,7 +9,7 @@ from models.product import (
     all_products, delete_product, get_product, inventory_rows, known_categories, known_producers,
     read_product_form, save_product, update_product,
 )
-from models.unit import find_units, known_epcs, units_for_product
+from models.unit import clear_product_units, find_units, known_epcs, units_for_product
 from models.reception import (
     check_reception, read_epcs, reception_history, save_reception,
 )
@@ -146,6 +146,26 @@ def product_detail(product_id):
         units=units, unit_total=unit_total,
         today=date.today().isoformat(), epc_text="", receive_error=None,
     )
+
+
+# Delete every EPC and delivery of one product, so its tags can be received again while testing
+@product_routes.route("/products/<int:product_id>/clear-epcs", methods=["POST"])
+def clear_epcs(product_id):
+    if not is_admin():
+        return render_template("signin.html", error="Only admins can see this page."), 403
+
+    try:
+        product = get_product(product_id)
+        if product is None:
+            flash("That product was not found.", "error")
+            return redirect("/products")
+        count = clear_product_units(product_id)
+    except sqlite3.Error as err:
+        flash(f"Database error: {err}", "error")
+        return redirect(f"/products/{product_id}")
+
+    flash(f"Cleared {count} {'unit' if count == 1 else 'units'} of \"{product['productName']}\". The tags can be received again.", "success")
+    return redirect(f"/products/{product_id}")
 
 
 # -------------------------

@@ -38,3 +38,36 @@ def send_temperature_alert(fridge_id, temperature, threshold):
     except Exception as e:
         print(f"An error occurred: {e}")
         return False
+
+
+# Email a receipt to the customer. receipt is the dict from models.checkout.receipt()
+# Gives back True if the email was sent, False if not
+def send_receipt_email(to_address, receipt):
+    if not (ALERT_EMAIL and ALERT_EMAIL_PASSWORD):
+        print("Receipt not sent: set ALERT_EMAIL and ALERT_EMAIL_PASSWORD (see config.py)")
+        return False
+
+    lines = [f"{l['name']}: {l['quantity']} x ${l['unitPrice']:.2f} = ${l['lineTotal']:.2f}" for l in receipt["lines"]]
+    msg = EmailMessage()
+    msg["Subject"] = f"Your receipt #{receipt['purchaseID']}"
+    msg["From"] = ALERT_EMAIL
+    msg["To"] = to_address
+    msg.set_content(
+        f"Thank you for your purchase, {receipt['customer']}!\n\n"
+        f"Receipt #{receipt['purchaseID']} - {receipt['date']}\n\n"
+        + "\n".join(lines)
+        + f"\n\nSubtotal: ${receipt['subtotal']:.2f}\n"
+        f"Tax: ${receipt['tax']:.2f}\n"
+        f"Total: ${receipt['total']:.2f}\n"
+        f"Paid by {receipt['paymentMethod']}\n"
+    )
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(ALERT_EMAIL, ALERT_EMAIL_PASSWORD)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"Receipt email error: {e}")
+        return False

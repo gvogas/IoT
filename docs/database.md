@@ -154,7 +154,7 @@ A CHECK constraint makes sure an item is `sold` if and only if it has a `purchas
 | email | VARCHAR(255) | required, unique |
 | passwordHash | VARCHAR(255) | required |
 | role | VARCHAR(20) | `customer` (default) or `admin` |
-| membershipNumber | VARCHAR(12) | required, unique, on the membership card |
+| membershipNumber | VARCHAR(32) | required, unique, on the membership card |
 | totalPoints | INTEGER | default 0, ≥ 0 |
 | createdAt | DATETIME | sign-up date |
 

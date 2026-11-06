@@ -16,7 +16,7 @@ def main():
             passwordHash VARCHAR(255) NOT NULL,
             role VARCHAR(20) NOT NULL DEFAULT 'customer'
                 CHECK (role IN ('customer', 'admin')),
-            membershipNumber VARCHAR(12) NOT NULL UNIQUE,
+            membershipNumber VARCHAR(32) NOT NULL UNIQUE,
             totalPoints INTEGER NOT NULL DEFAULT 0 CHECK (totalPoints >= 0),
             createdAt DATETIME NOT NULL);
         ''')

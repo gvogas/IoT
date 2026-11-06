@@ -12,8 +12,9 @@ from controllers.fan_controller import fan_controller
 from hardware import signals
 from models.customer import all_customers
 from models.product import all_products
-from routes.auth_routes import auth_routes, is_admin, is_signed_in
-from routes.customer_routes import customer_routes, show_account
+from routes.auth_routes import auth_routes, is_admin
+from routes.checkout_routes import checkout_routes
+from routes.customer_routes import customer_routes
 from routes.fridge_routes import fridge_routes
 from routes.fan_routes import fan_routes
 from routes.product_routes import product_routes
@@ -25,6 +26,9 @@ app.secret_key = SECRET_KEY   # Flask needs this so people can stay signed in
 # The sign in and sign out pages are in routes/auth_routes.py
 app.register_blueprint(auth_routes)
 
+# The checkout page (the main page), paying, and signing in with a barcode are in routes/checkout_routes.py
+app.register_blueprint(checkout_routes)
+
 # The sign up page and the customer list are in routes/customer_routes.py
 app.register_blueprint(customer_routes)
 # The fridge page and the fridge data are in routes/fridge_routes.py
@@ -34,21 +38,19 @@ app.register_blueprint(fan_routes)
 app.register_blueprint(product_routes)
 
 
-# The main page. It is different for admins, customers and people not signed in
-@app.route("/")
-def home():
-    if is_admin():
-        try:
-            customers = all_customers()
-            products = all_products()
-        except sqlite3.Error as err:
-            return f"Database error: {err}", 500
-        return render_template("admin_home.html", customer_count=len(customers), product_count=len(products))
+# The main page is the checkout. It is in routes/checkout_routes.py
 
-    if is_signed_in():
-        return show_account()
-
-    return render_template("home.html")
+# The admin page, with a card for each dashboard
+@app.route("/admin")
+def admin():
+    if not is_admin():
+        return render_template("signin.html", error="Only admins can see this page."), 403
+    try:
+        customers = all_customers()
+        products = all_products()
+    except sqlite3.Error as err:
+        return f"Database error: {err}", 500
+    return render_template("admin_home.html", customer_count=len(customers), product_count=len(products))
 
 
 # -------------------------

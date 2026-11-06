@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, redirect, render_template, request, session
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session
 import sqlite3
 
-from models.customer import ROLES, Customer, all_customers, get_customer, set_role
+from models.checkout import purchase_history
+from models.customer import ROLES, check_membership_number, check_sign_in, set_membership_number, Customer, all_customers, get_customer, set_role
 from hardware.signals import send_success, send_error
 from routes.auth_routes import is_admin, is_signed_in
 
@@ -33,13 +34,14 @@ def account():
 def show_account():
     try:
         customer = get_customer(session["id"])
+        purchases = purchase_history(session["id"])
     except sqlite3.Error as err:
         return f"Database error: {err}", 500
 
     if customer is None:
         session.clear()
         return redirect("/signin")
-    return render_template("account.html", customer=customer)
+    return render_template("account.html", customer=customer, purchases=purchases)
 
 
 # -------------------------
@@ -88,6 +90,33 @@ def change_role(customer_id):
 
 
 # -------------------------
+# Change a customer's membership number (admins only)
+# -------------------------
+
+@customer_routes.route("/api/customers/<int:customer_id>/membership", methods=["POST"])
+def change_membership(customer_id):
+    if not is_admin():
+        return jsonify(error="Only admins can change membership numbers."), 403
+
+    try:
+        customer = get_customer(customer_id)
+        if customer is None:
+            return jsonify(error=f"Customer {customer_id} not found."), 404
+
+        number, error = check_membership_number(request.form.get("membershipNumber", ""), customer_id)
+        if error:
+            return jsonify(error=error), 400
+
+        set_membership_number(customer_id, number)
+    except sqlite3.IntegrityError:
+        return jsonify(error="This membership number is already used by another customer."), 400
+    except sqlite3.Error as err:
+        return jsonify(error=f"Database error: {err}"), 500
+
+    return jsonify(success=f"{customer['customerName']}'s membership number is now {number}.", membershipNumber=number), 200
+
+
+# -------------------------
 # Submit customer
 # -------------------------
 
@@ -100,6 +129,7 @@ def submit():
         request.form.get("email", ""),
         request.form.get("phoneNumber", ""),
         request.form.get("password", ""),
+        request.form.get("barcode", ""),
     )
 
     try:
@@ -110,6 +140,11 @@ def submit():
             return jsonify(error="\n".join(errors)), 400
 
         membership_number = customer.save()
+        # Sign them in right away so they can go straight to the home page
+        row = check_sign_in(customer.email, customer.password)
+        session["id"] = row["customerID"]
+        session["name"] = row["customerName"]
+        session["role"] = row["role"]
 
     except sqlite3.IntegrityError:
         # Just in case two people sign up with the same email at the exact same time
@@ -121,4 +156,5 @@ def submit():
         return jsonify(error=f"Database error: {err}"), 400
 
     send_success()
-    return jsonify(success=f"Account created! Your membership number is {membership_number}.\nYou can sign in now."), 200
+    flash(f"Welcome! Your membership number is {membership_number}.")
+    return jsonify(success="Account created!", redirect="/"), 200

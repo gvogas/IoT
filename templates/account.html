@@ -18,7 +18,20 @@
 
     <div class="card" style="margin-top: 20px;">
         <h3>Purchase History</h3>
-        <!-- TODO: show receipts once checkout is built -->
+        {% for purchase in purchases %}
+        <div style="margin-top: 14px;">
+            <strong>{{ purchase.purchaseDate }}</strong> <span class="muted">· Receipt #{{ purchase.purchaseID }} · {{ purchase.paymentMethod }}</span>
+            <table>
+                {% for line in purchase.lines %}
+                <tr><td>{{ line.productName }}</td><td>{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}</td><td>${{ '%.2f'|format(line.quantity * line.unitPrice) }}</td></tr>
+                {% endfor %}
+                <tr><td>Subtotal</td><td></td><td>${{ '%.2f'|format(purchase.subtotal) }}</td></tr>
+                <tr><td>Tax</td><td></td><td>${{ '%.2f'|format(purchase.taxAmount) }}</td></tr>
+                <tr><th>Total</th><th></th><th>${{ '%.2f'|format(purchase.total) }}</th></tr>
+            </table>
+        </div>
+        {% else %}
         <p class="muted">No purchases yet.</p>
+        {% endfor %}
     </div>
 {% endblock %}

@@ -10,7 +10,7 @@
             {% endif %}
 
             <label for="email_input">Email:</label>
-            <input type="text" id="email_input" name="email" autocomplete="username" autofocus required>
+            <input type="text" id="email_input" name="email" autocomplete="username" required>
 
             <label for="password_input">Password:</label>
             <input type="password" id="password_input" name="password" autocomplete="current-password" required>
@@ -19,4 +19,16 @@
 
             <p>No account yet? <a href="/signup">Sign up</a></p>
         </form>
+
+        <div class="card signin-form" style="margin-top: 20px;">
+            <h3>Sign in with your membership card</h3>
+            <p class="muted">Scan the barcode on your card.</p>
+            <form id="scan-form" autocomplete="off">
+                <input type="text" id="scan-input" name="membershipNumber" autofocus maxlength="32" placeholder="Scan your membership barcode" aria-label="Membership number">
+                <button type="submit">Sign In with Card</button>
+            </form>
+            <div id="scan-message" role="status" aria-live="polite" hidden></div>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/signin.js') }}"></script>
 {% endblock %}

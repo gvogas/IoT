@@ -51,7 +51,8 @@ def signin():
     session["name"] = customer["customerName"]
     session["role"] = customer["role"]
 
-    return redirect("/")
+    # Admins go to the admin page, customers go to the checkout
+    return redirect("/admin" if customer["role"] == "admin" else "/")
 
 
 # -------------------------

@@ -9,19 +9,22 @@
             <p id="message" role="status"></p>
 
             <label for="name_input">Enter Name:</label>
-            <input type="text" id="name_input" name="name">
+            <input type="text" id="name_input" placeholder="Jane Smith" name="name">
 
             <label for="address_input">Enter Address:</label>
-            <input type="text" id="address_input" name="address">
+            <input type="text" id="address_input" placeholder="123 Main St, Montreal, QC" name="address">
 
             <label for="email_input">Enter Email:</label>
-            <input type="text" id="email_input" name="email">
+            <input type="text" id="email_input" autocomplete="email" placeholder="jane@example.com" name="email">
 
             <label for="number_input">Enter Phone Number:</label>
-            <input type="text" id="number_input" name="phoneNumber">
+            <input id="number_input" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(514) 555-1234" name="phoneNumber">
+
+            <label for="barcode_input">Membership Barcode (optional):</label>
+            <input id="barcode_input" name="barcode" type="text" maxlength="32" autocomplete="off" placeholder="Scan your card, or leave empty for a new number">
 
             <label for="password_input">Password:</label>
-            <input type="password" id="password_input" name="password" autocomplete="new-password">
+            <input type="password" id="password_input" placeholder="At least 8 characters" name="password" autocomplete="new-password">
 
             <button type="submit">Enter Customer</button>
         </form>
