@@ -2,7 +2,7 @@
 
 Checked against `Phase-3.pdf` on 2026-11-06. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-**Progress:** 27 of 36 items done. Of the 9 open items, 2 are bonus (French, responsive) and 3 are "not checked yet" (UPC scanner field, optional membership, toast coverage).
+**Progress:** 31 of 36 items done. Of the 5 open items, 2 are bonus (French, responsive) and 3 are still to be checked or implemented.
 
 ## Product Management
 - [x] Register a product (name, category, price, UPC, EPC, producer)
@@ -30,23 +30,23 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] Remove unwanted items before paying (Remove button per product, plus Clear)
 - [x] Payment simulation (`pay()`, tags marked as sold)
 - [ ] Membership card step is optional (guest checkout is blocked now)
-- [ ] **Points added to the customer's account** (`pay()` saves `pointsEarned = 0` and never updates `totalPoints`)
-- [x] Receipt generated after payment (window with lines, tax, total, date; no points yet)
-- [x] Receipt emailed to the customer (Send Email button, and from the purchase history. Uses `templates/email/`). Not automatic yet: the PDF says to send it on payment.
+- [x] Points added to the customer's account (10 points for every complete $5 spent before tax; balance updated in the sale transaction)
+- [x] Receipt generated after payment (window with lines, tax, total, date and points earned)
+- [x] Receipt emailed automatically after payment when the customer has an email address; Send Email button remains available for retry and from purchase history.
 
 ## Customer Accounts
 - [x] Create an account
 - [x] Name, email, auto-generated membership number, total points
 - [x] Sign in
 - [x] Purchase history (list of past receipts)
-- [ ] Purchase history shows points earned per receipt
+- [x] Purchase history shows points earned per receipt
 
 Extra, not in the PDF: customers can change their own email on My Account (`/account/email`).
 
 ## Receipt Contents
 - [x] Product list (name, quantity, price)
 - [x] Total amount
-- [ ] Points earned
+- [x] Points earned
 - [x] Date and time
 
 ## Database

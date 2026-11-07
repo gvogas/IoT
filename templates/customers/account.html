@@ -17,8 +17,14 @@
                     </div>
                     <div class="stat-label">Membership number</div>
                     <div class="member-number">{{ customer.membershipNumber }}</div>
-                    <div class="stat-label mt-3">Points</div>
+                    <div class="stat-label mt-3">Loyalty points</div>
                     <div class="stat-value">{{ customer.totalPoints }}</div>
+                    {# Every 100 points can be exchanged for $1 in rewards. #}
+                    <div class="small text-secondary mt-1">
+                        Reward value: ${{ '%d'|format(customer.totalPoints // 100) }}
+                        ({{ customer.totalPoints % 100 }} points toward the next dollar)
+                    </div>
+                    <div class="small text-secondary">Earn 10 points for every complete $5 spent.</div>
                 </div>
             </div>
 
@@ -121,6 +127,7 @@
                             <div class="summary-line num text-secondary"><span>Subtotal</span><span>${{ '%.2f'|format(purchase.subtotal) }}</span></div>
                             <div class="summary-line num text-secondary"><span>Tax</span><span>${{ '%.2f'|format(purchase.taxAmount) }}</span></div>
                             <div class="summary-line num fw-bold"><span>Total</span><span>${{ '%.2f'|format(purchase.total) }}</span></div>
+                            <div class="summary-line small text-success"><span>Loyalty points earned</span><span>+{{ purchase.pointsEarned }}</span></div>
                         </div>
 
                         <div data-email-message class="mt-3" role="status" aria-live="polite" hidden></div>

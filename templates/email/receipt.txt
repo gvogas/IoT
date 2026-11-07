@@ -13,6 +13,9 @@ ITEMS
 Subtotal: ${{ '%.2f'|format(receipt.subtotal) }}
 Tax:      ${{ '%.2f'|format(receipt.tax) }}
 TOTAL:    ${{ '%.2f'|format(receipt.total) }}
+Loyalty points earned: +{{ receipt.pointsEarned }}
+{% if receipt.customerPoints is not none %}Updated points balance: {{ receipt.customerPoints }} points
+{% endif %}
 
 You can find all your receipts in My Account on the store website.
 Keep this email as your proof of purchase.

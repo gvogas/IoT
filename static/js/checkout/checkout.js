@@ -164,7 +164,7 @@ payButton.addEventListener("click", async () => {
             render();
             notify(basketMessage, data.success, "success");
             // The reader stays paused until the page reloads for the next customer
-            showReceipt(data.receipt);
+            showReceipt(data.receipt, data.emailMessage);
             return;
         }
         notify(basketMessage, data.error, "danger");
@@ -178,7 +178,7 @@ payButton.addEventListener("click", async () => {
 // The receipt after paying: shown in a window until the customer taps Done (or leaves it for a while)
 const RECEIPT_TIMEOUT = 60000;
 
-function showReceipt(receipt) {
+function showReceipt(receipt, emailMessage) {
     if (!receipt) {
         setTimeout(() => window.location.reload(), SHOW_TIME.success);
         return;
@@ -215,7 +215,16 @@ function showReceipt(receipt) {
         cell.textContent = money(value);
     });
     body.appendChild(table);
+
+    // Show the points earned on this purchase and the customer's updated balance.
+    add("p", `Loyalty points earned: +${receipt.pointsEarned || 0}`, "text-success fw-semibold mb-1");
+    if (receipt.customerPoints !== null && receipt.customerPoints !== undefined) {
+        add("p", `Your points balance: ${receipt.customerPoints} points ($${Math.floor(receipt.customerPoints / 100)} in rewards)`, "small text-secondary mb-2");
+    }
     add("p", `Paid by ${receipt.paymentMethod}. Thank you!`, "mb-0");
+    if (emailMessage) {
+        add("p", emailMessage, "small text-secondary mt-2 mb-0");
+    }
 
     const modalElement = document.getElementById("receipt-modal");
     const modal = new bootstrap.Modal(modalElement);

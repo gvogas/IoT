@@ -48,12 +48,23 @@ def pay(customer_id, epcs, payment_method="card"):
     tax = tax_for(subtotal)
     total = subtotal + tax
 
+    # Every complete $5 spent before tax earns 10 loyalty points.
+    # Decimal keeps the calculation accurate for money values.
+    points_earned = int(subtotal // Decimal("5")) * 10
+
     def work(conn):
         cursor = conn.execute(
             """INSERT INTO Purchase (customerID, purchaseDate, subtotal, taxAmount, total, pointsEarned, paymentMethod)
-               VALUES (?, ?, ?, ?, ?, 0, ?)""",
-            (customer_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(subtotal), str(tax), str(total), payment_method),
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (customer_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(subtotal), str(tax), str(total), points_earned, payment_method),
         )
+        # Update the customer's running point balance in the same transaction as the purchase.
+        # If saving the purchase fails, the points update is rolled back too.
+        if customer_id is not None and points_earned > 0:
+            conn.execute(
+                "UPDATE Customer SET totalPoints = totalPoints + ? WHERE customerID = ?",
+                (points_earned, customer_id),
+            )
         purchase_id = cursor.lastrowid
 
         by_product = {}
@@ -113,7 +124,7 @@ def _receipt_lines(purchase_id):
 # A customer's receipts, newest first, each with its lines. For the Purchase History on My Account
 def purchase_history(customer_id):
     purchases = [dict(row) for row in query(
-        "SELECT purchaseID, purchaseDate, subtotal, taxAmount, total, paymentMethod, emailSent FROM Purchase WHERE customerID = ? ORDER BY purchaseDate DESC, purchaseID DESC",
+        "SELECT purchaseID, purchaseDate, subtotal, taxAmount, total, pointsEarned, paymentMethod, emailSent FROM Purchase WHERE customerID = ? ORDER BY purchaseDate DESC, purchaseID DESC",
         (customer_id,))]
     for purchase in purchases:
         purchase["lines"] = _receipt_lines(purchase["purchaseID"])
@@ -124,7 +135,8 @@ def purchase_history(customer_id):
 # One receipt for the page that shows it right after paying: the date, the lines, and the amounts
 def receipt(purchase_id):
     purchase = query_one(
-        """SELECT p.purchaseID, p.purchaseDate, p.subtotal, p.taxAmount, p.total, p.paymentMethod, c.customerName, c.membershipNumber
+        """SELECT p.purchaseID, p.purchaseDate, p.subtotal, p.taxAmount, p.total, p.pointsEarned,
+                  p.paymentMethod, c.customerName, c.membershipNumber, c.totalPoints
            FROM Purchase p LEFT JOIN Customer c ON c.customerID = p.customerID WHERE p.purchaseID = ?""",
         (purchase_id,))
     if purchase is None:
@@ -136,6 +148,8 @@ def receipt(purchase_id):
         "customer": purchase["customerName"],
         "membershipNumber": purchase["membershipNumber"],
         "paymentMethod": purchase["paymentMethod"],
+        "pointsEarned": purchase["pointsEarned"] or 0,
+        "customerPoints": purchase["totalPoints"],
         "lines": [{"name": l["productName"], "quantity": l["quantity"], "unitPrice": float(l["unitPrice"]),
                    "lineTotal": float(Decimal(str(l["unitPrice"])) * l["quantity"])} for l in lines],
         "subtotal": float(purchase["subtotal"]),

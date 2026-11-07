@@ -46,6 +46,16 @@ def pay_basket():
         return jsonify(error=str(err)), 409
     paid_receipt = receipt(purchase_id)
 
+    # Email the receipt automatically when the signed-in customer has an email address.
+    # Keep the manual Send Email button as a retry option if the automatic email fails.
+    address = receipt_email_address(purchase_id)
+    email_sent = bool(address and send_receipt_email(address, paid_receipt))
+    if email_sent:
+        try:
+            mark_receipt_emailed(purchase_id)
+        except sqlite3.Error:
+            pass  # The email was sent; only the email-status update failed.
+
     # Tell the admin if this sale made anything low or out of stock
     alerts = stock_alerts(purchase_id)
     if alerts:
@@ -56,7 +66,17 @@ def pay_basket():
     session.clear()
     # Remember this one receipt so the customer can still email it after being signed out
     session["last_purchase"] = purchase_id
-    return jsonify(success=f"Thank you, {name}! Paid ${total:.2f}.", purchaseID=purchase_id, receipt=paid_receipt)
+    email_message = (
+        f"Receipt emailed to {address}." if email_sent
+        else "Receipt email could not be sent automatically. You can try again below."
+    )
+    return jsonify(
+        success=f"Thank you, {name}! Paid ${total:.2f}.",
+        purchaseID=purchase_id,
+        receipt=paid_receipt,
+        emailSent=email_sent,
+        emailMessage=email_message,
+    )
 
 
 # Send one receipt to the customer's current email. Gives back the answer for the page

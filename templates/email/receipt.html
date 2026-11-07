@@ -87,9 +87,19 @@
                                     <td align="right" style="padding: 4px 0 12px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.tax) }}</td>
                                 </tr>
                                 <tr>
+                                    <td style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">Loyalty points earned</td>
+                                    <td align="right" style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">+{{ receipt.pointsEarned }}</td>
+                                </tr>
+                                <tr>
                                     <td style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">Total</td>
                                     <td align="right" style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">${{ '%.2f'|format(receipt.total) }}</td>
                                 </tr>
+                                {% if receipt.customerPoints is not none %}
+                                <tr>
+                                    <td style="padding: 12px 0 0; font-size: 13px; color: #4E6A7A;">Your updated points balance</td>
+                                    <td align="right" style="padding: 12px 0 0; font-size: 13px; color: #243C4C;">{{ receipt.customerPoints }} points</td>
+                                </tr>
+                                {% endif %}
                             </table>
                         </td>
                     </tr>
