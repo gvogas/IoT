@@ -1,0 +1,18 @@
+Thank you{% if receipt.customer %}, {{ receipt.customer }}{% endif %}!
+
+Receipt #{{ receipt.purchaseID }}
+{{ receipt.date|nice_datetime }}
+Paid by {{ receipt.paymentMethod|capitalize }}
+{% if receipt.membershipNumber %}Membership {{ receipt.membershipNumber }}
+{% endif %}
+ITEMS
+{% for line in receipt.lines %}
+{{ line.name }}
+  {{ line.quantity }} x ${{ '%.2f'|format(line.unitPrice) }} = ${{ '%.2f'|format(line.lineTotal) }}
+{% endfor %}
+Subtotal: ${{ '%.2f'|format(receipt.subtotal) }}
+Tax:      ${{ '%.2f'|format(receipt.tax) }}
+TOTAL:    ${{ '%.2f'|format(receipt.total) }}
+
+You can find all your receipts in My Account on the store website.
+Keep this email as your proof of purchase.

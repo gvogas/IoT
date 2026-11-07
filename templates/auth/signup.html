@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+{% block main_class %}tiny{% endblock %}
+
+{% block content %}
+    <h1>Create your account</h1>
+    <p class="text-secondary mb-3">Earn points and keep your receipts with a membership number.</p>
+
+    <form id="customer-form" class="card" action="/submit" method="POST" novalidate>
+        <div class="card-body">
+            <div id="message" role="alert" hidden></div>
+
+            <div class="mb-3">
+                <label class="form-label" for="name_input">Name</label>
+                <input class="form-control" type="text" id="name_input" name="name" autocomplete="name" placeholder="Jane Smith">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="address_input">Address</label>
+                <input class="form-control" type="text" id="address_input" name="address" autocomplete="street-address" placeholder="123 Main St, Montreal, QC">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="email_input">Email</label>
+                <input class="form-control" type="email" id="email_input" name="email" autocomplete="email" placeholder="jane@example.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="number_input">Phone number</label>
+                <input class="form-control" id="number_input" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" name="phoneNumber" placeholder="(514) 555-1234">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password_input">Password</label>
+                <input class="form-control" type="password" id="password_input" name="password" autocomplete="new-password" aria-describedby="password_help">
+                <div class="form-text" id="password_help">At least 8 characters.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="barcode_input">Membership barcode (optional)</label>
+                <input class="form-control code" id="barcode_input" name="barcode" type="text" maxlength="32" autocomplete="off" aria-describedby="barcode_help">
+                <div class="form-text" id="barcode_help">Scan your card, or leave this empty to get a new number.</div>
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit">Create account</button>
+        </div>
+    </form>
+
+    <p class="text-center text-secondary mt-3">Already a member? <a href="/signin">Sign in</a></p>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/auth/signup.js') }}"></script>
+{% endblock %}

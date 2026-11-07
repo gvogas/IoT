@@ -1,0 +1,195 @@
+/* The Arctic Reflection theme. Every colour in the app comes from this file.
+   Change a value here and every page changes. Bootstrap picks these up through its --bs-* variables. */
+
+:root {
+    /* The palette */
+    --arctic-blue: #5289AD;
+    --arctic-navy: #243C4C;
+    --arctic-mist: #ACBCBF;
+    --arctic-ice: #F4FCFB;
+    --arctic-slate: #698696;
+
+    /* Darker and lighter steps of the palette. #5289AD and #698696 are too pale for small text
+       (under 4.5:1 on white), so text uses these darker steps of the same colours */
+    --link: #3A6F92;
+    --muted: #4E6A7A;
+    --navy-hover: #2F4E63;
+    --line: #D6E0E2;
+    --tint: #E9F2F5;
+    --tint-strong: #CFE2EC;
+    --surface: #FFFFFF;
+
+    /* Status colours are not in the palette on purpose: "too warm" and "out of stock" have to stand out from it.
+       They are muted to sit next to the blues */
+    --danger: #A63D32;
+    --danger-tint: #F8E6E3;
+    --success: #2B7A6B;
+    --success-tint: #E2F2EE;
+    --warning: #E9B44C;
+    --warning-text: #7A4F08;
+    --warning-tint: #FBF2DE;
+
+    /* Bootstrap */
+    --bs-body-font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --bs-font-monospace: ui-monospace, "SF Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    --bs-body-bg: var(--arctic-ice);
+    --bs-body-color: var(--arctic-navy);
+    --bs-body-color-rgb: 36, 60, 76;
+    --bs-emphasis-color: var(--arctic-navy);
+    --bs-emphasis-color-rgb: 36, 60, 76;
+    --bs-secondary-color: var(--muted);
+    --bs-heading-color: var(--arctic-navy);
+    --bs-border-color: var(--line);
+    --bs-border-radius: 8px;
+    --bs-border-radius-sm: 6px;
+    --bs-border-radius-lg: 12px;
+    --bs-link-color: var(--link);
+    --bs-link-color-rgb: 58, 111, 146;
+    --bs-link-hover-color: var(--arctic-navy);
+    --bs-link-hover-color-rgb: 36, 60, 76;
+    --bs-code-color: var(--arctic-navy);
+    --bs-primary-rgb: 36, 60, 76;
+    --bs-secondary-rgb: 78, 106, 122;
+    --bs-success-rgb: 43, 122, 107;
+    --bs-danger-rgb: 166, 61, 50;
+    --bs-warning-rgb: 233, 180, 76;
+    --bs-danger-text-emphasis: var(--danger);
+    --bs-danger-bg-subtle: var(--danger-tint);
+    --bs-danger-border-subtle: #E9C4BE;
+    --bs-success-text-emphasis: #1F5F53;
+    --bs-success-bg-subtle: var(--success-tint);
+    --bs-success-border-subtle: #BCDFD7;
+    --bs-warning-text-emphasis: var(--warning-text);
+    --bs-warning-bg-subtle: var(--warning-tint);
+    --bs-warning-border-subtle: #F0DDB0;
+    --bs-focus-ring-color: rgba(82, 137, 173, 0.45);
+    --bs-form-invalid-color: var(--danger);
+    --bs-form-invalid-border-color: var(--danger);
+    --bs-secondary-bg: var(--tint);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--arctic-navy);
+    --bs-btn-border-color: var(--arctic-navy);
+    --bs-btn-hover-bg: var(--navy-hover);
+    --bs-btn-hover-border-color: var(--navy-hover);
+    --bs-btn-active-bg: var(--navy-hover);
+    --bs-btn-active-border-color: var(--navy-hover);
+    --bs-btn-disabled-bg: var(--arctic-mist);
+    --bs-btn-disabled-border-color: var(--arctic-mist);
+    --bs-btn-disabled-color: var(--arctic-navy);
+    --bs-btn-disabled-opacity: 1;
+    --bs-btn-focus-shadow-rgb: 82, 137, 173;
+}
+
+.btn-outline-primary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--arctic-navy);
+    --bs-btn-border-color: var(--arctic-slate);
+    --bs-btn-hover-bg: var(--tint);
+    --bs-btn-hover-color: var(--arctic-navy);
+    --bs-btn-hover-border-color: var(--arctic-navy);
+    --bs-btn-active-bg: var(--arctic-navy);
+    --bs-btn-active-color: #FFFFFF;
+    --bs-btn-active-border-color: var(--arctic-navy);
+    --bs-btn-disabled-color: var(--muted);
+    --bs-btn-disabled-border-color: var(--arctic-mist);
+    --bs-btn-focus-shadow-rgb: 82, 137, 173;
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--danger);
+    --bs-btn-border-color: var(--danger);
+    --bs-btn-hover-bg: #8C3329;
+    --bs-btn-hover-border-color: #8C3329;
+    --bs-btn-active-bg: #8C3329;
+    --bs-btn-active-border-color: #8C3329;
+    --bs-btn-focus-shadow-rgb: 166, 61, 50;
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--danger);
+    --bs-btn-border-color: var(--danger);
+    --bs-btn-hover-bg: var(--danger);
+    --bs-btn-hover-border-color: var(--danger);
+    --bs-btn-active-bg: var(--danger);
+    --bs-btn-active-border-color: var(--danger);
+    --bs-btn-disabled-color: var(--muted);
+    --bs-btn-disabled-border-color: var(--arctic-mist);
+}
+
+.navbar {
+    --bs-navbar-color: rgba(244, 252, 251, 0.82);
+    --bs-navbar-hover-color: #FFFFFF;
+    --bs-navbar-active-color: #FFFFFF;
+    --bs-navbar-brand-color: #FFFFFF;
+    --bs-navbar-brand-hover-color: #FFFFFF;
+    background: var(--arctic-navy);
+}
+
+.card {
+    --bs-card-bg: var(--surface);
+    --bs-card-border-color: var(--line);
+    --bs-card-border-radius: 12px;
+    --bs-card-inner-border-radius: 11px;
+    --bs-card-spacer-x: 1.25rem;
+    --bs-card-spacer-y: 1.25rem;
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--arctic-navy);
+    --bs-table-border-color: var(--line);
+    --bs-table-hover-bg: var(--tint);
+    --bs-table-hover-color: var(--arctic-navy);
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+    border-color: var(--arctic-slate);
+}
+
+.form-control,
+.form-control:focus {
+    background-color: var(--surface);
+}
+
+.input-group-text {
+    background: var(--tint);
+}
+
+.form-control:focus,
+.form-check-input:focus {
+    border-color: var(--arctic-blue);
+    box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-check-input {
+    border-color: var(--arctic-slate);
+}
+
+.form-check-input:checked {
+    background-color: var(--arctic-blue);
+    border-color: var(--arctic-blue);
+}
+
+.nav-tabs {
+    --bs-nav-link-color: var(--muted);
+    --bs-nav-link-hover-color: var(--arctic-navy);
+    --bs-nav-tabs-link-active-color: var(--arctic-navy);
+    --bs-nav-tabs-link-active-bg: var(--surface);
+    --bs-nav-tabs-link-active-border-color: var(--line) var(--line) var(--surface);
+    --bs-nav-tabs-link-hover-border-color: transparent transparent var(--line);
+}
+
+.modal {
+    --bs-modal-bg: var(--surface);
+}
+
+.dropdown-menu {
+    --bs-dropdown-bg: var(--surface);
+    --bs-dropdown-link-hover-bg: var(--tint);
+    --bs-dropdown-link-active-bg: var(--arctic-navy);
+    --bs-dropdown-border-color: var(--line);
+}

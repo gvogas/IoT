@@ -2,7 +2,7 @@
 
 This is the database for the self-checkout store. It keeps the products, the deliveries, the RFID-tagged items, the customers and their receipts.
 
-Everything is in one SQLite file, `store.db` (the path is `DB_PATH` in `config.py`). You create it with `python -m tools.init_database`. Run the same command again after an update: it only adds what is missing and never removes data. The Phase 2 tables, `Fridge` and `Reading`, are still in the file, but this document doesn't cover them.
+Everything is in one SQLite file, `store.db` (the path is `DB_PATH` in `config.py`). You create it with `python -m tools.init_database`. Run the same command again after an update. It adds what is missing and keeps your rows, but it does remove old Product columns we no longer use (`epc`, `companyPrefix` and `itemReference`) along with anything saved in them. The Phase 2 tables, `Fridge` and `Reading`, are still in the file, but this document doesn't cover them.
 
 ## One EPC per item
 
@@ -24,7 +24,7 @@ erDiagram
     Customer     |o--o{ Purchase     : "makes"
     Purchase     ||--|{ PurchaseItem : "contains"
     Product      ||--o{ PurchaseItem : "sold as"
-    PurchaseItem |o--|{ ProductItem  : "sells"
+    PurchaseItem |o--o{ ProductItem  : "sells"
 
     Category {
         INTEGER categoryID PK
@@ -100,9 +100,10 @@ erDiagram
 | Product → Reception | 1 : N | A product is received many times |
 | Reception → ProductItem | 1 : N | A delivery brings in its tagged units |
 | Product → ProductItem | 1 : N | A product owns one EPC per unit |
-| Customer → Purchase | 0..1 : N | Guests have no customer (`customerID = NULL`) |
+| Customer → Purchase | 0..1 : N | The table allows a purchase with no customer (`customerID = NULL`), for guests. The checkout doesn't use this yet, because paying needs someone signed in |
 | Purchase → PurchaseItem | 1 : N | A receipt has one line per product |
-| PurchaseItem → ProductItem | 1 : N | "3 × Coke" points to the 3 EPCs sold |
+| Product → PurchaseItem | 1 : N | A product appears on many receipts |
+| PurchaseItem → ProductItem | 1 : N | "3 × Coke" points to the 3 EPCs sold. A line can end up with no EPCs after "Clear all EPCs" (see below) |
 
 ## Tables
 
@@ -118,11 +119,11 @@ These are small lookup tables. They keep names consistent (no "Beverage" in one 
 | producerID | INTEGER | FK → Producer, required |
 | price | DECIMAL(10,2) | required, ≥ 0 |
 | upc | VARCHAR(13) | required, unique, ≤ 13 chars |
-| imagePath | VARCHAR(255) | optional |
+| imagePath | VARCHAR(255) | optional, the image file inside `static/`. See "Product images" below |
 | lowStockThreshold | INTEGER | default 5, ≥ 0. Low stock when stock ≤ this |
 | description | VARCHAR(500) | optional, notes for the staff |
 | isActive | INTEGER | 1 / 0. Used instead of deleting a product that has history |
-| createdAt | DATETIME | default now |
+| createdAt | DATETIME | the app saves the local date and time |
 
 ### Reception (one delivery)
 | Field | Type | Rules |
@@ -138,9 +139,9 @@ These are small lookup tables. They keep names consistent (no "Beverage" in one 
 | epc | VARCHAR(24) | PK, the unit's EPC. Typed in or scanned from the tag (hex) |
 | productID | INTEGER | FK → Product, required |
 | receptionID | INTEGER | FK → Reception, required |
-| status | VARCHAR(10) | `in_stock` (default), `sold` or `removed` |
+| status | VARCHAR(10) | `in_stock` (default), `sold` or `removed`. The checkout treats a `removed` tag as unknown, but no page sets this status yet |
 | purchaseItemID | INTEGER | FK → PurchaseItem, set only when sold |
-| expiryDate | DATE | optional |
+| expiryDate | DATE | optional. No form or page uses it yet |
 
 A CHECK constraint makes sure an item is `sold` if and only if it has a `purchaseItemID`.
 
@@ -155,20 +156,20 @@ A CHECK constraint makes sure an item is `sold` if and only if it has a `purchas
 | passwordHash | VARCHAR(255) | required |
 | role | VARCHAR(20) | `customer` (default) or `admin` |
 | membershipNumber | VARCHAR(32) | required, unique, on the membership card |
-| totalPoints | INTEGER | default 0, ≥ 0 |
+| totalPoints | INTEGER | default 0, ≥ 0. Nothing adds to it yet (see "Points") |
 | createdAt | DATETIME | sign-up date |
 
 ### Purchase (receipt)
 | Field | Type | Rules |
 |---|---|---|
 | purchaseID | INTEGER | PK, also the receipt number |
-| customerID | INTEGER | FK → Customer, NULL for guests |
+| customerID | INTEGER | FK → Customer. NULL would mean a guest, but the checkout always sets it for now |
 | purchaseDate | DATETIME | required |
 | subtotal | DECIMAL(10,2) | sum of the lines |
-| taxAmount | DECIMAL(10,2) | GST 5% + QST 9.975%, default 0 |
+| taxAmount | DECIMAL(10,2) | `TAX_RATE` in `models/checkout.py` (15%), default 0 |
 | total | DECIMAL(10,2) | subtotal + tax |
-| pointsEarned | INTEGER | 0 for guests |
-| paymentMethod | VARCHAR(20) | `card`, `cash` or `mobile` |
+| pointsEarned | INTEGER | always 0 for now (see "Points") |
+| paymentMethod | VARCHAR(20) | `card`, `cash` or `mobile`. The checkout always saves `card` |
 | emailSent | INTEGER | 1 once the receipt email is sent |
 
 ### PurchaseItem (receipt line)
@@ -184,36 +185,47 @@ A receipt has one line per product, with the quantity on it (`UNIQUE (purchaseID
 
 ## How the app uses it
 
+### Customer accounts
+Signing up saves the customer with a hash of their password, never the password itself. `membershipNumber` is the barcode scanned at sign up, or a new number like `VM12345678`. Emails are saved in lowercase, so `Ann@X.com` and `ann@x.com` count as the same address.
+
+A customer can change their own email on My Account by entering their password. The new address must not belong to anyone else. An admin can change someone's `role` or `membershipNumber` on the Customers page.
+
 ### Adding and editing a product
 The admin fills in the name, category, producer company, price, UPC (digits, up to 13), and an optional description and low stock level. The UPC is unique.
 
+### Product images
+The product form takes an optional JPG, PNG, WebP or GIF, up to 10 MB. `models/product_image.py` opens it with Pillow to prove it is really an image, turns it the right way up, shrinks it to 800 px at most, and saves it as a WebP with a random name in `static/uploads/products/`. The file is deleted when the image is replaced or removed, or when the product is deleted. A product that is only hidden keeps its image.
+
 ### Receiving a delivery
-1. The admin opens the product and enters the date received, then adds the EPC of each unit. They either type the EPCs or scan each RFID tag (a scanner types the EPC into the box). One per line, or separated by spaces or commas. The number of EPCs is the quantity.
-2. The app checks them: each must be hex (0-9, A-F, up to 24 characters), none can repeat in the list, and none can already be in the database. If anything is wrong, the whole delivery is rejected and nothing is saved.
+1. The admin opens the product and enters the date received, then adds the EPC of each unit. They can type the EPCs, one per line or separated by spaces or commas, or press Scan tags and hold the tags near the RFID reader. Scanning adds new tags to the box and lists any that are already in the database without adding them. The number of EPCs is the quantity.
+2. The app checks them: each must be hex (0-9, A-F, up to 24 characters), none can repeat in the list, and none can already be in the database. The date can't be in the future, and the product can't be hidden. If anything is wrong, the whole delivery is rejected and nothing is saved.
 3. The app saves 1 Reception and then 1 ProductItem for each EPC, all in one transaction.
-4. Once it's saved, the app shows a notification, like "3 units of Coca-Cola 500ml received on 2026-10-30".
+4. Once it's saved, the app shows a notification, like `3 units of "Coca-Cola 500ml" received on 2026-10-30`.
 
 ### Finding units
 - The product page has a Units list with every unit's EPC, the date it was received, the delivery it came in, and its status. It can be filtered by status and searched by EPC. It shows the newest 500 units.
 - The Inventory page has a "Find a unit by EPC" box. It finds any unit whose EPC contains the text, across all products, and shows up to 50 matches.
 
+### Clearing a product's EPCs
+The "Clear all EPCs" button on a product's page is there for testing, so the same tags can be received again. It deletes every ProductItem and Reception of that product, including sold units. Purchase and PurchaseItem rows stay, so receipts still show the right lines, but those lines no longer point to any EPC.
+
 ### Checkout
-1. The reader scans the basket and the app looks up each EPC in ProductItem. An EPC we don't know shows "Unrecognized item", and one that is already `sold` shows "Item already purchased".
+1. The reader scans the basket and the app looks up each EPC in ProductItem. A tag already `sold` shows "Item already sold", and tags we don't know show a message saying how many couldn't be recognised. Neither goes into the basket.
 2. The cart groups the items by product and shows the name, quantity, price and line total.
-3. If the customer taps their membership card, the app finds them by `membershipNumber`. This step is optional.
-4. Paying is one transaction. The app adds the Purchase and one PurchaseItem per product, marks each EPC as `sold` and links it to its line, then adds the points to `Customer.totalPoints`.
-5. The receipt is built from Purchase, PurchaseItem and Product and emailed to the customer. When the email goes through, `emailSent` is set to 1.
+3. To pay, the customer must be signed in, usually by scanning their membership card. The app finds them by `membershipNumber`.
+4. Paying is one transaction. The app adds the Purchase and one PurchaseItem per product, then marks each EPC as `sold` and links it to its line. If any tag can't be marked, nothing is saved.
+5. The receipt is built from Purchase, PurchaseItem and Product and shown on screen. The customer can email it with the Send email button, or later from their purchase history. When an email goes through, `emailSent` is set to 1.
 
 ### Stock and low stock
 The `ProductStock` view has one row per active product, with `inStock`, `totalSold`, `lowStockThreshold`, `lastReceived` and `lowStock`. `lowStock` is 1 when `inStock` is at or below the product's threshold, so the dashboard can show which products need to be reordered.
 
 ### Points
-Members get 1 point per whole dollar of the subtotal. Guests get none. The points are saved on the Purchase and added to the customer in the same transaction as the sale.
+Points aren't built yet. `pay()` saves `pointsEarned = 0` and never changes `Customer.totalPoints`. The plan is 1 point per whole dollar of the subtotal, saved on the Purchase and added to the customer in the same transaction as the sale. [phase3-status.md](phase3-status.md) tracks this.
 
 ## Rules
 
 - Every connection runs `PRAGMA foreign_keys = ON` (in `models/database.py`). SQLite ignores foreign keys without it.
-- Dates have no default, because SQLite's defaults are in UTC. The app passes the local date and time when it saves a row.
+- The app passes the local date and time whenever it saves a row, because SQLite's defaults are in UTC. Only `Product.createdAt` has a default in the table, and the app doesn't rely on it.
 - A product that has deliveries or sales is never deleted. The app sets `isActive = 0` instead, so it is hidden from stock but old receipts still make sense. A product with no history is deleted.
 - An item must have the same `productID` as its reception. The app takes care of this when receiving, since both come from the same form.
 

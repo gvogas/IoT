@@ -18,7 +18,6 @@ SAVE_EVERY = 60
 
 
 class MqttController:
-    # Setup
     def __init__(self):
         self.fridges = [Fridge(1), Fridge(2)]
         self.readings = {}
@@ -35,7 +34,7 @@ class MqttController:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
-    # Subcribe to sensor topic
+    # Subscribe to the sensor topics
     def on_connect(self, client, userdata, flags, reason_code, properties):
         print(f"Connected with result code {reason_code}")
         for fridge in self.fridges:
@@ -43,7 +42,7 @@ class MqttController:
             client.subscribe(fridge.hum_topic)
         client.subscribe(FAN_COMMAND_TOPIC)
 
-    #Receive senosr reading
+    # Receive a sensor reading
     def on_message(self, client, userdata, msg):
         value = msg.payload.decode().strip()
         print(f"{msg.topic}: {value}")
@@ -116,12 +115,10 @@ class MqttController:
             "time": datetime.now().strftime("%H:%M"),
         }
 
-    #Start MQTT
     def start(self):
         self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
         self.client.loop_start()
 
-    #Stop MQTT
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()

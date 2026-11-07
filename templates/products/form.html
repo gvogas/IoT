@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit product' if product_id else 'Add product' }}{% endblock %}
+{% block main_class %}narrow{% endblock %}
+
+{% block content %}
+    {% set back = '/products/' ~ product_id if product_id else '/products' %}
+    <a class="back-link" href="{{ back }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back</a>
+    <div class="page-head">
+        <div>
+            <h1>{{ 'Edit product' if product_id else 'Add product' }}</h1>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="mb-1">Product</h2>
+                <p class="text-secondary small mb-3">What it is called, and who makes it.</p>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="name">Product name <span class="required">*</span></label>
+                        <input id="name" name="name" class="form-control{% if errors.get('name') %} is-invalid{% endif %}"{% if errors.get('name') %} aria-invalid="true" aria-describedby="name_error"{% endif %} maxlength="100" required value="{{ values.get('name', '') }}">
+                        {% if errors.get('name') %}<div class="invalid-feedback d-block" id="name_error">{{ errors['name'] }}</div>{% endif %}
+                    </div>
+                    {# Category and producer: a text box with a dropdown button. Typing suggests the names already in the database, and the button shows them all. Typing a name that isn't there adds it #}
+                    <div class="col-md-6">
+                        <label class="form-label" for="category">Category <span class="required">*</span></label>
+                        <div class="input-group position-relative" data-combo>
+                            <input id="category" name="category" class="form-control{% if errors.get('category') %} is-invalid{% endif %}"{% if errors.get('category') %} aria-invalid="true" aria-describedby="category_error"{% endif %} maxlength="50" required autocomplete="off"
+                                   value="{{ values.get('category', '') }}"
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="category-menu"
+                                   data-options='{{ categories|tojson }}'>
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-combo-toggle
+                                    aria-label="Show all category names" aria-controls="category-menu"></button>
+                            <div class="dropdown-menu w-100 combo-menu" id="category-menu" role="listbox" hidden data-combo-menu></div>
+                        </div>
+                        {% if errors.get('category') %}<div class="invalid-feedback d-block" id="category_error">{{ errors['category'] }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="producer">Producer company <span class="required">*</span></label>
+                        <div class="input-group position-relative" data-combo>
+                            <input id="producer" name="producer" class="form-control{% if errors.get('producer') %} is-invalid{% endif %}"{% if errors.get('producer') %} aria-invalid="true" aria-describedby="producer_error"{% endif %} maxlength="100" required autocomplete="off"
+                                   value="{{ values.get('producer', '') }}"
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="producer-menu"
+                                   data-options='{{ producers|tojson }}'>
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-combo-toggle
+                                    aria-label="Show all producer company names" aria-controls="producer-menu"></button>
+                            <div class="dropdown-menu w-100 combo-menu" id="producer-menu" role="listbox" hidden data-combo-menu></div>
+                        </div>
+                        {% if errors.get('producer') %}<div class="invalid-feedback d-block" id="producer_error">{{ errors['producer'] }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="description">Description (optional)</label>
+                        <textarea id="description" name="description" class="form-control description-box{% if errors.get('description') %} is-invalid{% endif %}"{% if errors.get('description') %} aria-invalid="true" aria-describedby="description_error"{% endif %} maxlength="500">{{ values.get('description', '') }}</textarea>
+                        {% if errors.get('description') %}<div class="invalid-feedback d-block" id="description_error">{{ errors['description'] }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="mb-3">Image (optional)</h2>
+                <div class="image-field">
+                    <div id="image-preview">
+                        {% if image_path %}
+                        <img class="product-image lg" src="{{ url_for('static', filename=image_path) }}" alt="{{ values.get('name', '') }}" loading="lazy">
+                        {% else %}
+                        <span class="product-image lg no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <label class="form-label" for="image">{{ 'Choose a new image' if image_path else 'Choose an image' }}</label>
+                        <input id="image" name="image" class="form-control{% if errors.get('image') %} is-invalid{% endif %}"{% if errors.get('image') %} aria-invalid="true" aria-describedby="image_error"{% endif %} type="file"
+                               accept="image/jpeg,image/png,image/webp,image/gif" data-max-bytes="{{ max_upload_bytes }}">
+                        {% if errors.get('image') %}<div class="invalid-feedback d-block" id="image_error">{{ errors['image'] }}</div>{% endif %}
+                        <div class="invalid-feedback d-block" data-image-problem aria-live="polite" hidden></div>
+                        <div class="form-text">JPG, PNG, WebP or GIF, up to {{ max_upload_bytes // (1024 * 1024) }} MB.</div>
+                        {% if errors and not errors.get('image') and request.files.get('image') and request.files['image'].filename %}
+                        <div class="form-text text-warning-emphasis">Please choose your image again. Browsers clear it when a form has problems.</div>
+                        {% endif %}
+                        {% if image_path %}
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="removeImage" name="removeImage">
+                            <label class="form-check-label" for="removeImage">Remove this image</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="mb-3">Price and codes</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="price">Price per unit <span class="required">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input id="price" name="price" class="form-control{% if errors.get('price') %} is-invalid{% endif %}"{% if errors.get('price') %} aria-invalid="true" aria-describedby="price_error"{% endif %} type="text" inputmode="decimal" required value="{{ values.get('price', '') }}">
+                        </div>
+                        {% if errors.get('price') %}<div class="invalid-feedback d-block" id="price_error">{{ errors['price'] }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="lowStockThreshold">Low stock alert at</label>
+                        <input id="lowStockThreshold" name="lowStockThreshold" class="form-control{% if errors.get('lowStockThreshold') %} is-invalid{% endif %}"{% if errors.get('lowStockThreshold') %} aria-invalid="true" aria-describedby="lowStockThreshold_error"{% endif %} type="number" min="0" max="100000" inputmode="numeric" value="{{ values.get('lowStockThreshold', 5) }}">
+                        {% if errors.get('lowStockThreshold') %}<div class="invalid-feedback d-block" id="lowStockThreshold_error">{{ errors['lowStockThreshold'] }}</div>{% endif %}
+                        <div class="form-text">Warn when this many units or fewer are left.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="upc">UPC (barcode) <span class="required">*</span></label>
+                        <input id="upc" name="upc" class="form-control code{% if errors.get('upc') %} is-invalid{% endif %}"{% if errors.get('upc') %} aria-invalid="true" aria-describedby="upc_error"{% endif %} maxlength="13" required inputmode="numeric" value="{{ values.get('upc', '') }}">
+                        {% if errors.get('upc') %}<div class="invalid-feedback d-block" id="upc_error">{{ errors['upc'] }}</div>{% endif %}
+                        <div class="form-text">Up to 13 digits. Scan the barcode or type it.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="active" name="active" {% if values.get('active') %}checked{% endif %}>
+                    <label class="form-check-label" for="active">Show in inventory</label>
+                </div>
+                <div class="form-text">Turn this off to hide the product without deleting it.</div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-primary">{{ 'Save changes' if product_id else 'Add product' }}</button>
+            <a class="btn btn-outline-secondary" href="{{ back }}">Cancel</a>
+        </div>
+    </form>
+
+    {% if product_id %}
+    {% set product_name = values.get('name') or 'this product' %}
+    <form method="post" action="/products/{{ product_id }}/delete" class="card card-body border-danger d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3"
+          {% if can_delete %}
+          data-confirm-title="Delete {{ product_name }}?"
+          data-confirm-text="This removes the product and its image for good. This can't be undone."
+          data-confirm-button="Delete product"
+          data-confirm-danger
+          {% else %}
+          data-confirm-title="Hide {{ product_name }}?"
+          data-confirm-text="It will leave the inventory and can't take deliveries. Its sales and delivery records are kept, and you can bring it back any time by turning on &quot;Show in inventory&quot;."
+          data-confirm-button="Hide product"
+          {% endif %}>
+        <div>
+            <div class="fw-semibold">{{ 'Delete product' if can_delete else 'Hide product' }}</div>
+            <div class="small text-secondary">
+                {{ 'It has no deliveries or sales, so it will be removed for good.' if can_delete else 'It has deliveries or sales, so it can only be hidden. Old records still need it.' }}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-outline-danger flex-shrink-0">{{ 'Delete product' if can_delete else 'Hide product' }}</button>
+    </form>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/products/combo_box.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/products/product_form.js') }}"></script>
+{% endblock %}

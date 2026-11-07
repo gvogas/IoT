@@ -5,23 +5,35 @@ from datetime import date
 
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request
 
+from hardware.rfid import scan_once
 from models.product import (
-    all_products, delete_product, get_product, inventory_rows, known_categories, known_producers,
-    read_product_form, save_product, update_product,
+    all_products, delete_product, get_product, has_history, inventory_rows, known_categories, known_producers,
+    product_stock, read_product_form, save_product, update_product,
 )
+from models.product_image import MAX_UPLOAD_BYTES, delete_image, read_image, save_image
+from models.reception import check_reception, read_epcs, reception_history, save_reception
 from models.unit import clear_product_units, find_units, known_epcs, units_for_product
-from models.reception import (
-    check_reception, read_epcs, reception_history, save_reception,
-)
-from hardware.rfid import ReaderError, scan_once
-from routes.auth_routes import is_admin
+from routes.guards import admin_api, admin_page
 
-# The inventory dashboard, the product pages and receiving stock. app.py adds them with app.register_blueprint(product_routes)
 product_routes = Blueprint("product_routes", __name__)
 
-# Every page here is for admins only. Put this at the top of each route:
-#     if not is_admin():
-#         return render_template("signin.html", error="Only admins can see this page."), 403
+
+# "1 unit", "3 units"
+def count_of(count, word):
+    return f"{count} {word if count == 1 else word + 's'}"
+
+
+# The image chosen on the product form, checked and shrunk, or None. A bad file is added to errors
+def read_uploaded_image(errors):
+    data, error = read_image(request.files.get("image"))
+    if error:
+        errors["image"] = error
+    return data
+
+
+def product_not_found():
+    flash("That product was not found.", "error")
+    return redirect("/products")
 
 
 # -------------------------
@@ -29,47 +41,37 @@ product_routes = Blueprint("product_routes", __name__)
 # -------------------------
 
 @product_routes.route("/inventory")
+@admin_page
 def inventory():
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        rows = inventory_rows()
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-
-    units = sum(row["inStock"] for row in rows)
-    low = sum(1 for row in rows if row["lowStock"])
-    out = sum(1 for row in rows if row["inStock"] == 0)
-    last = max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None)
+    rows = inventory_rows()
+    low = [row for row in rows if row["lowStock"] and row["inStock"] > 0]
+    out = [row for row in rows if row["inStock"] == 0]
+    # What needs ordering comes first: out of stock, then low, then the rest
+    rows = out + low + [row for row in rows if not row["lowStock"] and row["inStock"] > 0]
     # The EPC lookup box on the page. Empty means no search
     epc_query = request.args.get("epc", "").strip().upper()
-    try:
-        matches = find_units(epc_query) if epc_query else []
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-
     return render_template(
-        "inventory.html", rows=rows, units=units, low=low, out=out, last=last,
-        epc_query=epc_query, matches=matches,
+        "products/inventory.html",
+        rows=rows,
+        units=sum(row["inStock"] for row in rows),
+        value=sum(row["inStock"] * row["price"] for row in rows),
+        low=len(low),
+        out=len(out),
+        categories=sorted({row["categoryName"] for row in rows}, key=str.lower),
+        last=max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
+        epc_query=epc_query,
+        matches=find_units(epc_query) if epc_query else [],
     )
 
 
 # Download the inventory as a spreadsheet file (CSV)
 @product_routes.route("/inventory.csv")
+@admin_page
 def inventory_csv():
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        rows = inventory_rows()
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-
     out = io.StringIO()
     writer = csv.writer(out)
     writer.writerow(["Product", "Category", "Price", "In stock", "Sold", "Low stock alert at", "Last received"])
-    for row in rows:
+    for row in inventory_rows():
         writer.writerow([row["productName"], row["categoryName"], f"{row['price']:.2f}", row["inStock"],
                          row["totalSold"], row["lowStockThreshold"], row["lastReceived"] or ""])
 
@@ -79,217 +81,26 @@ def inventory_csv():
 
 
 # -------------------------
-# Products list
+# Products: list, add, edit, delete
 # -------------------------
 
 @product_routes.route("/products")
+@admin_page
 def products():
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        rows = all_products()
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-    return render_template("products.html", products=rows)
+    rows = all_products()
+    return render_template("products/list.html", products=rows,
+                           categories=sorted({row["categoryName"] for row in rows}, key=str.lower))
 
 
-# -------------------------
-# Add a product
-# -------------------------
-
-@product_routes.route("/products/new", methods=["GET", "POST"])
-def new_product():
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    if request.method == "GET":
-        return render_product_form(None, {"active": True, "lowStockThreshold": 5})
-
-    product, errors = read_product_form(request.form)
-    if errors:
-        flash(f"Product not added. {len(errors)} {'problem' if len(errors) == 1 else 'problems'} to fix.", "error")
-        return render_product_form(None, request.form, errors), 400
-
-    try:
-        product_id = save_product(product)
-    except sqlite3.Error as err:
-        flash(f"Product not added. Database error: {err}", "error")
-        return render_product_form(None, request.form), 500
-
-    flash(f"Product \"{product['name']}\" added successfully.", "success")
-    return redirect(f"/products/{product_id}")
-
-
-# -------------------------
-# One product: details, stock and receiving
-# -------------------------
-
-@product_routes.route("/products/<int:product_id>")
-def product_detail(product_id):
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        product = get_product(product_id)
-        if product is None:
-            flash("That product was not found.", "error")
-            return redirect("/products")
-        history = reception_history(product_id)
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-
-    stock = next((row for row in inventory_rows() if row["productID"] == product_id), None)
-    units, unit_total = units_for_product(product_id)
+# Show the product form. values is what goes in the boxes: the defaults, the saved product, or what was typed
+def render_product_form(product_id, values, errors=None, image_path=None):
     return render_template(
-        "product_detail.html", product=product, history=history, stock=stock,
-        units=units, unit_total=unit_total,
-        today=date.today().isoformat(), epc_text="", receive_error=None,
+        "products/form.html", product_id=product_id, values=values, errors=errors or {},
+        categories=known_categories(), producers=known_producers(), image_path=image_path,
+        max_upload_bytes=MAX_UPLOAD_BYTES,
+        # A product with deliveries or sales can only be hidden, so the page says that up front
+        can_delete=product_id is None or not has_history(product_id),
     )
-
-
-# Delete every EPC and delivery of one product, so its tags can be received again while testing
-@product_routes.route("/products/<int:product_id>/clear-epcs", methods=["POST"])
-def clear_epcs(product_id):
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        product = get_product(product_id)
-        if product is None:
-            flash("That product was not found.", "error")
-            return redirect("/products")
-        count = clear_product_units(product_id)
-    except sqlite3.Error as err:
-        flash(f"Database error: {err}", "error")
-        return redirect(f"/products/{product_id}")
-
-    flash(f"Cleared {count} {'unit' if count == 1 else 'units'} of \"{product['productName']}\". The tags can be received again.", "success")
-    return redirect(f"/products/{product_id}")
-
-
-# -------------------------
-# Edit a product
-# -------------------------
-
-@product_routes.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
-def edit_product(product_id):
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        product = get_product(product_id)
-    except sqlite3.Error as err:
-        return f"Database error: {err}", 500
-    if product is None:
-        flash("That product was not found.", "error")
-        return redirect("/products")
-
-    if request.method == "GET":
-        return render_product_form(product_id, product_to_form(product))
-
-    values, errors = read_product_form(request.form, product_id)
-    if errors:
-        flash(f"Changes not saved. {len(errors)} {'problem' if len(errors) == 1 else 'problems'} to fix.", "error")
-        return render_product_form(product_id, request.form, errors), 400
-
-    try:
-        update_product(product_id, values)
-    except sqlite3.Error as err:
-        flash(f"Changes not saved. Database error: {err}", "error")
-        return render_product_form(product_id, request.form), 500
-
-    flash(f"Changes to \"{values['name']}\" saved.", "success")
-    return redirect(f"/products/{product_id}")
-
-
-# -------------------------
-# Delete a product
-# -------------------------
-
-@product_routes.route("/products/<int:product_id>/delete", methods=["POST"])
-def remove_product(product_id):
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    try:
-        product = get_product(product_id)
-        result = delete_product(product_id)
-    except sqlite3.Error as err:
-        flash(f"Product not deleted. Database error: {err}", "error")
-        return redirect(f"/products/{product_id}")
-
-    if result is None:
-        flash("That product was not found.", "error")
-        return redirect("/products")
-    if result == "hidden":
-        flash(f"\"{product['productName']}\" has deliveries or sales, so it was hidden instead of deleted.", "success")
-    else:
-        flash(f"\"{product['productName']}\" deleted.", "success")
-    return redirect("/products")
-
-
-# -------------------------
-# Receive stock
-# -------------------------
-
-@product_routes.route("/products/<int:product_id>/receive", methods=["POST"])
-def receive_stock(product_id):
-    if not is_admin():
-        return render_template("signin.html", error="Only admins can see this page."), 403
-
-    date_text = request.form.get("dateReceived", "").strip()
-    epc_text = request.form.get("epcs", "")
-
-    epcs, errors = read_epcs(epc_text)
-    if not errors:
-        errors = check_reception(product_id, epcs, date_text)
-    count = len(epcs)
-
-    try:
-        product = get_product(product_id)
-        if product is None:
-            flash("That product was not found.", "error")
-            return redirect("/products")
-        if errors:
-            flash(f"Stock not received. {len(errors)} {'problem' if len(errors) == 1 else 'problems'} to fix.", "error")
-            return render_product_detail_with_errors(product_id, epc_text, date_text, errors)
-        save_reception(product_id, epcs, date_text)
-    except sqlite3.Error as err:
-        flash(f"Stock not received. Database error: {err}", "error")
-        return redirect(f"/products/{product_id}")
-
-    flash(f"{count} {'unit' if count == 1 else 'units'} of \"{product['productName']}\" received on {date_text}.", "success")
-    return redirect(f"/products/{product_id}")
-
-
-# The RFID reader, for the "Scan tags" button on the receive form. One call asks the reader once and gives back the new EPCs it saw, and the ones already in the system
-@product_routes.route("/rfid/scan", methods=["POST"])
-def rfid_scan():
-    if not is_admin():
-        return jsonify(error="Only admins can scan tags."), 403
-
-    try:
-        seen = scan_once()
-        known = known_epcs(seen)
-    except ReaderError as err:
-        return jsonify(error=str(err)), 503
-    except sqlite3.Error as err:
-        return jsonify(error=f"Database error: {err}"), 500
-    return jsonify(epcs=[epc for epc in seen if epc not in known], known=sorted(known))
-
-
-def render_product_detail_with_errors(product_id, epc_text, date_text, errors):
-    product = get_product(product_id)
-    history = reception_history(product_id)
-    stock = next((row for row in inventory_rows() if row["productID"] == product_id), None)
-    units, unit_total = units_for_product(product_id)
-    return render_template(
-        "product_detail.html", product=product, history=history, stock=stock,
-        units=units, unit_total=unit_total,
-        today=date.today().isoformat(), epc_text=epc_text, date_text=date_text,
-        receive_error=errors,
-    ), 400
 
 
 # The saved product, with the same names the form fields use
@@ -302,14 +113,162 @@ def product_to_form(product):
     }
 
 
-# Show the product form. For a new product, values is the form (or defaults). For an edit, it's the saved product
-def render_product_form(product_id, values, errors=None):
+@product_routes.route("/products/new", methods=["GET", "POST"])
+@admin_page
+def new_product():
+    if request.method == "GET":
+        return render_product_form(None, {"active": True, "lowStockThreshold": 5})
+
+    product, errors = read_product_form(request.form)
+    image_data = read_uploaded_image(errors)
+    if errors:
+        flash(f"Product not added. {count_of(len(errors), 'problem')} to fix.", "error")
+        return render_product_form(None, request.form, errors), 400
+
+    product["image"] = None
     try:
-        categories = known_categories()
-        producers = known_producers()
+        if image_data:
+            product["image"] = save_image(image_data)
+        product_id = save_product(product)
+    except (sqlite3.Error, OSError) as err:
+        delete_image(product["image"])
+        flash(f"Product not added. Could not save it: {err}", "error")
+        return render_product_form(None, request.form), 500
+
+    flash(f"Product \"{product['name']}\" added successfully.", "success")
+    return redirect(f"/products/{product_id}")
+
+
+@product_routes.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
+@admin_page
+def edit_product(product_id):
+    product = get_product(product_id)
+    if product is None:
+        return product_not_found()
+
+    if request.method == "GET":
+        return render_product_form(product_id, product_to_form(product), image_path=product["imagePath"])
+
+    old_image = product["imagePath"]
+    values, errors = read_product_form(request.form, product_id)
+    image_data = read_uploaded_image(errors)
+    if errors:
+        flash(f"Changes not saved. {count_of(len(errors), 'problem')} to fix.", "error")
+        return render_product_form(product_id, request.form, errors, old_image), 400
+
+    # A new image replaces the old one. Otherwise it stays, unless "Remove this image" was ticked
+    values["image"] = None if request.form.get("removeImage") else old_image
+    try:
+        if image_data:
+            values["image"] = save_image(image_data)
+        update_product(product_id, values)
+    except (sqlite3.Error, OSError) as err:
+        if values["image"] != old_image:
+            delete_image(values["image"])
+        flash(f"Changes not saved. Could not save them: {err}", "error")
+        return render_product_form(product_id, request.form, image_path=old_image), 500
+
+    # Only delete the old file once the database no longer points at it
+    if values["image"] != old_image:
+        delete_image(old_image)
+
+    flash(f"Changes to \"{values['name']}\" saved.", "success")
+    return redirect(f"/products/{product_id}")
+
+
+@product_routes.route("/products/<int:product_id>/delete", methods=["POST"])
+@admin_page
+def remove_product(product_id):
+    try:
+        product = get_product(product_id)
+        result = delete_product(product_id)
     except sqlite3.Error as err:
-        return f"Database error: {err}", 500
+        flash(f"Product not deleted. Database error: {err}", "error")
+        return redirect(f"/products/{product_id}")
+
+    if result is None:
+        return product_not_found()
+    if result == "hidden":
+        flash(f"\"{product['productName']}\" is now hidden. Turn on \"Show in inventory\" to bring it back.", "success")
+    else:
+        delete_image(product["imagePath"])
+        flash(f"\"{product['productName']}\" deleted.", "success")
+    return redirect("/products")
+
+
+# -------------------------
+# One product: details, stock and receiving
+# -------------------------
+
+# The product page. The receive form keeps what was typed if there are errors
+def render_product_detail(product, epc_text="", date_text=None, errors=None):
+    product_id = product["productID"]
+    units, unit_total = units_for_product(product_id)
+    today = date.today().isoformat()
     return render_template(
-        "product_form.html", product_id=product_id, values=values, errors=errors or [],
-        categories=categories, producers=producers,
+        "products/detail.html", product=product, history=reception_history(product_id),
+        stock=product_stock(product_id), units=units, unit_total=unit_total, today=today,
+        epc_text=epc_text, date_text=today if date_text is None else date_text, receive_error=errors,
     )
+
+
+@product_routes.route("/products/<int:product_id>")
+@admin_page
+def product_detail(product_id):
+    product = get_product(product_id)
+    if product is None:
+        return product_not_found()
+    return render_product_detail(product)
+
+
+@product_routes.route("/products/<int:product_id>/receive", methods=["POST"])
+@admin_page
+def receive_stock(product_id):
+    date_text = request.form.get("dateReceived", "").strip()
+    epc_text = request.form.get("epcs", "")
+
+    try:
+        epcs, errors = read_epcs(epc_text)
+        if not errors:
+            errors = check_reception(product_id, epcs, date_text)
+
+        product = get_product(product_id)
+        if product is None:
+            return product_not_found()
+        if errors:
+            flash(f"Stock not received. {count_of(len(errors), 'problem')} to fix.", "error")
+            return render_product_detail(product, epc_text, date_text, errors), 400
+        save_reception(product_id, epcs, date_text)
+    except sqlite3.Error as err:
+        flash(f"Stock not received. Database error: {err}", "error")
+        return redirect(f"/products/{product_id}")
+
+    flash(f"{count_of(len(epcs), 'unit')} of \"{product['productName']}\" received on {date_text}.", "success")
+    return redirect(f"/products/{product_id}")
+
+
+# Delete every EPC and delivery of one product, so its tags can be received again while testing
+@product_routes.route("/products/<int:product_id>/clear-epcs", methods=["POST"])
+@admin_page
+def clear_epcs(product_id):
+    try:
+        product = get_product(product_id)
+        if product is None:
+            return product_not_found()
+        count = clear_product_units(product_id)
+    except sqlite3.Error as err:
+        flash(f"Database error: {err}", "error")
+        return redirect(f"/products/{product_id}")
+
+    flash(f"Cleared {count_of(count, 'unit')} of \"{product['productName']}\". The tags can be received again.", "success")
+    return redirect(f"/products/{product_id}")
+
+
+# The "Scan tags" button on the receive form. Asks the reader once and gives back the new EPCs it saw,
+# and the ones already in the system
+@product_routes.route("/rfid/scan", methods=["POST"])
+@admin_api
+def rfid_scan():
+    seen = scan_once()
+    known = known_epcs(seen)
+    return jsonify(epcs=[epc for epc in seen if epc not in known], known=sorted(known))

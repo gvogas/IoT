@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Fridge Dashboard{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1>Fridges</h1>
+            <p id="summary" class="fridge-summary" role="status">Waiting for the sensors.</p>
+        </div>
+    </div>
+    <div id="message" role="status" hidden></div>
+
+    {# JS fills this with one tile per fridge #}
+    <div id="fridges" class="fridge-tiles"></div>
+
+    <section class="card fan-card" aria-labelledby="shared-fan-title">
+        <div class="card-body">
+            <span id="fan-icon" class="fan-icon"><i class="bi bi-fan" aria-hidden="true"></i></span>
+            <div class="fan-info">
+                <h2 id="shared-fan-title">Shared fan</h2>
+                <p>Status: <b id="fan-state" role="status">UNKNOWN</b></p>
+            </div>
+            <div id="fan-message" role="status" hidden></div>
+            <button type="button" class="btn btn-outline-secondary" id="fan-off">Turn fan off</button>
+        </div>
+    </section>
+
+    {# Blueprint for a fridge tile. Not shown until JS clones it #}
+    <template id="tile-template">
+        <a class="card card-body fridge-tile">
+            <div class="tile-head">
+                <h2 class="fridge-name"></h2>
+                <span class="fridge-status waiting"><span class="dot"></span><span class="status-text">Waiting</span></span>
+            </div>
+
+            <div class="tile-temp">
+                <span class="temp-value"><span class="temp">--</span><span class="unit"> °C</span></span>
+                <span class="trend"><i class="bi bi-arrow-right trend-arrow" aria-hidden="true"></i><span class="trend-text"></span></span>
+            </div>
+
+            <div class="limit-bar" aria-hidden="true">
+                <div class="limit-track"><div class="limit-safe"></div></div>
+                <div class="limit-mark"></div>
+                <div class="limit-now"></div>
+            </div>
+            <div class="limit-labels"><span>0 °C</span><span class="limit-label">limit --</span><span class="scale-top">12 °C</span></div>
+
+            <p class="tile-sentence"></p>
+
+            <div class="tile-foot">
+                <span>Humidity <b class="hum">--</b> %</span>
+                <span class="last-reading">No reading yet</span>
+            </div>
+            <span class="tile-link">View details <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+        </a>
+    </template>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/fridges/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fridges/dashboard.js') }}"></script>
+{% endblock %}

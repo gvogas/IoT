@@ -1,5 +1,4 @@
-from models.database import query, transaction
-
+from models.database import placeholders, query, transaction
 
 UNIT_LIMIT = 500
 
@@ -31,11 +30,11 @@ def find_units(text):
     """, (f"%{text}%",))
 
 
-# Which of these EPCs are already units in the database, Gives back a set
+# Which of these EPCs are already units in the database? Gives back a set
 def known_epcs(epcs):
     if not epcs:
         return set()
-    rows = query(f"SELECT epc FROM ProductItem WHERE epc IN ({','.join('?' * len(epcs))})", list(epcs))
+    rows = query(f"SELECT epc FROM ProductItem WHERE epc IN ({placeholders(epcs)})", list(epcs))
     return {row["epc"] for row in rows}
 
 

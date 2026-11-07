@@ -1,22 +1,20 @@
 from flask import Blueprint, current_app, jsonify
 
 from controllers.fan_controller import fan_controller
-from routes.auth_routes import is_admin
+from routes.guards import admin_api
 
 fan_routes = Blueprint("fan_routes", __name__)
 
 
 @fan_routes.route("/api/fan")
+@admin_api
 def fan_status():
-    if not is_admin():
-        return jsonify(error="Only admins can see this."), 403
     return jsonify(state=fan_controller.get_state())
 
 
 @fan_routes.route("/api/fan/off", methods=["POST"])
+@admin_api
 def turn_off():
-    if not is_admin():
-        return jsonify(error="Only admins can control the fan."), 403
     try:
         state = fan_controller.turn_off()
     except Exception:

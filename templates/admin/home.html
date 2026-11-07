@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1>Store dashboards</h1>
+            <p>Everything behind the checkout, in one place.</p>
+        </div>
+    </div>
+
+    <div class="tile-grid">
+        <a class="card nav-tile" href="/inventory">
+            <div class="card-body">
+                <span class="tile-icon"><i class="bi bi-boxes" aria-hidden="true"></i></span>
+                <h2>Inventory</h2>
+                <p>Units in stock, low stock alerts and deliveries</p>
+            </div>
+        </a>
+        <a class="card nav-tile" href="/products">
+            <div class="card-body">
+                <span class="tile-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
+                <h2>Products <span class="count">{{ product_count }}</span></h2>
+                <p>Add, edit and delete products</p>
+            </div>
+        </a>
+        <a class="card nav-tile" href="/fridges">
+            <div class="card-body">
+                <span class="tile-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
+                <h2>Fridges</h2>
+                <p>Temperature, humidity and the limit of each fridge</p>
+            </div>
+        </a>
+        <a class="card nav-tile" href="/customers">
+            <div class="card-body">
+                <span class="tile-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+                <h2>Customers <span class="count">{{ customer_count }}</span></h2>
+                <p>Everyone with a membership, and their roles</p>
+            </div>
+        </a>
+    </div>
+{% endblock %}

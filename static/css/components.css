@@ -1,0 +1,1397 @@
+/* Layout and the app's own components. Colours come from theme.css, Bootstrap does the rest */
+
+/* -------------------------
+   Page
+   ------------------------- */
+body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.5;
+}
+
+main {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem 3rem;
+}
+
+main.narrow {
+    max-width: 760px;
+}
+
+main.tiny {
+    max-width: 440px;
+}
+
+h1, .h1 {
+    font-size: 1.75rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+}
+
+h2, .h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-head p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+code,
+.code {
+    font-family: var(--bs-font-monospace);
+    font-size: 0.9em;
+    letter-spacing: 0.01em;
+}
+
+table,
+.stat-value,
+.num {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+
+/* -------------------------
+   Controls: big enough to tap on the kiosk screen
+   ------------------------- */
+.btn,
+.form-control,
+.input-group-text {
+    min-height: 44px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-weight: 500;
+    touch-action: manipulation;
+}
+
+.btn-sm {
+    min-height: 36px;
+}
+
+.btn-lg {
+    min-height: 56px;
+    font-weight: 600;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.search-box {
+    flex: 1 1 260px;
+    max-width: 380px;
+}
+
+/* A message from the page's JavaScript. An error list has one problem per line */
+.js-message {
+    margin: 0 0 1rem;
+    white-space: pre-line;
+}
+
+.required {
+    color: var(--danger);
+}
+
+
+/* -------------------------
+   The "are you sure?" window
+   ------------------------- */
+.confirm-body {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.confirm-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    color: var(--warning-text);
+    background: var(--warning-tint);
+}
+
+.confirm-icon.danger {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+#confirm-title {
+    overflow-wrap: anywhere;
+}
+
+
+/* -------------------------
+   Navigation
+   ------------------------- */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 650;
+}
+
+.brand i {
+    color: var(--arctic-mist);
+}
+
+.navbar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    border-bottom: 2px solid transparent;
+}
+
+.navbar .nav-link.active {
+    font-weight: 600;
+}
+
+@media (min-width: 768px) {
+    .navbar {
+        padding-block: 0;
+    }
+
+    .navbar .nav-link {
+        min-height: 56px;
+        padding-inline: 0.75rem !important;
+    }
+
+    .navbar .nav-link.active {
+        border-bottom-color: var(--arctic-blue);
+    }
+}
+
+
+/* -------------------------
+   Cards and tiles
+   ------------------------- */
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.stat-value.small-value {
+    font-size: 1.15rem;
+    line-height: 2.2rem;
+}
+
+.stat-value.alert-value {
+    color: var(--danger);
+}
+
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.nav-tile {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.nav-tile:hover,
+.nav-tile:focus-visible {
+    border-color: var(--arctic-blue);
+    background: var(--tint);
+}
+
+.tile-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0.75rem;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    color: var(--arctic-navy);
+    background: var(--tint-strong);
+}
+
+.nav-tile h2 {
+    margin-bottom: 0.25rem;
+}
+
+.nav-tile h2 .count {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.nav-tile p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.925rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-state i {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 2.25rem;
+    color: var(--arctic-slate);
+}
+
+.empty-state p {
+    color: var(--muted);
+    max-width: 44ch;
+    margin-inline: auto;
+}
+
+.empty-state p:last-child {
+    margin-bottom: 0;
+}
+
+.error-card {
+    margin-top: 3rem;
+}
+
+
+/* -------------------------
+   Tables
+   ------------------------- */
+.table th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.card .table > tbody > tr:last-child > * {
+    border-bottom: 0;
+}
+
+/* Tables that fill their card line up with the card's text */
+.table-responsive > .table > :not(caption) > * > :first-child {
+    padding-left: 1.25rem;
+}
+
+.table-responsive > .table > :not(caption) > * > :last-child {
+    padding-right: 1.25rem;
+}
+
+.row-link {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+}
+
+.row-link:hover {
+    color: var(--link);
+    text-decoration: underline;
+}
+
+.total-row td,
+.total-row th {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--arctic-navy);
+    border-bottom: 0;
+}
+
+/* Phones: the wide tables become a stack of cards, one per row */
+@media (max-width: 767.98px) {
+    .stock-table thead {
+        display: none;
+    }
+
+    .stock-table,
+    .stock-table tbody,
+    .stock-table tr,
+    .stock-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .stock-table tr {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .stock-table tr:last-child {
+        border-bottom: 0;
+    }
+
+    .stock-table tr[hidden] {
+        display: none;
+    }
+
+    .table-responsive > .stock-table > :not(caption) > * > td:first-child,
+    .table-responsive > .stock-table > :not(caption) > * > td:last-child,
+    .stock-table > :not(caption) > * > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.25rem 0;
+        border-bottom: 0;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .stock-table td::before {
+        content: attr(data-label);
+        flex: none;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: left;
+    }
+
+    .stock-table td:first-child {
+        font-size: 1.05rem;
+    }
+
+    .stock-table td:first-child::before,
+    .stock-table td[data-label=""]::before {
+        content: none;
+    }
+
+    .table-responsive > .stock-table > :not(caption) > * > td[data-label=""] {
+        justify-content: flex-end;
+    }
+
+    .search-box {
+        max-width: none;
+    }
+}
+
+
+/* -------------------------
+   Sign in
+   ------------------------- */
+.or-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.or-divider::before,
+.or-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--line);
+}
+
+
+/* -------------------------
+   Checkout
+   ------------------------- */
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0.5rem 0 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+    font-weight: 600;
+}
+
+.summary-total .amount {
+    font-size: 2.25rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+/* The basket and the side column line up from the top on a big screen */
+@media (min-width: 992px) {
+    .checkout-side {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+
+/* -------------------------
+   Account
+   ------------------------- */
+.member-card {
+    color: var(--arctic-ice);
+    background: var(--arctic-navy);
+    border: 0;
+}
+
+.member-card .stat-label {
+    color: var(--arctic-mist);
+}
+
+.member-card .stat-value {
+    color: #FFFFFF;
+}
+
+.member-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.member-avatar {
+    color: var(--arctic-navy);
+    background: var(--arctic-ice);
+}
+
+@media (min-width: 992px) {
+    .account-side {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+/* One purchase in the history. Click it to open the receipt */
+.purchase {
+    border-top: 1px solid var(--line);
+}
+
+.purchase summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    min-height: 44px;
+    padding: 0.85rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    transition: background-color 0.15s ease-out;
+}
+
+.purchase summary::-webkit-details-marker {
+    display: none;
+}
+
+.purchase summary:hover {
+    background: var(--tint);
+}
+
+.purchase summary:focus-visible {
+    outline: 3px solid var(--bs-focus-ring-color);
+    outline-offset: -3px;
+}
+
+.purchase:last-of-type,
+.purchase:last-of-type summary {
+    border-radius: 0 0 11px 11px;
+}
+
+.purchase-total {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.purchase-total i {
+    font-size: 0.8rem;
+    color: var(--muted);
+    transition: transform 0.15s ease-out;
+}
+
+.purchase[open] .purchase-total i {
+    transform: rotate(180deg);
+}
+
+.purchase-body {
+    padding: 0.25rem 1.25rem 1.25rem;
+}
+
+.purchase-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.purchase-line-name {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.purchase-sums {
+    margin: 0.75rem 0 0 auto;
+    max-width: 280px;
+}
+
+.purchase-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* Phones: the total gets its own row, so long amounts don't break across lines */
+@media (max-width: 575.98px) {
+    .account-stats > .col {
+        width: 50%;
+    }
+
+    .account-stats > .col:first-child {
+        width: 100%;
+    }
+}
+
+.member-number {
+    font-family: var(--bs-font-monospace);
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1rem;
+    margin: 0;
+}
+
+.facts dt {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* -------------------------
+   Customers
+   ------------------------- */
+.customer-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.avatar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--arctic-navy);
+    background: var(--tint-strong);
+}
+
+.avatar.admin {
+    color: #FFFFFF;
+    background: var(--arctic-navy);
+}
+
+.you-tag {
+    margin-left: 0.25rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--arctic-navy);
+    background: var(--tint-strong);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+
+/* -------------------------
+   Inventory and products
+   ------------------------- */
+.table-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.category-filter {
+    flex: 0 1 200px;
+    min-height: 44px;
+}
+
+.filter-chips {
+    flex-wrap: wrap;
+}
+
+.chip-count {
+    font-size: 0.8em;
+    font-weight: 600;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+.sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+}
+
+.sort-button:hover {
+    color: var(--arctic-navy);
+}
+
+.sort-button i {
+    font-size: 0.7rem;
+    opacity: 0.6;
+}
+
+th[aria-sort] .sort-button {
+    color: var(--arctic-navy);
+}
+
+th[aria-sort] .sort-button i {
+    opacity: 1;
+}
+
+.product-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.product-image {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    object-fit: contain;
+}
+
+.product-image.sm {
+    width: 44px;
+    height: 44px;
+}
+
+.product-image.lg {
+    width: 160px;
+    height: 160px;
+    border-radius: 12px;
+}
+
+.product-image.no-image {
+    color: var(--arctic-mist);
+    background: var(--tint);
+}
+
+.product-image.sm.no-image {
+    font-size: 1.1rem;
+}
+
+.product-image.lg.no-image {
+    font-size: 2.5rem;
+}
+
+.product-photo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.image-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1.25rem;
+}
+
+.image-field > .flex-grow-1 {
+    flex-basis: 240px;
+}
+
+/* On a phone the basket has no room for pictures */
+@media (max-width: 575.98px) {
+    #basket-rows .product-image {
+        display: none;
+    }
+}
+
+.stock-cell {
+    display: inline-block;
+    min-width: 110px;
+    text-align: right;
+}
+
+.stock-meter {
+    height: 6px;
+    margin-top: 0.25rem;
+    border-radius: 3px;
+    background: var(--tint-strong);
+    overflow: hidden;
+}
+
+.stock-meter > div {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--arctic-blue);
+}
+
+.stock-meter.low > div {
+    background: var(--warning);
+}
+
+.stock-meter.out {
+    background: var(--danger-tint);
+}
+
+.stat-meter {
+    margin-top: 0.5rem;
+}
+
+.detail-tabs {
+    padding: 0.75rem 1.25rem 0;
+    background: var(--tint);
+    border-bottom: 1px solid var(--line);
+    border-radius: 11px 11px 0 0;
+}
+
+.detail-tabs .nav-tabs {
+    margin-bottom: -1px;
+    border-bottom: 0;
+}
+
+.tab-count {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+/* A hidden product can't take deliveries, so its form is shown greyed out */
+fieldset:disabled {
+    opacity: 0.55;
+}
+
+
+/* -------------------------
+   Product form
+   ------------------------- */
+.description-box {
+    min-height: 100px;
+}
+
+/* The suggestion list under the category and producer boxes.
+   Bootstrap hides .dropdown-menu until it has .show, so it needs this to appear */
+.combo-menu:not([hidden]) {
+    display: block;
+    top: 100%;
+    left: 0;
+    z-index: 1050;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.combo-menu .dropdown-item {
+    min-height: 40px;
+    cursor: pointer;
+}
+
+
+/* -------------------------
+   Fridges: status and temperature
+   ------------------------- */
+.ok { color: var(--success); }
+.hot { color: var(--danger); }
+
+.fridge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.2rem 0.7rem 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--muted);
+    background: var(--tint);
+}
+
+.fridge-status .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.fridge-status.ok { color: #1F5F53; background: var(--success-tint); }
+.fridge-status.hot { color: var(--danger); background: var(--danger-tint); }
+.fridge-status.waiting { color: var(--warning-text); background: var(--warning-tint); }
+
+.trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.trend.hot {
+    color: var(--danger);
+}
+
+.temp-value {
+    font-size: 2.75rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.temp-value .unit,
+.temp-value small {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+
+/* -------------------------
+   Fridge dashboard
+   ------------------------- */
+.fridge-summary.hot {
+    font-weight: 600;
+}
+
+.fridge-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.fridge-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease-out;
+}
+
+.fridge-tile:hover,
+.fridge-tile:focus-visible {
+    border-color: var(--arctic-blue);
+}
+
+.fridge-tile.hot,
+.fridge-tile.hot:hover {
+    color: inherit;
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger);
+}
+
+.fridge-tile.stale .tile-temp,
+.fridge-tile.stale .limit-bar,
+.fridge-tile.stale .limit-labels {
+    opacity: 0.5;
+}
+
+.tile-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tile-head h2 {
+    margin: 0;
+}
+
+.tile-temp {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.9rem;
+}
+
+/* Limit bar: where the temperature sits between 0 and the top of the scale */
+.limit-bar {
+    position: relative;
+    height: 22px;
+}
+
+.limit-track {
+    position: absolute;
+    inset: 6px 0 auto;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--danger-tint);
+    overflow: hidden;
+}
+
+.limit-safe {
+    height: 100%;
+    background: var(--tint-strong);
+}
+
+.limit-mark {
+    position: absolute;
+    top: 1px;
+    width: 2px;
+    height: 20px;
+    background: var(--arctic-navy);
+}
+
+.limit-now {
+    position: absolute;
+    top: 2px;
+    width: 18px;
+    height: 18px;
+    margin-left: -9px;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--arctic-blue);
+    box-shadow: 0 0 0 1px var(--arctic-navy);
+    transition: left 0.6s ease;
+}
+
+.fridge-tile.hot .limit-now {
+    background: var(--danger);
+}
+
+.limit-labels {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    margin-top: -0.4rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.limit-label {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--arctic-navy);
+}
+
+.tile-sentence {
+    margin: 0;
+    min-height: 3em;
+    font-size: 0.925rem;
+    color: var(--muted);
+}
+
+.tile-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.tile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    align-self: flex-end;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--link);
+}
+
+.fan-card .card-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fan-card h2,
+.fan-card p {
+    margin: 0;
+}
+
+.fan-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    font-size: 1.9rem;
+    color: var(--arctic-slate);
+    background: var(--tint);
+}
+
+.fan-icon.on {
+    color: var(--arctic-navy);
+    background: var(--tint-strong);
+}
+
+.fan-icon.on i {
+    animation: fan-spin 1.2s linear infinite;
+}
+
+@keyframes fan-spin {
+    to { transform: rotate(360deg); }
+}
+
+.fan-info {
+    flex: 1 1 160px;
+}
+
+.fan-card .js-message {
+    flex: 1 1 200px;
+    margin: 0;
+}
+
+
+/* -------------------------
+   Fridge page
+   ------------------------- */
+.detail-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.detail-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-card.hot {
+    color: var(--arctic-navy);
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger);
+}
+
+.detail-card.stale .gauge-panels {
+    opacity: 0.5;
+}
+
+.gauge-panels {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 0.75rem;
+}
+
+.gauge-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 0.6rem 1rem;
+    border-radius: 10px;
+    background: var(--arctic-ice);
+}
+
+.panel-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.thermometer text,
+.dial-box text {
+    font-family: var(--bs-body-font-family);
+    fill: var(--muted);
+}
+
+.thermo-glass {
+    fill: var(--surface);
+    stroke: var(--arctic-slate);
+    stroke-width: 2;
+}
+
+.thermo-fill,
+.thermo-bulb {
+    fill: var(--arctic-blue);
+    transition: all 0.6s ease;
+}
+
+.thermo-reading.hot .thermo-fill,
+.thermo-reading.hot .thermo-bulb {
+    fill: var(--danger);
+}
+
+.scale-red { fill: var(--danger-tint); }
+.scale-green { fill: var(--tint-strong); }
+.thermo-ticks { stroke: var(--arctic-slate); stroke-width: 1.5; }
+
+.limit-line {
+    stroke: var(--danger);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+}
+
+.thermometer .limit-text {
+    fill: var(--danger);
+    font-weight: 600;
+}
+
+.dial-box {
+    display: flex;
+    align-items: center;
+    height: 190px;
+}
+
+.dial-box svg {
+    max-width: 100%;
+}
+
+.dial-track,
+.hum-arc {
+    fill: none;
+    stroke-width: 18;
+    stroke-linecap: round;
+}
+
+.dial-track { stroke: var(--tint-strong); }
+.hum-arc { stroke: var(--arctic-blue); transition: all 0.6s ease; }
+
+.hum-needle {
+    stroke: var(--arctic-navy);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: all 0.6s ease;
+}
+
+.dial-pin { fill: var(--arctic-navy); }
+
+.detail-sentence {
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    background: var(--tint);
+}
+
+.detail-sentence.ok { color: inherit; background: var(--success-tint); }
+.detail-sentence.hot { color: inherit; background: var(--danger-tint); }
+
+.detail-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+    text-align: center;
+}
+
+.detail-stats div + div {
+    border-left: 1px solid var(--line);
+}
+
+.detail-stats span {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.detail-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.threshold-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.threshold-form > div {
+    flex: 1;
+}
+
+/* History chart */
+.history-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.history-head h2 {
+    margin: 0;
+}
+
+.chart {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-y {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 40px;
+    height: 240px;
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.chart-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.chart-svg {
+    display: block;
+    width: 100%;
+    height: 240px;
+    border-left: 1px solid var(--arctic-mist);
+    border-bottom: 1px solid var(--arctic-mist);
+}
+
+.chart-grid { stroke: var(--line); }
+.chart-shade { fill: var(--danger-tint); }
+.chart-limit { stroke: var(--danger); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.chart-hum { fill: none; stroke: var(--arctic-mist); stroke-width: 1.5; }
+.chart-temp { fill: none; stroke: var(--arctic-blue); stroke-width: 2.5; }
+
+.chart-x {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    margin-top: 0.75rem;
+    font-size: 0.825rem;
+    color: var(--muted);
+}
+
+.chart-legend i {
+    display: inline-block;
+    width: 18px;
+    vertical-align: middle;
+}
+
+.key-temp { height: 3px; background: var(--arctic-blue); }
+.key-limit { height: 0; border-top: 2px dashed var(--danger); }
+.key-over { height: 10px; width: 14px; background: var(--danger-tint); }
+.key-hum { height: 2px; background: var(--arctic-mist); }
+
+@media (max-width: 800px) {
+    .detail-grid,
+    .gauge-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 0.75rem;
+    }
+
+    .detail-stats div:nth-child(3) {
+        border-left: 0;
+    }
+}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1>Inventory</h1>
+            <p>Stock in hand, counted from the RFID tags still on the shelf.</p>
+        </div>
+        <div class="page-actions">
+            <a class="btn btn-outline-secondary" href="/inventory.csv"><i class="bi bi-download" aria-hidden="true"></i> Download CSV</a>
+            <a class="btn btn-primary" href="/products/new"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add product</a>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Units in stock</div>
+                    <div class="stat-value">{{ units }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Stock value</div>
+                    <div class="stat-value">${{ '%.2f'|format(value) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Low stock</div>
+                    <div class="stat-value{{ ' alert-value' if low > 0 }}">{{ low }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Out of stock</div>
+                    <div class="stat-value{{ ' alert-value' if out > 0 }}">{{ out }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Last delivery</div>
+                    <div class="stat-value small-value">{{ last or 'None yet' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if rows %}
+    <div class="table-tools">
+        <input type="search" class="form-control search-box" placeholder="Search by name or category" aria-label="Search products" data-search>
+        {% if categories|length > 1 %}
+        <select class="form-select category-filter" aria-label="Filter by category" data-category-filter>
+            <option value="">All categories</option>
+            {% for category in categories %}<option>{{ category }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <div class="btn-group filter-chips" role="group" aria-label="Filter by stock">
+            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="low">Low</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="out">Out</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="ok">OK</button>
+        </div>
+        <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
+    </div>
+
+    <div class="card mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 stock-table">
+                <thead>
+                    <tr>
+                        <th data-sort="text"><button type="button" class="sort-button">Product <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Category <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Price <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">In stock <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Sold <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Last received <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="number"><button type="button" class="sort-button">Status <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                {% set status = 'out' if row.inStock == 0 else ('low' if row.lowStock else 'ok') %}
+                    <tr data-search-row data-search="{{ (row.productName ~ ' ' ~ row.categoryName)|lower }}" data-status="{{ status }}" data-category="{{ row.categoryName }}">
+                        <td data-label="Product">
+                            <div class="product-cell">
+                                {% if row.imagePath %}
+                                <img class="product-image sm" src="{{ url_for('static', filename=row.imagePath) }}" alt="" loading="lazy">
+                                {% else %}
+                                <span class="product-image sm no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
+                                {% endif %}
+                                <a href="/products/{{ row.productID }}" class="row-link">{{ row.productName }}</a>
+                            </div>
+                        </td>
+                        <td data-label="Category">{{ row.categoryName }}</td>
+                        <td class="text-end" data-label="Price">${{ '%.2f'|format(row.price) }}</td>
+                        <td class="text-end" data-label="In stock" data-sort-value="{{ row.inStock }}">
+                            <div class="stock-cell">
+                                <b>{{ row.inStock }}</b> <span class="small text-secondary">alert at {{ row.lowStockThreshold }}</span>
+                                {# The alert level is at the middle of the bar, so past the middle means enough #}
+                                {% set full = [row.lowStockThreshold * 2, 1]|max %}
+                                <div class="stock-meter {{ status }}" aria-hidden="true"><div style="width: {{ [row.inStock * 100 / full, 100]|min }}%"></div></div>
+                            </div>
+                        </td>
+                        <td class="text-end" data-label="Sold">{{ row.totalSold }}</td>
+                        <td data-label="Last received">{{ row.lastReceived or "Never" }}</td>
+                        <td data-label="Status" data-sort-value="{{ {'out': 0, 'low': 1, 'ok': 2}[status] }}">
+                            {% if status == 'out' %}
+                            <span class="badge text-bg-danger">Out of stock</span>
+                            {% elif status == 'low' %}
+                            <span class="badge text-bg-warning">Low stock</span>
+                            {% else %}
+                            <span class="badge text-bg-success">In stock</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end" data-label="">
+                            <a class="btn btn-outline-secondary btn-sm" href="/products/{{ row.productID }}#receive">Receive</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No products match your search.</p>
+    </div>
+    {% else %}
+    <div class="card mb-4">
+        <div class="empty-state">
+            <i class="bi bi-boxes" aria-hidden="true"></i>
+            <h2>No products yet</h2>
+            <p>Add a product first, then receive its first delivery.</p>
+            <a class="btn btn-primary" href="/products/new">Add product</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card" id="find-unit">
+        <div class="card-body">
+            <h2>Find a unit by EPC</h2>
+            <p class="text-secondary small">Looks through every product, including sold units.</p>
+            <form method="get" action="/inventory#find-unit" class="d-flex flex-wrap align-items-center gap-2" role="search">
+                <input id="epc-lookup" name="epc" class="form-control search-box code" value="{{ epc_query }}" placeholder="Type or paste part of an EPC" aria-label="EPC">
+                <button type="submit" class="btn btn-outline-secondary">Find</button>
+                {% if epc_query %}<a class="btn btn-link" href="/inventory">Clear</a>{% endif %}
+            </form>
+            {% if epc_query and not matches %}
+            <p class="text-secondary mt-3 mb-0">No unit has an EPC containing "{{ epc_query }}".</p>
+            {% endif %}
+        </div>
+        {% if matches %}
+        <div class="table-responsive border-top">
+            <table class="table align-middle mb-0 stock-table">
+                <thead><tr><th>EPC</th><th>Product</th><th>Date received</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for unit in matches %}
+                    <tr>
+                        <td data-label="EPC"><code>{{ unit.epc }}</code></td>
+                        <td data-label="Product"><a href="/products/{{ unit.productID }}" class="row-link">{{ unit.productName }}</a></td>
+                        <td data-label="Date received">{{ unit.dateReceived }}</td>
+                        <td data-label="Status">
+                            {% if unit.status == 'in_stock' %}
+                            <span class="badge text-bg-success">In stock</span>
+                            {% elif unit.status == 'sold' %}
+                            <span class="badge text-bg-secondary">Sold</span>
+                            {% else %}
+                            <span class="badge text-bg-danger">Removed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+{% endblock %}

@@ -7,7 +7,7 @@ import secrets
 # Database
 # -------------------------
 
-# The database file. It holds the customers and the fridges. It is always store.db in the project folder.
+# The database file. It holds the store and the fridges. It is always store.db in the project folder.
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "store.db")
 
 
@@ -42,7 +42,7 @@ MQTT_PORT = 1883
 FAN_COMMAND_TOPIC = "fan/command"
 
 # -------------------------
-# Email alerts (sent when a fridge goes over its threshold)
+# Email (fridge alerts and customer receipts are both sent from ALERT_EMAIL)
 # -------------------------
 
 SMTP_SERVER = "smtp.gmail.com"
@@ -70,7 +70,7 @@ BUZZER = 24
 
 
 # -------------------------
-# RFID reader (CF600, used to scan the EPC of each unit when receiving stock)
+# RFID reader (CF600, used to scan the EPC of each unit at the checkout and when receiving stock)
 # -------------------------
 
 # The reader's USB serial port. Change it to /dev/ttyACM0 if that is what shows up

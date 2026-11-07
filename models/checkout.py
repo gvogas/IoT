@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from models.database import query, query_one, transaction
+from models.database import execute, placeholders, query, query_one, transaction
 
 # The sales tax added to every purchase. Change it here and the checkout page and the receipts follow
 TAX_RATE = Decimal("0.15")
@@ -22,13 +22,13 @@ def basket_items(epcs):
     if not epcs:
         return [], 0, 0
     rows = query(f"""
-        SELECT i.epc, i.status, p.productID, p.productName, p.price
+        SELECT i.epc, i.status, p.productID, p.productName, p.price, p.imagePath
         FROM ProductItem i
         JOIN Product p ON p.productID = i.productID
-        WHERE i.epc IN ({','.join('?' * len(epcs))})
+        WHERE i.epc IN ({placeholders(epcs)})
         ORDER BY p.productName COLLATE NOCASE, i.epc
     """, list(epcs))
-    items = [{"epc": r["epc"], "productID": r["productID"], "name": r["productName"], "price": r["price"]}
+    items = [{"epc": r["epc"], "productID": r["productID"], "name": r["productName"], "price": r["price"], "image": r["imagePath"]}
              for r in rows if r["status"] == "in_stock"]
     sold = sum(1 for r in rows if r["status"] == "sold")
     return items, sold, len(set(epcs)) - len(rows) + sum(1 for r in rows if r["status"] == "removed")
@@ -65,9 +65,8 @@ def pay(customer_id, epcs, payment_method="card"):
                 "INSERT INTO PurchaseItem (purchaseID, productID, quantity, unitPrice) VALUES (?, ?, ?, ?)",
                 (purchase_id, product_id, len(units), str(units[0]["price"])),
             )
-            marks = ",".join("?" * len(units))
             changed = conn.execute(
-                f"UPDATE ProductItem SET status = 'sold', purchaseItemID = ? WHERE status = 'in_stock' AND epc IN ({marks})",
+                f"UPDATE ProductItem SET status = 'sold', purchaseItemID = ? WHERE status = 'in_stock' AND epc IN ({placeholders(units)})",
                 [line.lastrowid] + [unit["epc"] for unit in units],
             ).rowcount
             if changed != len(units):
@@ -77,17 +76,22 @@ def pay(customer_id, epcs, payment_method="card"):
     return transaction(work), total
 
 
+def _receipt_lines(purchase_id):
+    return query("""
+        SELECT p.productName, p.imagePath, pi.quantity, pi.unitPrice
+        FROM PurchaseItem pi JOIN Product p ON p.productID = pi.productID
+        WHERE pi.purchaseID = ? ORDER BY p.productName COLLATE NOCASE
+    """, (purchase_id,))
+
+
 # A customer's receipts, newest first, each with its lines. For the Purchase History on My Account
 def purchase_history(customer_id):
     purchases = [dict(row) for row in query(
-        "SELECT purchaseID, purchaseDate, subtotal, taxAmount, total, paymentMethod FROM Purchase WHERE customerID = ? ORDER BY purchaseDate DESC, purchaseID DESC",
+        "SELECT purchaseID, purchaseDate, subtotal, taxAmount, total, paymentMethod, emailSent FROM Purchase WHERE customerID = ? ORDER BY purchaseDate DESC, purchaseID DESC",
         (customer_id,))]
     for purchase in purchases:
-        purchase["lines"] = query("""
-            SELECT p.productName, pi.quantity, pi.unitPrice
-            FROM PurchaseItem pi JOIN Product p ON p.productID = pi.productID
-            WHERE pi.purchaseID = ? ORDER BY p.productName COLLATE NOCASE
-        """, (purchase["purchaseID"],))
+        purchase["lines"] = _receipt_lines(purchase["purchaseID"])
+        purchase["itemCount"] = sum(line["quantity"] for line in purchase["lines"])
     return purchases
 
 
@@ -99,11 +103,7 @@ def receipt(purchase_id):
         (purchase_id,))
     if purchase is None:
         return None
-    lines = query("""
-        SELECT p.productName, pi.quantity, pi.unitPrice
-        FROM PurchaseItem pi JOIN Product p ON p.productID = pi.productID
-        WHERE pi.purchaseID = ? ORDER BY p.productName COLLATE NOCASE
-    """, (purchase_id,))
+    lines = _receipt_lines(purchase_id)
     return {
         "purchaseID": purchase["purchaseID"],
         "date": purchase["purchaseDate"],
@@ -116,3 +116,18 @@ def receipt(purchase_id):
         "tax": float(purchase["taxAmount"]),
         "total": float(purchase["total"]),
     }
+
+
+# Is this receipt one of this customer's own?
+def purchase_belongs_to(purchase_id, customer_id):
+    return query_one("SELECT 1 FROM Purchase WHERE purchaseID = ? AND customerID = ?", (purchase_id, customer_id)) is not None
+
+
+# The email address a receipt goes to, or None if there isn't one
+def receipt_email_address(purchase_id):
+    row = query_one("SELECT c.email FROM Purchase p JOIN Customer c ON c.customerID = p.customerID WHERE p.purchaseID = ?", (purchase_id,))
+    return row["email"] if row else None
+
+
+def mark_receipt_emailed(purchase_id):
+    execute("UPDATE Purchase SET emailSent = 1 WHERE purchaseID = ?", (purchase_id,))

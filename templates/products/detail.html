@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}{{ product.productName }}{% endblock %}
+
+{% block content %}
+    <a class="back-link" href="/inventory"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to inventory</a>
+
+    <div class="page-head">
+        <div>
+            <h1>{{ product.productName }}</h1>
+            <p>{{ product.categoryName }} · {{ product.producerName }}</p>
+        </div>
+        <div class="page-actions">
+            <a class="btn btn-outline-secondary" href="/products/{{ product.productID }}/edit"><i class="bi bi-pencil" aria-hidden="true"></i> Edit product</a>
+        </div>
+    </div>
+
+    {% if not product.isActive %}
+    <div class="alert alert-warning" role="status">
+        <strong>This product is hidden.</strong> It is not in the inventory and can't take deliveries.
+        <a class="alert-link" href="/products/{{ product.productID }}/edit">Edit it</a> and turn on "Show in inventory" to bring it back.
+    </div>
+    {% endif %}
+
+    <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">In stock</div>
+                    <div class="stat-value{{ ' alert-value' if stock.inStock <= product.lowStockThreshold }}">{{ stock.inStock }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Sold</div>
+                    <div class="stat-value">{{ stock.totalSold }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Deliveries</div>
+                    <div class="stat-value">{{ history|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Low stock alert at</div>
+                    <div class="stat-value">{{ product.lowStockThreshold }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="product-photo">
+                        {% if product.imagePath %}
+                        <img class="product-image lg" src="{{ url_for('static', filename=product.imagePath) }}" alt="{{ product.productName }}" loading="lazy">
+                        {% else %}
+                        <span class="product-image lg no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
+                        {% endif %}
+                        {% if not product.imagePath %}<a class="small" href="/products/{{ product.productID }}/edit#image">Add an image</a>{% endif %}
+                    </div>
+                    <h2>Details</h2>
+                    <dl class="facts">
+                        <dt>Stock</dt>
+                        <dd>
+                            {% if stock.inStock == 0 %}
+                            {% set level = 'out' %}
+                            <span class="badge text-bg-danger">Out of stock</span>
+                            {% elif stock.inStock <= product.lowStockThreshold %}
+                            {% set level = 'low' %}
+                            <span class="badge text-bg-warning">Low stock</span>
+                            {% else %}
+                            {% set level = 'ok' %}
+                            <span class="badge text-bg-success">In stock</span>
+                            {% endif %}
+                            {# The alert level is at the middle of the bar, so past the middle means enough #}
+                            {% set full = [product.lowStockThreshold * 2, 1]|max %}
+                            <div class="stock-meter {{ level }}" aria-hidden="true"><div style="width: {{ [stock.inStock * 100 / full, 100]|min }}%"></div></div>
+                        </dd>
+                        <dt>Price</dt><dd>${{ '%.2f'|format(product.price) }}</dd>
+                        <dt>UPC</dt><dd><code>{{ product.upc }}</code></dd>
+                        <dt>Category</dt><dd>{{ product.categoryName }}</dd>
+                        <dt>Producer</dt><dd>{{ product.producerName }}</dd>
+                        <dt>Added</dt><dd>{{ product.createdAt[:10] }}</dd>
+                    </dl>
+                    {% if product.description %}
+                    <p class="text-secondary border-top pt-3 mt-3 mb-0">{{ product.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card h-100" id="receive">
+                <div class="card-body">
+                    <h2>Receive stock</h2>
+                    <p class="text-secondary small">Scan the RFID tag of each unit, or type the EPCs: one per line, or separated by spaces or commas. Each EPC is one unit.</p>
+
+                    {% if receive_error %}
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Stock not received. Please fix these:</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for error in receive_error %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="/products/{{ product.productID }}/receive" novalidate>
+                        <fieldset {% if not product.isActive %}disabled{% endif %}>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label for="dateReceived" class="form-label">Date received</label>
+                                    <input id="dateReceived" name="dateReceived" class="form-control" type="date" max="{{ today }}" required value="{{ date_text }}">
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label for="epcs" class="form-label mb-0">EPCs</label>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-scan-button aria-pressed="false"><i class="bi bi-broadcast" aria-hidden="true"></i> <span data-scan-label>Scan tags</span></button>
+                                </div>
+                                <textarea id="epcs" name="epcs" class="form-control code" rows="5" data-epc-input required
+                                    placeholder="Scan a tag or type an EPC">{{ epc_text }}</textarea>
+                                <div class="form-text" data-epc-count aria-live="polite">No EPCs entered</div>
+                                <div class="form-text text-warning-emphasis" data-scan-known aria-live="polite" hidden></div>
+                                <div class="form-text text-danger" data-scan-error aria-live="polite" hidden></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3" data-receive-button>Receive stock</button>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="detail-tabs">
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#units-tab" aria-controls="units-tab" aria-selected="true">Units <span class="tab-count">{{ unit_total }}</span></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#deliveries-tab" aria-controls="deliveries-tab" aria-selected="false">Deliveries <span class="tab-count">{{ history|length }}</span></button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content">
+            <div class="tab-pane show active" id="units-tab" role="tabpanel" tabindex="0">
+                {% if units %}
+                <div class="card-body">
+                    <div class="table-tools mb-0">
+                        <input type="search" class="form-control search-box" placeholder="Search by EPC" aria-label="Search units by EPC" data-search>
+                        <div class="btn-group filter-chips" role="group" aria-label="Filter by status">
+                            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="in_stock">In stock</button>
+                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="sold">Sold</button>
+                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="removed">Removed</button>
+                        </div>
+                        <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
+                    </div>
+                    {% if unit_total > units|length %}
+                    <p class="small text-secondary mt-2 mb-0">Showing the newest {{ units|length }} of {{ unit_total }} units. To find an older one, use <a href="/inventory#find-unit">Find a unit by EPC</a>.</p>
+                    {% endif %}
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 stock-table">
+                        <thead>
+                            <tr><th>EPC</th><th>Date received</th><th>Delivery</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for unit in units %}
+                            <tr data-search-row data-search="{{ unit.epc|lower }}" data-status="{{ unit.status }}">
+                                <td data-label="EPC"><code>{{ unit.epc }}</code></td>
+                                <td data-label="Date received">{{ unit.dateReceived }}</td>
+                                <td data-label="Delivery">#{{ unit.receptionID }}</td>
+                                <td data-label="Status">
+                                    {% if unit.status == 'in_stock' %}
+                                    <span class="badge text-bg-success">In stock</span>
+                                    {% elif unit.status == 'sold' %}
+                                    <span class="badge text-bg-secondary">Sold</span>
+                                    {% else %}
+                                    <span class="badge text-bg-danger">Removed</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No units match your search.</p>
+                {% else %}
+                <p class="text-secondary card-body mb-0">No units yet. They appear here after the first delivery.</p>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane" id="deliveries-tab" role="tabpanel" tabindex="0">
+                {% if history %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 stock-table">
+                        <thead>
+                            <tr><th>Delivery</th><th>Date received</th><th class="text-end">Quantity received</th><th class="text-end">Still in stock</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for delivery in history %}
+                            <tr>
+                                <td data-label="Delivery">#{{ delivery.receptionID }}</td>
+                                <td data-label="Date received">{{ delivery.dateReceived }}</td>
+                                <td class="text-end" data-label="Quantity received">{{ delivery.quantityReceived }}</td>
+                                <td class="text-end" data-label="Still in stock">{{ delivery.stillInStock }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-secondary card-body mb-0">Nothing received yet. Use the form above to record the first delivery.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if unit_total or history %}
+    <form class="mt-4 text-end" action="/products/{{ product.productID }}/clear-epcs" method="POST"
+          data-confirm-title="Clear all EPCs of {{ product.productName }}?"
+          data-confirm-text="This deletes {{ unit_total }} {{ 'unit' if unit_total == 1 else 'units' }}, in stock and sold, and {{ history|length }} {{ 'delivery' if history|length == 1 else 'deliveries' }}, so the tags can be received again. Customer receipts are kept. This can't be undone."
+          data-confirm-button="Clear all EPCs"
+          data-confirm-danger>
+        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash" aria-hidden="true"></i> Clear all EPCs</button>
+    </form>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/products/receive_form.js') }}"></script>
+{% endblock %}

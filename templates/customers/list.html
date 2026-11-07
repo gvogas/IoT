@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1>Customers</h1>
+            <p>Everyone with a membership, what they have spent, and their roles.</p>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Members</div>
+                    <div class="stat-value">{{ customers|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Admins</div>
+                    <div class="stat-value">{{ admin_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Joined this month</div>
+                    <div class="stat-value">{{ new_this_month }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="stat-label">Total spent</div>
+                    <div class="stat-value">${{ '%.2f'|format(total_spent) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-tools">
+        <input type="search" class="form-control search-box" placeholder="Search customers" aria-label="Search customers" data-search>
+        <div class="btn-group filter-chips" role="group" aria-label="Filter by role">
+            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="customer">Customers</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="admin">Admins</button>
+        </div>
+        <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 stock-table">
+                <thead>
+                    <tr>
+                        <th data-sort="text"><button type="button" class="sort-button">Customer <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th>Contact</th>
+                        <th data-sort="text"><button type="button" class="sort-button">Membership # <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Spent <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Points <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Joined <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Role <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for customer in customers %}
+                    <tr data-search-row data-status="{{ customer.role }}"
+                        data-search="{{ (customer.customerName ~ ' ' ~ customer.email ~ ' ' ~ customer.phoneNumber ~ ' ' ~ customer.address ~ ' ' ~ customer.membershipNumber)|lower }}">
+                        <td data-label="Customer" data-sort-value="{{ customer.customerName|lower }}">
+                            <div class="customer-cell">
+                                {# A circle with the customer's initials. Admins get the dark one #}
+                                <span class="avatar{{ ' admin' if customer.role == 'admin' }}" aria-hidden="true">{% for word in customer.customerName.split()[:2] %}{{ word[0]|upper }}{% endfor %}</span>
+                                <div>
+                                    <div class="fw-semibold">{{ customer.customerName }}{% if customer.customerID == session.id %} <span class="you-tag">You</span>{% endif %}</div>
+                                    <div class="small text-secondary">{{ customer.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Contact">
+                            <div>
+                                <div class="num">{{ customer.phoneNumber }}</div>
+                                <div class="small text-secondary">{{ customer.address }}</div>
+                            </div>
+                        </td>
+                        <td data-label="Membership #"><code>{{ customer.membershipNumber }}</code></td>
+                        <td class="text-end" data-label="Spent" data-sort-value="{{ customer.spent }}">
+                            <div>
+                                <div class="fw-semibold">${{ '%.2f'|format(customer.spent) }}</div>
+                                <div class="small text-secondary">{{ customer.purchases }} {{ 'purchase' if customer.purchases == 1 else 'purchases' }}</div>
+                            </div>
+                        </td>
+                        <td class="text-end" data-label="Points">{{ customer.totalPoints }}</td>
+                        <td class="text-nowrap" data-label="Joined">{{ customer.createdAt[:10] }}</td>
+                        <td data-label="Role"><span class="badge {{ 'text-bg-primary' if customer.role == 'admin' else 'text-bg-secondary' }}">{{ customer.role }}</span></td>
+                        <td class="text-end" data-label="">
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}'
+                                        aria-expanded="false" aria-label="Actions for {{ customer.customerName }}"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><button type="button" class="dropdown-item" data-edit-membership
+                                                data-id="{{ customer.customerID }}" data-name="{{ customer.customerName }}" data-number="{{ customer.membershipNumber }}">
+                                        <i class="bi bi-upc-scan" aria-hidden="true"></i> Change membership number</button></li>
+                                    {% if customer.customerID != session.id %}
+                                    <li><button type="button" class="dropdown-item" data-change-role
+                                                data-id="{{ customer.customerID }}" data-name="{{ customer.customerName }}" data-role="{{ 'customer' if customer.role == 'admin' else 'admin' }}">
+                                        <i class="bi bi-{{ 'person' if customer.role == 'admin' else 'shield-check' }}" aria-hidden="true"></i> {{ 'Make customer' if customer.role == 'admin' else 'Make admin' }}</button></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No customers match your search.</p>
+    </div>
+
+    {# Change a membership number: scan the card, which types the number and presses Enter #}
+    <div class="modal fade" id="membership-modal" tabindex="-1" aria-labelledby="membership-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" id="membership-form" autocomplete="off">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="membership-title">Change membership number</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary mb-3">The current number for <b data-customer-name></b> is <code data-current-number></code>. Their old card stops working once this is changed.</p>
+                    <div id="membership-message" role="alert" hidden></div>
+                    <label class="form-label" for="membership-input">New number</label>
+                    <input class="form-control code" id="membership-input" name="membershipNumber" type="text" maxlength="32">
+                    <div class="form-text">Scan the new card or type the number. Leave it empty to generate a new number.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="membership-save">Generate new number</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Check before changing what someone can do #}
+    <div class="modal fade" id="role-modal" tabindex="-1" aria-labelledby="role-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="role-title"></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="role-message" role="alert" hidden></div>
+                    <p class="mb-0" id="role-text"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="role-confirm"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/customers/customers.js') }}"></script>
+{% endblock %}

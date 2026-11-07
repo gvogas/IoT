@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}{{ fridge.name }}{% endblock %}
+
+{% block content %}
+    <a class="back-link" href="/fridges"><i class="bi bi-arrow-left" aria-hidden="true"></i> All fridges</a>
+
+    <div id="fridge" data-id="{{ fridge.id }}">
+        <div class="page-head">
+            <h1>{{ fridge.name }}</h1>
+            <div class="detail-status">
+                <span class="fridge-status waiting"><span class="dot"></span><span class="status-text">Waiting</span></span>
+                <span class="last-reading text-secondary">No reading yet</span>
+            </div>
+        </div>
+        <div id="message" role="status" hidden></div>
+
+        <div class="detail-grid">
+            <section class="card detail-card">
+                <div class="card-body">
+                    <div class="gauge-panels">
+
+                        {# Thermometer #}
+                        <div class="gauge-panel">
+                            <span class="panel-label">Temperature</span>
+                            <svg class="thermometer" width="150" height="190" viewBox="0 0 150 190" role="img" aria-label="Thermometer">
+                                <rect class="thermo-glass" x="60" y="8" width="24" height="146" rx="12"/>
+                                <circle class="thermo-glass" cx="72" cy="162" r="22"/>
+                                <g class="thermo-reading">
+                                    <rect class="thermo-fill" x="65" y="150" width="14" height="12" rx="7"/>
+                                    <circle class="thermo-bulb" cx="72" cy="162" r="17"/>
+                                </g>
+                                <rect class="scale-red" x="89" y="20" width="5" height="0"/>
+                                <rect class="scale-green" x="89" y="20" width="5" height="130"/>
+                                <g class="thermo-ticks">
+                                    <line x1="94" x2="99" y1="20" y2="20"/>
+                                    <line x1="94" x2="99" y1="52.5" y2="52.5"/>
+                                    <line x1="94" x2="99" y1="85" y2="85"/>
+                                    <line x1="94" x2="99" y1="117.5" y2="117.5"/>
+                                    <line x1="94" x2="99" y1="150" y2="150"/>
+                                </g>
+                                <g class="ticks" font-size="11">
+                                    <text x="103" y="24">12°</text>
+                                    <text x="103" y="56.5">9°</text>
+                                    <text x="103" y="89">6°</text>
+                                    <text x="103" y="121.5">3°</text>
+                                    <text x="103" y="154">0°</text>
+                                </g>
+                                <line class="limit-line" x1="50" x2="94" y1="85" y2="85"/>
+                                <text class="limit-text" x="47" y="89" text-anchor="end" font-size="11">limit</text>
+                            </svg>
+                            <span class="temp-value"><span class="temp">--</span><small> °C</small></span>
+                            <span class="trend"><i class="bi bi-arrow-right trend-arrow" aria-hidden="true"></i><span class="trend-text"></span></span>
+                        </div>
+
+                        {# Humidity dial #}
+                        <div class="gauge-panel">
+                            <span class="panel-label">Humidity</span>
+                            <div class="dial-box">
+                                <svg width="200" height="125" viewBox="0 0 200 125" role="img" aria-label="Humidity dial">
+                                    <path class="dial-track" d="M20 105 A80 80 0 0 1 180 105"/>
+                                    <path class="hum-arc" d="M20 105"/>
+                                    <line class="hum-needle" x1="100" y1="105" x2="42" y2="105"/>
+                                    <circle class="dial-pin" cx="100" cy="105" r="6"/>
+                                    <g font-size="11">
+                                        <text x="20" y="123" text-anchor="middle">0%</text>
+                                        <text x="100" y="14" text-anchor="middle">50%</text>
+                                        <text x="180" y="123" text-anchor="middle">100%</text>
+                                    </g>
+                                </svg>
+                            </div>
+                            <span class="temp-value"><span class="hum">--</span><small> %</small></span>
+                            <span class="hum-range text-secondary small">24 h: --</span>
+                        </div>
+                    </div>
+
+                    <p class="detail-sentence"></p>
+
+                    <div class="detail-stats">
+                        <div><span>Lowest 24 h</span><b class="stat-min">--</b></div>
+                        <div><span>Highest 24 h</span><b class="stat-max">--</b></div>
+                        <div><span>In range 24 h</span><b class="stat-range">--</b></div>
+                        <div><span>Over limit today</span><b class="stat-over">--</b></div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="detail-side">
+                <section class="card">
+                    <div class="card-body">
+                        <h2>Limit</h2>
+                        <p>Alert when warmer than <b class="threshold">--</b> °C</p>
+                        <form id="threshold-form" class="threshold-form">
+                            <div>
+                                <label class="form-label" for="threshold_input">New limit (°C)</label>
+                                <input class="form-control" type="number" step="0.5" id="threshold_input" name="threshold" required>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Save</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-body">
+                        <h2>Alerts</h2>
+                        <p class="alert-info text-secondary">No alert sent.</p>
+                        <p class="mb-0">Shared fan: <b id="fan-state">UNKNOWN</b></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <section class="card history">
+            <div class="card-body">
+                <div class="history-head">
+                    <h2>History</h2>
+                    <div class="btn-group range-buttons" role="group" aria-label="Time range">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-hours="1">1 h</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm active" data-hours="24">24 h</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-hours="168">7 days</button>
+                    </div>
+                </div>
+                <p class="history-empty text-secondary" hidden>No saved readings yet. One reading is saved every minute.</p>
+                <div class="chart">
+                    <div class="chart-y"></div>
+                    <div class="chart-main">
+                        <svg class="chart-svg" viewBox="0 0 1000 240" preserveAspectRatio="none" role="img" aria-label="Temperature and humidity history">
+                            <line class="chart-grid" x1="0" x2="1000" y1="60" y2="60" vector-effect="non-scaling-stroke"/>
+                            <line class="chart-grid" x1="0" x2="1000" y1="120" y2="120" vector-effect="non-scaling-stroke"/>
+                            <line class="chart-grid" x1="0" x2="1000" y1="180" y2="180" vector-effect="non-scaling-stroke"/>
+                            <path class="chart-shade" d=""/>
+                            <line class="chart-limit" x1="0" x2="1000" y1="0" y2="0" vector-effect="non-scaling-stroke"/>
+                            <path class="chart-hum" d="" vector-effect="non-scaling-stroke"/>
+                            <path class="chart-temp" d="" vector-effect="non-scaling-stroke"/>
+                        </svg>
+                        <div class="chart-x"></div>
+                    </div>
+                </div>
+                <div class="chart-legend">
+                    <span><i class="key-temp"></i> Temperature</span>
+                    <span><i class="key-limit"></i> Limit</span>
+                    <span><i class="key-over"></i> Above the limit</span>
+                    <span><i class="key-hum"></i> Humidity (0 to 100 %)</span>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/fridges/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fridges/detail.js') }}"></script>
+{% endblock %}

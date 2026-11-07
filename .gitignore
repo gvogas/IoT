@@ -9,3 +9,6 @@ esp32/fridge/config.h
 
 # Database, made by tools/init_database.py 
 *.db
+
+# Product images uploaded on the website
+/static/uploads/

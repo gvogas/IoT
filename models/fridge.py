@@ -3,42 +3,40 @@ from models.database import execute, query, query_one
 
 class Fridge:
 
-    def __init__(fridge, fridge_id, name=None, threshold=None):
-        fridge.id = fridge_id
-        fridge.name = name
-        fridge.threshold = threshold
+    def __init__(self, fridge_id, name=None, threshold=None):
+        self.id = fridge_id
+        self.name = name
+        self.threshold = threshold
 
         # MQTT topics, like "frig1/temperature"
-        fridge.temp_topic = f"frig{fridge_id}/temperature"
-        fridge.hum_topic = f"frig{fridge_id}/humidity"
+        self.temp_topic = f"frig{fridge_id}/temperature"
+        self.hum_topic = f"frig{fridge_id}/humidity"
 
-    # Load all details in one query and return Fridge objects.
+    @staticmethod
+    def from_row(row):
+        return Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
+
     @staticmethod
     def get_all():
         rows = query("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge ORDER BY fridgeID")
-        return [
-            Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
-            for row in rows
-        ]
+        return [Fridge.from_row(row) for row in rows]
 
-    # Return one Fridge object, or None if the ID is not there.
+    # Gives back one Fridge, or None if the ID is not there
     @staticmethod
     def get_by_id(fridge_id):
         row = query_one("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge WHERE fridgeID = ?", (fridge_id,))
-        if row is None:
-            return None
-        return Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
+        return Fridge.from_row(row) if row else None
 
-    # We read it every time, so a new threshold from the dashboard works right away
-    def get_threshold(fridge):
-        latest = Fridge.get_by_id(fridge.id)
-        fridge.threshold = latest.threshold if latest else None
-        return fridge.threshold
+    # Read every time, so a new threshold from the dashboard works right away
+    def get_threshold(self):
+        latest = Fridge.get_by_id(self.id)
+        self.threshold = latest.threshold if latest else None
+        return self.threshold
 
     # Gives back False if the fridge is not in the database
-    def set_threshold(fridge, threshold):
-        changed = execute("UPDATE Fridge SET temp_threshold = ? WHERE fridgeID = ?", (threshold, fridge.id))
+    def set_threshold(self, threshold):
+        changed = execute("UPDATE Fridge SET temp_threshold = ? WHERE fridgeID = ?", (threshold, self.id))
         if changed == 0:
             return False
-        fridge.threshold = threshold
+        self.threshold = threshold
         return True

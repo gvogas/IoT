@@ -11,6 +11,11 @@ def connect():
     return conn
 
 
+# The ?,?,? for an IN (...) list of these items
+def placeholders(items):
+    return ",".join("?" * len(items))
+
+
 # Run a SELECT and give back every row
 def query(sql, args=()):
     conn = connect()
