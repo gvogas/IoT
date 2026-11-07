@@ -17,6 +17,7 @@ Checked against `Phase-3.pdf` on 2026-11-06. Found by reading the code, not by r
 - [x] Total quantity in stock shown
 - [x] Inventory dashboard (`/inventory`) and CSV export
 
+Extra, not in the PDF: admins are emailed when a product becomes low or out of stock, and when a low or out of stock product is restocked (`templates/email/stock_alert.html`, `restocked.html`).
 ## Barcode and RFID
 - [x] CF600 RFID reader over serial (`hardware/rfid.py`)
 - [x] EPC read into the receive form (`/rfid/scan`)

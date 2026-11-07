@@ -1,0 +1,83 @@
+{# The email to the admin when a delivery arrives for a low or out of stock product. Built like receipt.html: tables and inline styles.
+   The colours are the Arctic Reflection ones from static/css/theme.css #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restocked</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F4FCFB;">
+    {# The preview line an inbox shows next to the subject #}
+    <div style="display: none; max-height: 0; overflow: hidden;">{{ received }} received, {{ in_stock }} now in stock.</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F4FCFB;">
+        <tr>
+            <td align="center" style="padding: 24px 12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D6E0E2; border-radius: 12px; border-collapse: separate; overflow: hidden; font-family: Arial, Helvetica, sans-serif; color: #243C4C;">
+                    <tr>
+                        <td style="background-color: #243C4C; border-radius: 11px 11px 0 0; padding: 20px 28px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-size: 20px; font-weight: bold; color: #FFFFFF;">Store</td>
+                                    <td align="right" style="font-size: 14px; color: #ACBCBF;">Restocked</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 28px 28px 8px;">
+                            <h1 style="margin: 0 0 6px; font-size: 22px; line-height: 28px; color: #243C4C;">{{ name }} was restocked</h1>
+                            <p style="margin: 0; font-size: 15px; line-height: 22px; color: #4E6A7A;">A delivery arrived for this product, which was low or out of stock.</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="left" style="padding: 20px 28px 4px;">
+                            <p style="margin: 0; font-size: 13px; line-height: 18px; color: #4E6A7A;">Now in stock</p>
+                            <p style="margin: 2px 0 0; font-size: 34px; line-height: 40px; font-weight: bold; color: #243C4C;">{{ in_stock }}</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 16px 28px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #E9F2F5; border-radius: 8px;">
+                                <tr>
+                                    <td style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Received</td>
+                                    <td align="right" style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ received }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Alert at</td>
+                                    <td align="right" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ threshold }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Recorded</td>
+                                    <td align="right" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ date|nice_datetime }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0 14px 14px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Status</td>
+                                    <td align="right" style="padding: 0 14px 14px; font-size: 13px; line-height: 19px;">
+                                        {% if in_stock <= threshold %}
+                                        <span style="padding: 4px 10px; border-radius: 10px; background-color: #FBF2DE; color: #7A4F08; font-weight: bold;">Still low</span>
+                                        {% else %}
+                                        <span style="padding: 4px 10px; border-radius: 10px; background-color: #E2F2EE; color: #1F5F53; font-weight: bold;">Back in stock</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 28px; font-size: 13px; line-height: 19px; color: #4E6A7A;">
+                            You can see all stock on the Inventory page of the store website. You get this email because your account is an admin.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

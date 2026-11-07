@@ -201,6 +201,7 @@ The product form takes an optional JPG, PNG, WebP or GIF, up to 10 MB. `models/p
 2. The app checks them: each must be hex (0-9, A-F, up to 24 characters), none can repeat in the list, and none can already be in the database. The date can't be in the future, and the product can't be hidden. If anything is wrong, the whole delivery is rejected and nothing is saved.
 3. The app saves 1 Reception and then 1 ProductItem for each EPC, all in one transaction.
 4. Once it's saved, the app shows a notification, like `3 units of "Coca-Cola 500ml" received on 2026-10-30`.
+5. If the product was at or below its `lowStockThreshold` before the delivery, the admins get a "Restocked" email.
 
 ### Finding units
 - The product page has a Units list with every unit's EPC, the date it was received, the delivery it came in, and its status. It can be filtered by status and searched by EPC. It shows the newest 500 units.
@@ -215,9 +216,12 @@ The "Clear all EPCs" button on a product's page is there for testing, so the sam
 3. To pay, the customer must be signed in, usually by scanning their membership card. The app finds them by `membershipNumber`.
 4. Paying is one transaction. The app adds the Purchase and one PurchaseItem per product, then marks each EPC as `sold` and links it to its line. If any tag can't be marked, nothing is saved.
 5. The receipt is built from Purchase, PurchaseItem and Product and shown on screen. The customer can email it with the Send email button, or later from their purchase history. When an email goes through, `emailSent` is set to 1.
+6. If the sale took a product down to its `lowStockThreshold` or to 0, the admins get a "Stock Alert" email. Hidden products are skipped.
 
 ### Stock and low stock
 The `ProductStock` view has one row per active product, with `inStock`, `totalSold`, `lowStockThreshold`, `lastReceived` and `lowStock`. `lowStock` is 1 when `inStock` is at or below the product's threshold, so the dashboard can show which products need to be reordered.
+
+The stock emails go to the `email` of every Customer whose `role` is `admin`. Nothing extra is saved for them: the app works out whether to send one from the stock count and the sale or delivery quantity, so there are no new tables or columns. See [Stock emails](architecture.md#stock-emails) for the rules.
 
 ### Points
 Points aren't built yet. `pay()` saves `pointsEarned = 0` and never changes `Customer.totalPoints`. The plan is 1 point per whole dollar of the subtotal, saved on the Purchase and added to the customer in the same transaction as the sale. [phase3-status.md](phase3-status.md) tracks this.

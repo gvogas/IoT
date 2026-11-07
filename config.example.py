@@ -42,7 +42,8 @@ MQTT_PORT = 1883
 FAN_COMMAND_TOPIC = "fan/command"
 
 # -------------------------
-# Email (fridge alerts and customer receipts are both sent from ALERT_EMAIL)
+# Email (fridge alerts, stock alerts and customer receipts are all sent from ALERT_EMAIL)
+# Fridge alerts go to ALERT_TO. Stock alerts go to the admin accounts (or ALERT_TO if there are none)
 # -------------------------
 
 SMTP_SERVER = "smtp.gmail.com"

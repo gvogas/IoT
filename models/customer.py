@@ -97,6 +97,11 @@ def check_new_email(text, customer_id):
     return email, None
 
 
+# The email of every admin account, for the stock emails
+def admin_emails():
+    return [row["email"] for row in query("SELECT email FROM Customer WHERE role = 'admin' ORDER BY customerID")]
+
+
 # Give a customer a new email
 def set_email(customer_id, email):
     execute("UPDATE Customer SET email = ? WHERE customerID = ?", (email, customer_id))

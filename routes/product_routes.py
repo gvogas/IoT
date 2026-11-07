@@ -6,6 +6,7 @@ from datetime import date
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request
 
 from hardware.rfid import scan_once
+from mail.send_email import send_restock_alert
 from models.product import (
     all_products, delete_product, get_product, has_history, inventory_rows, known_categories, known_producers,
     product_stock, read_product_form, save_product, update_product,
@@ -238,10 +239,15 @@ def receive_stock(product_id):
         if errors:
             flash(f"Stock not received. {count_of(len(errors), 'problem')} to fix.", "error")
             return render_product_detail(product, epc_text, date_text, errors), 400
+        stock_before = product_stock(product_id)["inStock"]
         save_reception(product_id, epcs, date_text)
     except sqlite3.Error as err:
         flash(f"Stock not received. Database error: {err}", "error")
         return redirect(f"/products/{product_id}")
+
+    # Tell the admin if this product was low or out of stock before the delivery
+    if stock_before <= product["lowStockThreshold"]:
+        send_restock_alert(product["productName"], len(epcs), stock_before + len(epcs), product["lowStockThreshold"])
 
     flash(f"{count_of(len(epcs), 'unit')} of \"{product['productName']}\" received on {date_text}.", "success")
     return redirect(f"/products/{product_id}")

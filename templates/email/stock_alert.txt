@@ -1,0 +1,9 @@
+{% if alerts|length == 1 %}{{ alerts[0].name }} needs restocking{% else %}{{ alerts|length }} products need restocking{% endif %}
+
+A sale on {{ date|nice_datetime }} brought stock down to the level below.
+{% for alert in alerts %}
+{{ alert.name }}
+  {% if alert.status == 'out' %}OUT OF STOCK{% else %}LOW STOCK{% endif %}: {{ alert.inStock }} in stock, alert at {{ alert.threshold }}
+{% endfor %}
+You can see all stock on the Inventory page of the store website.
+You get this email because your account is an admin.

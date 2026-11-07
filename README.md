@@ -5,6 +5,7 @@ A small self-checkout store with two monitored fridges, running on a Raspberry P
 Customers scan their items with an RFID reader, sign in with a membership card and pay at the checkout.
 They can see their purchases and email their receipts from My Account.
 Admins manage products, stock and customers on the website.
+They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
 
 For the fridges, an ESP32 with 2 DHT11 sensors sends the temperature and humidity over MQTT,
 and the website shows them live.
@@ -27,7 +28,7 @@ controllers/        MqttController receives readings; FanController controls the
 hardware/           talks to the Pi pins and the RFID reader (fan.py, signals.py, rfid.py)
 mail/               sends the alerts and receipts, and reads the YES/NO replies
 tools/              database setup and customer role management
-templates/          the HTML pages, one folder per area
+templates/          the HTML pages and the emails, one folder per area
 static/uploads/     product images uploaded on the website (not in git, back it up along with store.db)
 static/css/         theme.css has every colour, components.css has the layout
 static/js/          common.js runs on every page, table_filter.js is shared by the lists, then one folder per area
@@ -57,7 +58,7 @@ Then fill in your own values:
 | config.py | `MQTT_BROKER` | IP of the Pi running the MQTT broker |
 | config.py | `ALERT_EMAIL` | Gmail account that sends the alerts and receipts |
 | config.py | `ALERT_EMAIL_PASSWORD` | Gmail app password for that account (not the normal password) |
-| config.py | `ALERT_TO` | Email address that gets the alerts |
+| config.py | `ALERT_TO` | Email address that gets the fridge alerts. Stock emails go to the admin accounts, and only use this if there are no admins |
 | config.py | `FRIDGES_ENABLED` | `False` to run without the broker, ESP32 and sensors |
 | config.py | `RFID_PORT` | USB serial port of the RFID reader, like `/dev/ttyUSB0` |
 | config.h | `WIFI_SSID`, `WIFI_PASSWORD` | WiFi the ESP32 joins |
@@ -94,7 +95,7 @@ There is only one MQTT controller and one fan controller, and the whole app shar
 python -m tools.set_role          make a customer an admin (or a normal customer again)
 ```
 
-To make the first admin, sign up on the website, then run `python -m tools.set_role` and give yourself the admin role.
+To make the first admin, sign up on the website, then run `python -m tools.set_role` and give yourself the admin role. Stock emails go to the email on every admin account.
 
 To start over with an empty database, delete `store.db` and run `python -m tools.init_database` again.
 

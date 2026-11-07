@@ -76,6 +76,32 @@ def pay(customer_id, epcs, payment_method="card"):
     return transaction(work), total
 
 
+# Which products from this purchase just became low or out of stock. For the email to the admin
+# Only counts the sale that crossed the line, so the admin gets one email and not one for every sale after it
+# Hidden products are skipped because they are not being restocked
+def stock_alerts(purchase_id):
+    rows = query("""
+        SELECT p.productName, p.lowStockThreshold, pi.quantity,
+               (SELECT COUNT(*) FROM ProductItem i WHERE i.productID = p.productID AND i.status = 'in_stock') AS inStock
+        FROM PurchaseItem pi JOIN Product p ON p.productID = pi.productID
+        WHERE pi.purchaseID = ? AND p.isActive = 1
+        ORDER BY p.productName COLLATE NOCASE
+    """, (purchase_id,))
+
+    alerts = []
+    for row in rows:
+        stock_before = row["inStock"] + row["quantity"]
+        if row["inStock"] == 0:
+            status = "out"
+        elif row["inStock"] <= row["lowStockThreshold"] < stock_before:
+            status = "low"
+        else:
+            continue
+        alerts.append({"name": row["productName"], "status": status, "inStock": row["inStock"],
+                       "threshold": row["lowStockThreshold"]})
+    return alerts
+
+
 def _receipt_lines(purchase_id):
     return query("""
         SELECT p.productName, p.imagePath, pi.quantity, pi.unitPrice

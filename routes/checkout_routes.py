@@ -3,9 +3,10 @@ import sqlite3
 from flask import Blueprint, jsonify, render_template, request, session, url_for
 
 from hardware.rfid import scan_once
-from mail.send_email import send_receipt_email
+from mail.send_email import send_receipt_email, send_stock_alert
 from models.checkout import (
     TAX_BASIS_POINTS, basket_items, mark_receipt_emailed, pay, purchase_belongs_to, receipt, receipt_email_address,
+    stock_alerts,
 )
 from models.customer import get_customer_by_membership
 from models.reception import read_epcs
@@ -44,6 +45,11 @@ def pay_basket():
     except ValueError as err:
         return jsonify(error=str(err)), 409
     paid_receipt = receipt(purchase_id)
+
+    # Tell the admin if this sale made anything low or out of stock
+    alerts = stock_alerts(purchase_id)
+    if alerts:
+        send_stock_alert(alerts)
 
     # The next person at the checkout starts signed out
     name = session.get("name", "")

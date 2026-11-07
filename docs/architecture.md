@@ -65,7 +65,7 @@ flowchart LR
     Browser <-->|"pages + /api/... JSON"| Flask
     Flask --> Models
     Flask -->|"scan tags, flash LEDs"| HW
-    Flask -->|"receipts"| Send
+    Flask -->|"receipts, stock emails"| Send
     Flask -->|"live readings, alerts"| MQTT
     Flask -->|"fan state, turn off"| FanC
 ```
@@ -91,6 +91,7 @@ flowchart TD
     controllers["controllers/<br/>mqtt_controller, fan_controller"] --> models
     controllers --> fan["hardware/fan.py"]
     controllers --> mail_send["mail/send_email.py"]
+    mail_send -->|"finds the admin emails"| models
 
     models["models/<br/>customer, fridge, reading, product,<br/>product_image, reception, unit, checkout"] --> database["models/database.py"]
     database --> db[("store.db")]
@@ -110,6 +111,7 @@ sequenceDiagram
     participant F as Flask
     participant R as RFID reader
     participant DB as store.db
+    actor A as Admin
 
     loop over and over while the page is open
         JS->>F: POST /api/checkout/scan
@@ -128,6 +130,9 @@ sequenceDiagram
     JS->>F: POST /api/checkout/pay with the tags
     alt every tag is still in stock
         F->>DB: save the purchase and its lines,<br/>mark each tag as sold
+        opt a product just became low or out of stock
+            F->>A: stock alert by email, in the background
+        end
         F->>F: sign the customer out
         F-->>JS: the receipt
         JS->>C: show the receipt
@@ -198,6 +203,17 @@ Deleting a product depends on its history. With no deliveries or sales it is rem
 Each product can have one image, handled by `models/product_image.py`. Uploads can be JPG, PNG, WebP or GIF, up to 10 MB. Opening the file with Pillow proves it really is an image, whatever its name says. It is then turned the right way up, shrunk to 800 px at most, and saved as WebP under a random name in `static/uploads/products/`. Saving it again also drops extras like a phone photo's GPS location.
 
 The inventory page lists what needs ordering first: out of stock, then low stock, then the rest. A product counts as low when its stock is at or below its own alert level. The page can also find any unit by EPC, including sold ones, and download the stock as a CSV.
+
+### Stock emails
+
+Two emails go to every account with the admin role. If there are no admins, they go to `ALERT_TO` in `config.py`. Fridge alerts always go to `ALERT_TO`.
+
+| Email | Sent when | Not sent when | Templates |
+|---|---|---|---|
+| Stock Alert | A sale takes a product down to its alert level or to 0. One email covers the whole basket | The product stays above its alert level, was already low and still has some left, or is hidden | `templates/email/stock_alert.html`, `.txt` |
+| Restocked | A delivery arrives for a product that was low or out of stock. It says how many came in, how many are now in stock, and whether the product is still low | The product was above its alert level before the delivery | `templates/email/restocked.html`, `.txt` |
+
+`stock_alerts()` in `models/checkout.py` picks the products for a Stock Alert, and `receive_stock()` in `routes/product_routes.py` decides on a Restocked email. `mail/send_email.py` fills in the templates during the web request, because they can't be filled in without one, then sends the email in a background thread. That way nobody waits for the email, and the sale or delivery is still saved if it fails. A failed email is not tried again, but the inventory page still shows the product as low or out.
 
 ## A sensor reading, from the fridge to the screen
 

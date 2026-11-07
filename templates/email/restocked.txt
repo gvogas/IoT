@@ -1,0 +1,12 @@
+{{ name }} was restocked
+
+A delivery arrived for this product, which was low or out of stock.
+
+Now in stock: {{ in_stock }}
+Received:     {{ received }}
+Alert at:     {{ threshold }}
+Recorded:     {{ date|nice_datetime }}
+Status:       {% if in_stock <= threshold %}Still low{% else %}Back in stock{% endif %}
+
+You can see all stock on the Inventory page of the store website.
+You get this email because your account is an admin.
