@@ -40,16 +40,15 @@ async function updateFan() {
 
 fanOff.addEventListener("click", async () => {
     fanOff.disabled = true;
-    setMessage(fanMessage, "");
     try {
         const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
         if (response.status === 403) showSignedOut(message);
         setFanState(response.ok ? result.state : "UNKNOWN");
-        setMessage(fanMessage, result.error || result.success, result.error ? "danger" : "success");
+        showToast(result.error || result.success, result.error ? "danger" : "success");
     } catch (error) {
         setFanState("UNKNOWN");
-        setMessage(fanMessage, "Unable to reach the server. Fan off is not confirmed.");
+        showToast("Unable to reach the server. Fan off is not confirmed.", "danger");
     } finally {
         fanOff.disabled = false;
     }

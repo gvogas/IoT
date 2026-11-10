@@ -156,7 +156,7 @@ A CHECK constraint makes sure an item is `sold` if and only if it has a `purchas
 | passwordHash | VARCHAR(255) | required |
 | role | VARCHAR(20) | `customer` (default) or `admin` |
 | membershipNumber | VARCHAR(32) | required, unique, on the membership card |
-| totalPoints | INTEGER | default 0, ≥ 0. Nothing adds to it yet (see "Points") |
+| totalPoints | INTEGER | default 0, ≥ 0. Every purchase adds to it (see "Points") |
 | createdAt | DATETIME | sign-up date |
 
 ### Purchase (receipt)
@@ -168,7 +168,7 @@ A CHECK constraint makes sure an item is `sold` if and only if it has a `purchas
 | subtotal | DECIMAL(10,2) | sum of the lines |
 | taxAmount | DECIMAL(10,2) | `TAX_RATE` in `models/checkout.py` (15%), default 0 |
 | total | DECIMAL(10,2) | subtotal + tax |
-| pointsEarned | INTEGER | always 0 for now (see "Points") |
+| pointsEarned | INTEGER | the points this purchase earned, 10 for every complete $5 of the subtotal (see "Points") |
 | paymentMethod | VARCHAR(20) | `card`, `cash` or `mobile`. The checkout always saves `card` |
 | emailSent | INTEGER | 1 once the receipt email is sent |
 
@@ -214,8 +214,8 @@ The "Clear all EPCs" button on a product's page is there for testing, so the sam
 1. The reader scans the basket and the app looks up each EPC in ProductItem. A tag already `sold` shows "Item already sold", and tags we don't know show a message saying how many couldn't be recognised. Neither goes into the basket.
 2. The cart groups the items by product and shows the name, quantity, price and line total.
 3. To pay, the customer must be signed in, usually by scanning their membership card. The app finds them by `membershipNumber`.
-4. Paying is one transaction. The app adds the Purchase and one PurchaseItem per product, then marks each EPC as `sold` and links it to its line. If any tag can't be marked, nothing is saved.
-5. The receipt is built from Purchase, PurchaseItem and Product and shown on screen. The customer can email it with the Send email button, or later from their purchase history. When an email goes through, `emailSent` is set to 1.
+4. Paying is one transaction. The app adds the Purchase (with its `pointsEarned`) and one PurchaseItem per product, adds the points to `Customer.totalPoints`, then marks each EPC as `sold` and links it to its line. If any tag can't be marked, nothing is saved, and no points are given.
+5. The receipt is built from Purchase, PurchaseItem and Product and shown on screen, with the points earned. It is emailed automatically to the customer's email address. If that fails, the customer can use the Send email button, or send it later from their purchase history. When an email goes through, `emailSent` is set to 1.
 6. If the sale took a product down to its `lowStockThreshold` or to 0, the admins get a "Stock Alert" email. Hidden products are skipped.
 
 ### Stock and low stock
@@ -224,7 +224,7 @@ The `ProductStock` view has one row per active product, with `inStock`, `totalSo
 The stock emails go to the `email` of every Customer whose `role` is `admin`. Nothing extra is saved for them: the app works out whether to send one from the stock count and the sale or delivery quantity, so there are no new tables or columns. See [Stock emails](architecture.md#stock-emails) for the rules.
 
 ### Points
-Points aren't built yet. `pay()` saves `pointsEarned = 0` and never changes `Customer.totalPoints`. The plan is 1 point per whole dollar of the subtotal, saved on the Purchase and added to the customer in the same transaction as the sale. [phase3-status.md](phase3-status.md) tracks this.
+A purchase earns 10 points for every complete $5 of the subtotal, before tax. So $12.99 earns 20 points, and $4.99 earns none. `pay()` in `models/checkout.py` saves the number as `Purchase.pointsEarned` and adds it to `Customer.totalPoints` in the same transaction as the sale. My Account shows the balance, where 100 points are worth $1 in rewards. Nothing spends the points yet.
 
 ## Rules
 

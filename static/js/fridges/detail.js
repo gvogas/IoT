@@ -135,14 +135,14 @@ form.addEventListener("submit", async (event) => {
     try {
         const response = await fetch(`/api/fridges/${fridgeId}/threshold`, { method: "POST", body: new FormData(form) });
         const result = await response.json();
-        setMessage(message, result.error || result.success, result.error ? "danger" : "success");
+        showToast(result.error || result.success, result.error ? "danger" : "success");
         if (response.ok) {
             form.reset();
             update();
             updateHistory();
         }
     } catch (error) {
-        setMessage(message, "Unable to save the limit. Please try again.");
+        showToast("Unable to save the limit. Please try again.", "danger");
     }
 });
 

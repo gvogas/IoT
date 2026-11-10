@@ -44,11 +44,9 @@
         </div>
     </nav>
 
-    {# Notifications after each action. The routes send them with flash() #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        {% for category, text in messages %}
+    {# Notifications after each action. The routes send them with flash(), and common.js adds more with showToast() #}
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container">
+        {% for category, text in get_flashed_messages(with_categories=true) %}
         <div class="toast align-items-center border-0 {{ 'text-bg-danger' if category == 'error' else 'text-bg-success' }}"
              role="status" data-delay="{{ 8000 if category == 'error' else 4000 }}">
             <div class="d-flex">
@@ -58,8 +56,6 @@
         </div>
         {% endfor %}
     </div>
-    {% endif %}
-    {% endwith %}
 
     <main class="{% block main_class %}{% endblock %}">
 {% block content %}{% endblock %}

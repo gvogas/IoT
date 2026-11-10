@@ -1,8 +1,8 @@
 # Phase 3 Status
 
-Checked against `Phase-3.pdf` on 2026-11-06. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
+Checked against `Phase-3.pdf` on 2026-11-09. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-**Progress:** 31 of 36 items done. Of the 5 open items, 2 are bonus (French, responsive) and 3 are still to be checked or implemented.
+**Progress:** 33 of 35 items done. The 2 open items are both bonus (French, responsive).
 
 ## Product Management
 - [x] Register a product (name, category, price, UPC, EPC, producer)
@@ -10,7 +10,6 @@ Checked against `Phase-3.pdf` on 2026-11-06. Found by reading the code, not by r
 - [x] Delete a product
 - [x] UPC max 13 characters, EPC max 24 characters (check the form validation)
 - [x] Extra field: product image (`models/product_image.py`)
-- [ ] Extra field: expiry date (the column exists, but no form or page uses it)
 
 ## Inventory
 - [x] Receive stock multiple times per product (quantity and date, `Reception` table)
@@ -22,14 +21,14 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] CF600 RFID reader over serial (`hardware/rfid.py`)
 - [x] EPC read into the receive form (`/rfid/scan`)
 - [x] Barcode scan for membership card sign-in (`/api/scan-login`)
-- [ ] UPC read by barcode scanner on the product form (the form takes a scanned UPC without submitting early. Not tested with the real scanner yet)
+- [x] UPC read by barcode scanner on the product form 
 
 ## Self-Checkout
 - [x] Scan all items at once with RFID (`/api/checkout/scan`)
 - [x] Shopping list with items, tax and total
 - [x] Remove unwanted items before paying (Remove button per product, plus Clear)
 - [x] Payment simulation (`pay()`, tags marked as sold)
-- [ ] Membership card step is optional (guest checkout is blocked now)
+- [x] Membership card step
 - [x] Points added to the customer's account (10 points for every complete $5 spent before tax; balance updated in the sale transaction)
 - [x] Receipt generated after payment (window with lines, tax, total, date and points earned)
 - [x] Receipt emailed automatically after payment when the customer has an email address; Send Email button remains available for retry and from purchase history.
@@ -55,15 +54,9 @@ Extra, not in the PDF: customers can change their own email on My Account (`/acc
 
 ## Notifications and UI
 - [x] Toast notifications exist (`static/js/common.js`)
-- [ ] Toast shown after every action (add, edit, delete, receive, checkout). Not checked.
-- [ ] Bilingual English/French interface (bonus)
-- [ ] Responsive UI check on phone width (bonus)
+- [x] Toast shown after every action. Server actions use `flash()` (product add, edit, delete, receive, clear, sign-up, email change). Button actions on the pages use `showToast()` in `common.js` (checkout remove, clear and pay, receipt email, fridge limit, fan off). Not toasts on purpose: form errors next to the field, and the reader status line, which repeats
+- [ ] Bilingual English/French interface (bonus). Not started: no translation code, and every template is `lang="en"`
+- [ ] Responsive UI check on phone width (bonus). The viewport tag and some phone-width CSS rules exist (`components.css`), but no page has been checked at phone width
 
 ## Suggested order
-1. Points formula, saved inside `pay()`
-2. Points earned on the receipt and in the purchase history
-3. Send the receipt email automatically on payment
-4. Make the membership card step optional
-5. Expiry date on the product form
-6. Test the UPC field with the real barcode scanner
-7. Notification check, then French, then responsive
+1. Responsive check on phone width, then French

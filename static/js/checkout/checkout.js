@@ -144,13 +144,14 @@ function removeProduct(productID, name) {
     items.filter((item) => item.productID === productID).forEach((item) => removedTags.add(item.epc));
     items = items.filter((item) => item.productID !== productID);
     render();
-    notify(basketMessage, `Removed: ${name}`, "success");
+    showToast(`Removed: ${name}`);
 }
 
 clearButton.addEventListener("click", () => {
     items.forEach((item) => removedTags.add(item.epc));
     items = [];
     render();
+    showToast("Basket cleared.");
 });
 
 payButton.addEventListener("click", async () => {
@@ -162,14 +163,14 @@ payButton.addEventListener("click", async () => {
             items = [];
             window.signedIn = false;   // the server signs the customer out after paying
             render();
-            notify(basketMessage, data.success, "success");
+            showToast(data.success);
             // The reader stays paused until the page reloads for the next customer
             showReceipt(data.receipt, data.emailMessage);
             return;
         }
-        notify(basketMessage, data.error, "danger");
+        showToast(data.error, "danger");
     } catch (e) {
-        notify(basketMessage, "Payment failed. Please try again.", "danger");
+        showToast("Payment failed. Please try again.", "danger");
     }
     paused = false;
     render();
@@ -236,10 +237,10 @@ function showReceipt(receipt, emailMessage) {
         emailButton.disabled = true;
         try {
             const { ok, data } = await postJson("/api/checkout/receipt-email");
-            notify(document.getElementById("receipt-message"), ok ? data.success : data.error, ok ? "success" : "danger");
+            showToast(ok ? data.success : data.error, ok ? "success" : "danger");
             if (!ok) emailButton.disabled = false;
         } catch (e) {
-            notify(document.getElementById("receipt-message"), "The email could not be sent. Please try again.", "danger");
+            showToast("The email could not be sent. Please try again.", "danger");
             emailButton.disabled = false;
         }
     });

@@ -129,14 +129,17 @@ sequenceDiagram
     C->>JS: press Pay
     JS->>F: POST /api/checkout/pay with the tags
     alt every tag is still in stock
-        F->>DB: save the purchase and its lines,<br/>mark each tag as sold
+        F->>DB: save the purchase and its lines,<br/>mark each tag as sold,<br/>add the points to the customer
+        opt the customer has an email address
+            F->>C: receipt by email, automatically
+        end
         opt a product just became low or out of stock
             F->>A: stock alert by email, in the background
         end
         F->>F: sign the customer out
         F-->>JS: the receipt
         JS->>C: show the receipt
-        opt customer presses Send email
+        opt the automatic email failed, and the customer presses Send email
             JS->>F: POST /api/checkout/receipt-email
             F->>C: receipt by email
         end
@@ -150,11 +153,21 @@ A few details are easy to miss:
 - The basket lives in the browser. The server only learns what is in it when the customer presses Pay, and it checks every tag again at that point.
 - Pressing Remove or Clear takes items out of the basket in the browser. A removed tag stays out until it has left the reader's range, so an item still lying on the reader isn't added straight back.
 - Saving a purchase is one database transaction. If any tag can't be marked as sold, the whole purchase is cancelled.
+- Every complete $5 of the subtotal (before tax) earns 10 loyalty points. The points are saved on the purchase and added to the customer's balance in that same transaction, so a cancelled purchase gives no points. The receipt and the purchase history show the points earned.
+- The receipt is emailed automatically after paying, to the customer's email address. The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
 - Tax is 15%. To change it, edit `TAX_RATE` in `models/checkout.py`, and the page and the receipts follow.
 - The customer is signed out right after paying, so the next person starts fresh. The session keeps the purchase number, which lets them still email that one receipt. The page reloads when they press Done, or after 60 seconds.
 - A barcode scanner types like a keyboard: the number very fast, then Enter. `auth/barcode_login.js` listens for that, so a card works even when the cursor isn't in the box. An admin's card goes to the admin page instead.
 
-Payment is a simulation. Nothing charges a real card. Points aren't added yet either: `pay()` saves 0 points for every purchase. [phase3-status.md](phase3-status.md) tracks what is left.
+Payment is a simulation. Nothing charges a real card. [phase3-status.md](phase3-status.md) tracks what is left of Phase 3.
+
+### Notifications
+
+Every action tells the person what happened with a toast, a small box at the bottom right that fades out by itself. Success is green and errors are red and stay longer.
+
+- A route that saves something and then reloads the page calls `flash()`. `base.html` shows each flashed message as a toast.
+- A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan off) do this.
+- Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "Can't read items") stay in the basket, because they can repeat on every read and would pile up.
 
 ## Accounts
 

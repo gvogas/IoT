@@ -32,6 +32,35 @@ function notify(element, text, kind) {
     element.hideTimer = setTimeout(() => setMessage(element, ""), SHOW_TIME[kind]);
 }
 
+// A notification that slides in at the bottom right and goes away by itself. kind is "success", "warning" or "danger"
+// For things the person just did (a button press). Use notify() for a status line that can repeat, like the reader
+function showToast(text, kind = "success") {
+    const container = document.getElementById("toast-container");
+    if (!container || !text) return;
+
+    const element = document.createElement("div");
+    element.className = `toast align-items-center border-0 text-bg-${kind}`;
+    element.setAttribute("role", "status");
+
+    const row = document.createElement("div");
+    row.className = "d-flex";
+    const body = document.createElement("div");
+    body.className = "toast-body";
+    body.textContent = text;
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn-close btn-close-white me-2 m-auto";
+    close.setAttribute("data-bs-dismiss", "toast");
+    close.setAttribute("aria-label", "Close");
+    row.append(body, close);
+    element.appendChild(row);
+    container.appendChild(element);
+
+    // Take the toast off the page once it has faded out
+    element.addEventListener("hidden.bs.toast", () => element.remove());
+    new bootstrap.Toast(element, { delay: SHOW_TIME[kind] }).show();
+}
+
 // Our own window for "are you sure?". Gives back a promise of true (confirmed) or false (cancelled, closed or Escape)
 // options: title, text, button (the label on the confirm button) and danger (true makes that button red)
 function askToConfirm({ title, text, button, danger = false }) {

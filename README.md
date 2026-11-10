@@ -3,7 +3,8 @@
 A small self-checkout store with two monitored fridges, running on a Raspberry Pi.
 
 Customers scan their items with an RFID reader, sign in with a membership card and pay at the checkout.
-They can see their purchases and email their receipts from My Account.
+Each purchase earns loyalty points, and the receipt is emailed to them automatically.
+They can see their purchases and points, and email a receipt again, from My Account.
 Admins manage products, stock and customers on the website.
 They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
 
