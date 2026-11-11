@@ -33,8 +33,26 @@
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    {# Language picker. language.js handles it. "notranslate" stops Google from translating the choices #}
+                    <li class="nav-item language-item notranslate" translate="no">
+                        <label class="visually-hidden" for="language-select">Language</label>
+                        <i class="bi bi-translate" aria-hidden="true"></i>
+                        <select class="form-select form-select-sm language-select" id="language-select">
+                            <option value="en">ENGLISH</option>
+                            <option value="fr">FRANÇAIS</option>
+                            <option value="fa">فارسی</option>
+                            <option value="el">ΕΛΛΗΝΙΚΑ</option>
+                            <option value="it">ITALIANO</option>
+                            <option value="nl">NEDERLANDS</option>
+                            <option value="zh-CN">普通话</option>
+                            <option value="hak">客家話</option>
+                            <option value="ar">العربية</option>
+                            <option value="vi">TIẾNG VIỆT</option>
+                            <option value="hi">हिन्दी</option>
+                        </select>
+                    </li>
                     {% if session.id %}
-                    <li class="nav-item"><a class="nav-link" href="/signout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out ({{ session.name }})</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/signout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out (<span class="notranslate" translate="no">{{ session.name }}</span>)</a></li>
                     {% else %}
                     <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/signin') }}" href="/signin"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a></li>
                     <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/signup') }}" href="/signup"><i class="bi bi-person-plus" aria-hidden="true"></i> Sign up</a></li>
@@ -82,6 +100,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    {# Google Translate puts its own (hidden) picker here. We use our own dropdown in the menu instead #}
+    <div id="google_translate_element" hidden></div>
+    <script src="{{ url_for('static', filename='js/language.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

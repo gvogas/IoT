@@ -1,21 +1,21 @@
-Thank you{% if receipt.customer %}, {{ receipt.customer }}{% endif %}!
+{{ t.thank_you }}{% if receipt.customer %}, {{ receipt.customer }}{% endif %}!
 
-Receipt #{{ receipt.purchaseID }}
-{{ receipt.date|nice_datetime }}
-Paid by {{ receipt.paymentMethod|capitalize }}
-{% if receipt.membershipNumber %}Membership {{ receipt.membershipNumber }}
+{{ t.receipt }} #{{ receipt.purchaseID }}
+{{ receipt.date|nice_datetime if t.lang == 'en' else receipt.date[:16] }}
+{{ t.paid_by }}: {{ t.card if receipt.paymentMethod == 'card' else receipt.paymentMethod|capitalize }}
+{% if receipt.membershipNumber %}{{ t.membership }}: {{ receipt.membershipNumber }}
 {% endif %}
-ITEMS
+{{ t.items_heading|upper }}
 {% for line in receipt.lines %}
 {{ line.name }}
   {{ line.quantity }} x ${{ '%.2f'|format(line.unitPrice) }} = ${{ '%.2f'|format(line.lineTotal) }}
 {% endfor %}
-Subtotal: ${{ '%.2f'|format(receipt.subtotal) }}
-Tax:      ${{ '%.2f'|format(receipt.tax) }}
-TOTAL:    ${{ '%.2f'|format(receipt.total) }}
-Loyalty points earned: +{{ receipt.pointsEarned }}
-{% if receipt.customerPoints is not none %}Updated points balance: {{ receipt.customerPoints }} points
+{{ t.subtotal }}: ${{ '%.2f'|format(receipt.subtotal) }}
+{{ t.tax }}: ${{ '%.2f'|format(receipt.tax) }}
+{{ t.total|upper }}: ${{ '%.2f'|format(receipt.total) }}
+{{ t.points_earned }}: +{{ receipt.pointsEarned }}
+{% if receipt.customerPoints is not none %}{{ t.points_balance }}: {{ receipt.customerPoints }} {{ t.points }}
 {% endif %}
 
-You can find all your receipts in My Account on the store website.
-Keep this email as your proof of purchase.
+{{ t.find_receipts }}
+{{ t.keep_email }}

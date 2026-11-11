@@ -202,9 +202,39 @@ table,
     font-weight: 600;
 }
 
+/* Language picker next to "Sign out" */
+.language-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    color: var(--bs-navbar-color);
+}
+
+.language-select {
+    width: auto;
+}
+
+/* Hide the bar and pop-ups Google Translate adds, we have our own picker */
+iframe.skiptranslate,
+.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+body {
+    top: 0 !important; /* Google pushes the page down to make room for its bar */
+}
+
 @media (min-width: 768px) {
     .navbar {
         padding-block: 0;
+    }
+
+    .language-item {
+        min-height: 56px;
+        padding-inline: 0.75rem;
     }
 
     .navbar .nav-link {

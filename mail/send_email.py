@@ -6,6 +6,7 @@ from email.message import EmailMessage
 from flask import render_template
 
 from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_TO, SMTP_PORT, SMTP_SERVER
+from mail.translations import receipt_text
 from models.customer import admin_emails
 
 
@@ -83,10 +84,12 @@ def send_restock_alert(name, received, in_stock, threshold):
 
 # Email a receipt to the customer. receipt is the dict from models.checkout.receipt()
 # The templates are in templates/email/. This runs inside a web request, so they can be filled in here
+# It is written in the language picked in the menu (see mail/translations.py)
 def send_receipt_email(to_address, receipt):
+    t = receipt_text()
     return send(
         to_address,
-        f"Your Store receipt #{receipt['purchaseID']}: ${receipt['total']:.2f}",
-        render_template("email/receipt.txt", receipt=receipt),
-        render_template("email/receipt.html", receipt=receipt),
+        f"{t['subject']} #{receipt['purchaseID']}: ${receipt['total']:.2f}",
+        render_template("email/receipt.txt", receipt=receipt, t=t),
+        render_template("email/receipt.html", receipt=receipt, t=t),
     )

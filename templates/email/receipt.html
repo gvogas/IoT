@@ -1,27 +1,29 @@
 {# The receipt email. Email apps ignore style sheets and modern layout, so this uses tables and inline styles.
-   The colours are the Arctic Reflection ones from static/css/theme.css #}
+   The colours are the Arctic Reflection ones from static/css/theme.css
+   The words come from t (mail/translations.py), in the language picked in the menu.
+   t.start and t.end are "left" and "right", swapped for Farsi, which reads right to left #}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ t.lang }}" dir="{{ t.dir }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt #{{ receipt.purchaseID }}</title>
+    <title>{{ t.receipt }} #{{ receipt.purchaseID }}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F4FCFB;">
+<body dir="{{ t.dir }}" style="margin: 0; padding: 0; background-color: #F4FCFB;">
     {# The preview line an inbox shows next to the subject #}
-    <div style="display: none; max-height: 0; overflow: hidden;">Thank you for your purchase. You paid ${{ '%.2f'|format(receipt.total) }}.</div>
+    <div style="display: none; max-height: 0; overflow: hidden;">{{ t.preview }} ${{ '%.2f'|format(receipt.total) }}</div>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F4FCFB;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="{{ t.dir }}" style="background-color: #F4FCFB;">
         <tr>
             <td align="center" style="padding: 24px 12px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                       style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D6E0E2; border-radius: 12px; border-collapse: separate; overflow: hidden; font-family: Arial, Helvetica, sans-serif; color: #243C4C;">
+                       style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D6E0E2; border-radius: 12px; border-collapse: separate; overflow: hidden; font-family: Arial, Helvetica, sans-serif; color: #243C4C; text-align: {{ t.start }};">
                     <tr>
                         <td style="background-color: #243C4C; border-radius: 11px 11px 0 0; padding: 20px 28px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="font-size: 20px; font-weight: bold; color: #FFFFFF;">Store</td>
-                                    <td align="right" style="font-size: 14px; color: #ACBCBF;">Receipt #{{ receipt.purchaseID }}</td>
+                                    <td align="{{ t.start }}" style="font-size: 20px; font-weight: bold; color: #FFFFFF;">Store</td>
+                                    <td align="{{ t.end }}" style="font-size: 14px; color: #ACBCBF;">{{ t.receipt }} #{{ receipt.purchaseID }}</td>
                                 </tr>
                             </table>
                         </td>
@@ -29,14 +31,14 @@
 
                     <tr>
                         <td style="padding: 28px 28px 8px;">
-                            <h1 style="margin: 0 0 6px; font-size: 22px; line-height: 28px; color: #243C4C;">Thank you{% if receipt.customer %}, {{ receipt.customer }}{% endif %}!</h1>
-                            <p style="margin: 0; font-size: 15px; line-height: 22px; color: #4E6A7A;">Here is the receipt for your purchase.</p>
+                            <h1 style="margin: 0 0 6px; font-size: 22px; line-height: 28px; color: #243C4C;">{{ t.thank_you }}{% if receipt.customer %}, {{ receipt.customer }}{% endif %}!</h1>
+                            <p style="margin: 0; font-size: 15px; line-height: 22px; color: #4E6A7A;">{{ t.intro }}</p>
                         </td>
                     </tr>
 
                     <tr>
-                        <td align="left" style="padding: 20px 28px 4px;">
-                            <p style="margin: 0; font-size: 13px; line-height: 18px; color: #4E6A7A;">Total paid</p>
+                        <td align="{{ t.start }}" style="padding: 20px 28px 4px;">
+                            <p style="margin: 0; font-size: 13px; line-height: 18px; color: #4E6A7A;">{{ t.total_paid }}</p>
                             <p style="margin: 2px 0 0; font-size: 34px; line-height: 40px; font-weight: bold; color: #243C4C;">${{ '%.2f'|format(receipt.total) }}</p>
                         </td>
                     </tr>
@@ -45,17 +47,18 @@
                         <td style="padding: 16px 28px 0;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #E9F2F5; border-radius: 8px;">
                                 <tr>
-                                    <td style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Date</td>
-                                    <td align="right" style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ receipt.date|nice_datetime }}</td>
+                                    <td align="{{ t.start }}" style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #4E6A7A;">{{ t.date }}</td>
+                                    {# English gets "Nov 6, 2026 at 3:03 PM". The other languages get "2026-11-06 15:03", which reads the same everywhere #}
+                                    <td align="{{ t.end }}" style="padding: 12px 14px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ receipt.date|nice_datetime if t.lang == 'en' else receipt.date[:16] }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Paid by</td>
-                                    <td align="right" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ receipt.paymentMethod|capitalize }}</td>
+                                    <td align="{{ t.start }}" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">{{ t.paid_by }}</td>
+                                    <td align="{{ t.end }}" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C;">{{ t.card if receipt.paymentMethod == 'card' else receipt.paymentMethod|capitalize }}</td>
                                 </tr>
                                 {% if receipt.membershipNumber %}
                                 <tr>
-                                    <td style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">Membership</td>
-                                    <td align="right" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C; font-family: Menlo, Consolas, monospace;">{{ receipt.membershipNumber }}</td>
+                                    <td align="{{ t.start }}" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #4E6A7A;">{{ t.membership }}</td>
+                                    <td align="{{ t.end }}" style="padding: 0 14px 12px; font-size: 13px; line-height: 19px; color: #243C4C; font-family: Menlo, Consolas, monospace;">{{ receipt.membershipNumber }}</td>
                                 </tr>
                                 {% endif %}
                             </table>
@@ -66,38 +69,38 @@
                         <td style="padding: 20px 28px 0;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="padding-bottom: 8px; border-bottom: 1px solid #ACBCBF; font-size: 12px; font-weight: bold; color: #4E6A7A;">Item</td>
-                                    <td align="right" style="padding-bottom: 8px; border-bottom: 1px solid #ACBCBF; font-size: 12px; font-weight: bold; color: #4E6A7A;">Amount</td>
+                                    <td align="{{ t.start }}" style="padding-bottom: 8px; border-bottom: 1px solid #ACBCBF; font-size: 12px; font-weight: bold; color: #4E6A7A;">{{ t.item }}</td>
+                                    <td align="{{ t.end }}" style="padding-bottom: 8px; border-bottom: 1px solid #ACBCBF; font-size: 12px; font-weight: bold; color: #4E6A7A;">{{ t.amount }}</td>
                                 </tr>
                                 {% for line in receipt.lines %}
                                 <tr>
-                                    <td style="padding: 12px 12px 12px 0; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C;">
+                                    <td align="{{ t.start }}" style="padding: 12px 0; padding-{{ t.end }}: 12px; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C;">
                                         {{ line.name }}
                                         <div style="font-size: 13px; line-height: 18px; color: #4E6A7A;">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}</div>
                                     </td>
-                                    <td align="right" valign="top" style="padding: 12px 0; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C; white-space: nowrap;">${{ '%.2f'|format(line.lineTotal) }}</td>
+                                    <td align="{{ t.end }}" valign="top" style="padding: 12px 0; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C; white-space: nowrap;">${{ '%.2f'|format(line.lineTotal) }}</td>
                                 </tr>
                                 {% endfor %}
                                 <tr>
-                                    <td style="padding: 14px 0 4px; font-size: 14px; color: #4E6A7A;">Subtotal</td>
-                                    <td align="right" style="padding: 14px 0 4px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.subtotal) }}</td>
+                                    <td align="{{ t.start }}" style="padding: 14px 0 4px; font-size: 14px; color: #4E6A7A;">{{ t.subtotal }}</td>
+                                    <td align="{{ t.end }}" style="padding: 14px 0 4px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.subtotal) }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 4px 0 12px; font-size: 14px; color: #4E6A7A;">Tax</td>
-                                    <td align="right" style="padding: 4px 0 12px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.tax) }}</td>
+                                    <td align="{{ t.start }}" style="padding: 4px 0 12px; font-size: 14px; color: #4E6A7A;">{{ t.tax }}</td>
+                                    <td align="{{ t.end }}" style="padding: 4px 0 12px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.tax) }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">Loyalty points earned</td>
-                                    <td align="right" style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">+{{ receipt.pointsEarned }}</td>
+                                    <td align="{{ t.start }}" style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">{{ t.points_earned }}</td>
+                                    <td align="{{ t.end }}" style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">+{{ receipt.pointsEarned }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">Total</td>
-                                    <td align="right" style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">${{ '%.2f'|format(receipt.total) }}</td>
+                                    <td align="{{ t.start }}" style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">{{ t.total }}</td>
+                                    <td align="{{ t.end }}" style="padding: 12px 0 0; border-top: 2px solid #243C4C; font-size: 16px; font-weight: bold; color: #243C4C;">${{ '%.2f'|format(receipt.total) }}</td>
                                 </tr>
                                 {% if receipt.customerPoints is not none %}
                                 <tr>
-                                    <td style="padding: 12px 0 0; font-size: 13px; color: #4E6A7A;">Your updated points balance</td>
-                                    <td align="right" style="padding: 12px 0 0; font-size: 13px; color: #243C4C;">{{ receipt.customerPoints }} points</td>
+                                    <td align="{{ t.start }}" style="padding: 12px 0 0; font-size: 13px; color: #4E6A7A;">{{ t.points_balance }}</td>
+                                    <td align="{{ t.end }}" style="padding: 12px 0 0; font-size: 13px; color: #243C4C;">{{ receipt.customerPoints }} {{ t.points }}</td>
                                 </tr>
                                 {% endif %}
                             </table>
@@ -106,7 +109,7 @@
 
                     <tr>
                         <td style="padding: 28px; font-size: 13px; line-height: 19px; color: #4E6A7A;">
-                            You can find all your receipts in My Account on the store website. Keep this email as your proof of purchase.
+                            {{ t.find_receipts }} {{ t.keep_email }}
                         </td>
                     </tr>
                 </table>
