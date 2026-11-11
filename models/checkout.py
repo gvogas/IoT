@@ -7,6 +7,10 @@ from models.database import execute, placeholders, query, query_one, transaction
 TAX_RATE = Decimal("0.15")
 # The same rate in basis points (15% = 1500), so the page can add it up in whole cents
 TAX_BASIS_POINTS = int(TAX_RATE * 10000)
+# Loyalty points: every complete POINTS_STEP dollars spent before tax earns POINTS_PER_STEP points.
+# The checkout page shows the same numbers before paying
+POINTS_STEP = 5
+POINTS_PER_STEP = 10
 
 
 # The tax on a subtotal, rounded to the cent. Gives back a Decimal
@@ -50,7 +54,7 @@ def pay(customer_id, epcs, payment_method="card"):
 
     # Every complete $5 spent before tax earns 10 loyalty points.
     # Decimal keeps the calculation accurate for money values.
-    points_earned = int(subtotal // Decimal("5")) * 10
+    points_earned = int(subtotal // Decimal(POINTS_STEP)) * POINTS_PER_STEP
 
     def work(conn):
         cursor = conn.execute(

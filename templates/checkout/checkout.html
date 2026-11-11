@@ -5,78 +5,97 @@
     <div class="page-head">
         <div>
             <h1>Checkout</h1>
+            <p>Hold each item near the reader and it is added by itself. Scan your membership card to pay and earn points.</p>
         </div>
+        <span class="reader-status" id="reader-status"><span class="dot" aria-hidden="true"></span> <span id="reader-status-text">Reader ready</span></span>
     </div>
 
-    <div class="row g-3 align-items-start">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-body pb-0">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="mb-0">Your items</h2>
-                        <button type="button" class="btn btn-outline-secondary" id="clear-basket">Clear</button>
-                    </div>
-                    <div id="basket-message" role="status" aria-live="polite" hidden></div>
-                </div>
-                <div class="table-responsive" id="basket-table">
-                    <table class="table align-middle mb-0">
-                        <thead>
-                            <tr><th>Product</th><th class="text-end">Qty</th><th class="text-end d-none d-sm-table-cell">Price</th><th class="text-end">Total</th><th><span class="visually-hidden">Actions</span></th></tr>
-                        </thead>
-                        <tbody id="basket-rows"></tbody>
-                    </table>
-                </div>
-                <div id="basket-empty" class="empty-state">
-                    <i class="bi bi-upc-scan" aria-hidden="true"></i>
-                    <h2>Your basket is empty</h2>
-                    <p>Hold your items near the reader. They are added automatically.</p>
-                </div>
+    <div class="checkout-grid">
+        <section class="card" aria-labelledby="items-title">
+            <div class="card-head">
+                <h2 id="items-title">Your items <span class="count" id="item-count" hidden></span></h2>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-basket"><i class="bi bi-x-lg" aria-hidden="true"></i> Clear</button>
             </div>
-        </div>
+            <div id="basket-message" class="basket-message" role="status" aria-live="polite" hidden></div>
+            <div class="table-responsive" id="basket-table">
+                <table class="table align-middle mb-0 basket-table">
+                    <thead>
+                        <tr><th>Product</th><th class="text-end">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th><th><span class="visually-hidden">Remove</span></th></tr>
+                    </thead>
+                    <tbody id="basket-rows"></tbody>
+                </table>
+            </div>
+            <div id="basket-empty" class="empty-state">
+                <span class="scan-icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
+                <h2>Your basket is empty</h2>
+                <p>Hold your items near the reader. They show up here as soon as they are scanned.</p>
+            </div>
+        </section>
 
-        <div class="col-lg-4 checkout-side">
-            <div class="card mb-3">
+        <aside class="checkout-side" aria-label="Payment">
+            <section class="card" aria-labelledby="summary-title">
+                <div class="card-head">
+                    <h2 id="summary-title">Summary</h2>
+                    <span class="text-secondary small" id="summary-count">0 items</span>
+                </div>
                 <div class="card-body">
-                    <h2>Summary</h2>
-                    <div class="summary-line num"><span>Subtotal</span><span id="basket-subtotal">$0.00</span></div>
-                    <div class="summary-line num"><span>Tax ({{ '%g'|format(tax_basis_points / 100) }}%)</span><span id="basket-tax">$0.00</span></div>
-                    <div class="summary-total"><span>Total</span><span class="amount" id="basket-total">$0.00</span></div>
-                    <button type="button" class="btn btn-primary btn-lg w-100" id="pay-button" {% if not session.id %}disabled{% endif %}>Pay</button>
-                    {% if not session.id %}
-                    <p class="text-secondary small mt-2 mb-0">Sign in with your membership card to pay.</p>
+                    {% if customer %}
+                    <div class="member-notice">
+                        <i class="bi bi-person-check" aria-hidden="true"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">{{ customer.customerName }}</div>
+                            <div class="small">Membership <span class="code">{{ customer.membershipNumber }}</span></div>
+                            <div class="small">This sale earns <b id="points-preview">0 points</b>. Balance: {{ customer.totalPoints or 0 }}.</div>
+                        </div>
+                        <a class="btn btn-link btn-sm member-switch" href="/signout" aria-label="Not {{ customer.customerName }}? Sign out">Not you?</a>
+                    </div>
+                    {% endif %}
+
+                    <div class="summary-lines">
+                        <div class="summary-line num"><span>Subtotal</span><span id="basket-subtotal">$0.00</span></div>
+                        <div class="summary-line num"><span>Tax ({{ '%g'|format(tax_basis_points / 100) }}%)</span><span id="basket-tax">$0.00</span></div>
+                        <div class="summary-total"><span>Total</span><span class="amount" id="basket-total">$0.00</span></div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary btn-lg w-100" id="pay-button" {% if not customer %}disabled{% endif %}>
+                        <i class="bi bi-credit-card-2-front" aria-hidden="true"></i> <span id="pay-label">Pay</span>
+                    </button>
+                    {% if customer and customer.email %}
+                    <p class="text-secondary small mt-2 mb-0"><i class="bi bi-envelope" aria-hidden="true"></i> The receipt is emailed to you after paying.</p>
                     {% endif %}
                 </div>
-            </div>
+            </section>
 
-            <div class="card">
+            {% if not customer %}
+            <section class="card" aria-labelledby="signin-title">
                 <div class="card-body">
-                    {% if session.id %}
-                    <h2>Signed in</h2>
-                    <p class="mb-2">{{ session.name }}</p>
-                    <a class="btn btn-outline-secondary btn-sm" href="/signout">Sign out</a>
-                    {% else %}
-                    <h2>Sign in</h2>
-                    <form id="scan-form" autocomplete="off">
-                        <label for="scan-input" class="form-label fw-normal text-secondary small">Scan the barcode on your membership card.</label>
-                        <input type="text" id="scan-input" class="form-control code" placeholder="Membership number">
+                    <h2 id="signin-title">Scan to pay</h2>
+                    <p class="text-secondary small">Scan the barcode on your membership card, or type the number.</p>
+                    <form id="scan-form" class="scan-box" autocomplete="off">
+                        <label for="scan-input" class="visually-hidden">Membership number</label>
+                        <span class="scan-box-icon" aria-hidden="true"><i class="bi bi-person-badge"></i></span>
+                        <input type="text" id="scan-input" class="form-control code" placeholder="VM12345678">
                     </form>
                     <div id="scan-message" class="mt-3" role="status" aria-live="polite" hidden></div>
-                    <a href="/signin" class="d-inline-block small mt-2">Sign in with email instead</a>
-                    {% endif %}
+                    <div class="or-divider">or</div>
+                    <a href="/signin" class="btn btn-outline-secondary w-100"><i class="bi bi-envelope" aria-hidden="true"></i> Sign in with email</a>
                 </div>
-            </div>
-        </div>
+            </section>
+            {% endif %}
+        </aside>
     </div>
 
     <div class="modal fade" id="receipt-modal" tabindex="-1" aria-labelledby="receipt-title" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="receipt-title">Receipt</h2>
+            <div class="modal-content receipt-sheet">
+                <div class="receipt-head">
+                    <span class="receipt-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                    <h2 class="modal-title" id="receipt-title">Payment complete</h2>
+                    <p class="text-secondary mb-0" id="receipt-meta"></p>
                 </div>
                 <div class="modal-body" id="receipt-body"></div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" id="receipt-email">Send email</button>
+                    <button type="button" class="btn btn-outline-secondary" id="receipt-email"><i class="bi bi-envelope" aria-hidden="true"></i> Send email</button>
                     <button type="button" class="btn btn-primary" id="receipt-done">Done</button>
                 </div>
             </div>
@@ -86,7 +105,8 @@
 
 {% block scripts %}
     <script>window.taxBasisPoints = {{ tax_basis_points }};
-    window.signedIn = {{ 'true' if session.id else 'false' }};</script>
+    window.signedIn = {{ 'true' if customer else 'false' }};
+    window.points = { step: {{ points_step }}, perStep: {{ points_per_step }} };</script>
     <script src="{{ url_for('static', filename='js/auth/barcode_login.js') }}"></script>
     <script src="{{ url_for('static', filename='js/checkout/checkout.js') }}"></script>
 {% endblock %}

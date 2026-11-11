@@ -6,6 +6,12 @@ const basketTotal = document.getElementById("basket-total");
 const basketMessage = document.getElementById("basket-message");
 const payButton = document.getElementById("pay-button");
 const clearButton = document.getElementById("clear-basket");
+const payLabel = document.getElementById("pay-label");
+const itemCount = document.getElementById("item-count");
+const summaryCount = document.getElementById("summary-count");
+const pointsPreview = document.getElementById("points-preview");
+const readerStatus = document.getElementById("reader-status");
+const readerStatusText = document.getElementById("reader-status-text");
 
 let items = [];
 
@@ -21,6 +27,10 @@ function cents(value) {
     return Math.round(value * 100);
 }
 
+function plural(count, word) {
+    return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 // The first column of the basket: the product's picture and name
 function productCell(line) {
     const picture = document.createElement(line.image ? "img" : "span");
@@ -31,10 +41,14 @@ function productCell(line) {
     } else {
         picture.innerHTML = '<i class="bi bi-image" aria-hidden="true"></i>';
     }
+    const name = document.createElement("span");
+    name.className = "product-name";
+    name.textContent = line.name;
     const box = document.createElement("div");
     box.className = "product-cell";
-    box.append(picture, line.name);
+    box.append(picture, name);
     const cell = document.createElement("td");
+    cell.className = "cell-title";
     cell.append(box);
     return cell;
 }
@@ -51,19 +65,22 @@ function render() {
     lines.forEach((line, productID) => {
         const row = document.createElement("tr");
         row.appendChild(productCell(line));
-        [line.qty, money(line.price), money(line.price * line.qty)].forEach((text, i) => {
+        // The labels are shown next to each value when the table is stacked on a phone
+        [["Qty", line.qty], ["Price", money(line.price)], ["Total", money(line.price * line.qty)]].forEach(([label, text], i) => {
             const cell = document.createElement("td");
             cell.textContent = text;
-            // There is no room for the price on a phone, and the total says enough
-            cell.className = i === 1 ? "text-end d-none d-sm-table-cell" : "text-end";
+            cell.dataset.label = label;
+            cell.className = i === 2 ? "text-end num fw-semibold" : "text-end num";
             row.appendChild(cell);
         });
         const actions = document.createElement("td");
-        actions.className = "text-end";
+        actions.className = "text-end cell-actions";
+        actions.dataset.label = "";
         const remove = document.createElement("button");
         remove.type = "button";
-        remove.className = "btn btn-outline-danger";
-        remove.textContent = "Remove";
+        remove.className = "btn btn-outline-danger btn-sm btn-icon";
+        remove.innerHTML = '<i class="bi bi-trash3" aria-hidden="true"></i>';
+        remove.title = "Remove";
         remove.setAttribute("aria-label", `Remove ${line.name}`);
         remove.addEventListener("click", () => removeProduct(productID, line.name));
         actions.appendChild(remove);
@@ -75,7 +92,17 @@ function render() {
     const taxCents = Math.floor((subtotalCents * window.taxBasisPoints + 5000) / 10000);   // rounded half up
     document.getElementById("basket-subtotal").textContent = money(subtotalCents / 100);
     document.getElementById("basket-tax").textContent = money(taxCents / 100);
-    basketTotal.textContent = money((subtotalCents + taxCents) / 100);
+    const total = money((subtotalCents + taxCents) / 100);
+    basketTotal.textContent = total;
+    payLabel.textContent = items.length ? `Pay ${total}` : "Pay";
+    itemCount.textContent = items.length;
+    itemCount.hidden = items.length === 0;
+    summaryCount.textContent = plural(items.length, "item");
+    if (pointsPreview) {
+        // The same rule as the server: points for every complete step spent before tax
+        const earned = Math.floor(subtotalCents / (window.points.step * 100)) * window.points.perStep;
+        pointsPreview.textContent = plural(earned, "point");
+    }
     basketEmpty.hidden = items.length > 0;
     document.getElementById("basket-table").hidden = items.length === 0;
     payButton.disabled = !window.signedIn || items.length === 0;
@@ -93,6 +120,12 @@ let lastSeen = new Set();
 // so an item still lying on the reader is not added straight back
 let removedTags = new Set();
 
+// The little light at the top of the page: is the reader working?
+function setReaderStatus(state, text) {
+    readerStatus.dataset.state = state;
+    readerStatusText.textContent = text;
+}
+
 async function scanLoop() {
     while (true) {
         let pause = SCAN_PAUSE;
@@ -101,7 +134,9 @@ async function scanLoop() {
                 const { ok, data } = await postJson("/api/checkout/scan");
                 if (!ok) throw new Error(data.error || "The reader did not answer.");
                 if (!paused) handleScan(data);
+                setReaderStatus("ok", "Reader ready");
             } catch (err) {
+                setReaderStatus("error", "Reader not answering");
                 notify(basketMessage, `Can't read items: ${err.message} Trying again...`, "danger");
                 pause = RETRY_PAUSE;
             }
@@ -157,12 +192,14 @@ clearButton.addEventListener("click", () => {
 payButton.addEventListener("click", async () => {
     payButton.disabled = true;
     paused = true;   // stop reading while paying, so the paid items are not looked at again
+    setReaderStatus("paused", "Paying...");
     try {
         const { ok, data } = await postJson("/api/checkout/pay", { epcs: items.map((item) => item.epc) });
         if (ok) {
             items = [];
             window.signedIn = false;   // the server signs the customer out after paying
             render();
+            setReaderStatus("paused", "Paid");
             showToast(data.success);
             // The reader stays paused until the page reloads for the next customer
             showReceipt(data.receipt, data.emailMessage);
@@ -173,6 +210,7 @@ payButton.addEventListener("click", async () => {
         showToast("Payment failed. Please try again.", "danger");
     }
     paused = false;
+    setReaderStatus("ok", "Reader ready");
     render();
 });
 
@@ -193,11 +231,11 @@ function showReceipt(receipt, emailMessage) {
         body.appendChild(element);
         return element;
     };
-    add("p", `Receipt #${receipt.purchaseID} · ${receipt.date}`, "text-secondary mb-1");
-    add("p", receipt.customer ? `${receipt.customer} (${receipt.membershipNumber})` : "", "mb-3");
+    document.getElementById("receipt-meta").textContent = `Receipt #${receipt.purchaseID} · ${receipt.date}`;
+    if (receipt.customer) add("p", `${receipt.customer} (${receipt.membershipNumber})`, "mb-3");
 
     const table = document.createElement("table");
-    table.className = "table table-sm";
+    table.className = "table table-sm receipt-table";
     receipt.lines.forEach((line) => {
         const row = table.insertRow();
         [line.name, `${line.quantity} × ${money(line.unitPrice)}`, money(line.lineTotal)].forEach((text, i) => {
@@ -218,7 +256,7 @@ function showReceipt(receipt, emailMessage) {
     body.appendChild(table);
 
     // Show the points earned on this purchase and the customer's updated balance.
-    add("p", `Loyalty points earned: +${receipt.pointsEarned || 0}`, "text-success fw-semibold mb-1");
+    add("p", `Loyalty points earned: +${receipt.pointsEarned || 0}`, "receipt-points mb-1");
     if (receipt.customerPoints !== null && receipt.customerPoints !== undefined) {
         add("p", `Your points balance: ${receipt.customerPoints} points ($${Math.floor(receipt.customerPoints / 100)} in rewards)`, "small text-secondary mb-2");
     }

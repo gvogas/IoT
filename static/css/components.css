@@ -447,27 +447,16 @@ table,
 /* -------------------------
    Checkout
    ------------------------- */
-.summary-line {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.25rem 0;
+.checkout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 1.25rem;
+    align-items: start;
 }
 
-.summary-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 0.5rem 0 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--line);
-    font-weight: 600;
-}
-
-.summary-total .amount {
-    font-size: 2.25rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+.checkout-side {
+    display: grid;
+    gap: 1.25rem;
 }
 
 /* The basket and the side column line up from the top on a big screen */
@@ -475,6 +464,282 @@ table,
     .checkout-side {
         position: sticky;
         top: 1rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .checkout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* A card's title row, with a line under it */
+.card-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.card-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.card-head .count {
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    background: var(--tint);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The reader's light next to the page title */
+.reader-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1F5F53;
+    background: var(--success-tint);
+}
+
+.reader-status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.reader-status[data-state="ok"] .dot,
+.reader-status:not([data-state]) .dot {
+    animation: reader-pulse 2s ease-in-out infinite;
+}
+
+.reader-status[data-state="error"] {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+.reader-status[data-state="paused"] {
+    color: var(--muted);
+    background: var(--tint-strong);
+}
+
+@keyframes reader-pulse {
+    50% { opacity: 0.35; }
+}
+
+.basket-message {
+    margin: 1rem 1.25rem 0;
+}
+
+.basket-table th {
+    background: var(--arctic-ice);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.product-name {
+    font-weight: 600;
+}
+
+.btn-icon {
+    width: 36px;
+    padding: 0;
+}
+
+.empty-state .scan-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background: var(--tint);
+}
+
+.empty-state .scan-icon i {
+    margin: 0;
+}
+
+/* The signed-in customer in the summary */
+.member-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #BCDFD7;
+    border-radius: 10px;
+    color: #1F5F53;
+    background: var(--success-tint);
+}
+
+.member-notice > i {
+    margin-top: 2px;
+    font-size: 1.1rem;
+}
+
+.member-notice b {
+    font-weight: 700;
+}
+
+.member-switch {
+    min-height: 32px;
+    padding: 0 0.25rem;
+    color: #1F5F53;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    color: var(--muted);
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0.5rem 0 1.25rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+    font-weight: 600;
+}
+
+.summary-total .amount {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+/* The membership number box, with a card icon inside it */
+.scan-box {
+    position: relative;
+}
+
+.scan-box-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.9rem;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.scan-box .form-control {
+    padding-left: 2.5rem;
+    letter-spacing: 0.06em;
+}
+
+/* The receipt after paying */
+.receipt-sheet {
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(36, 60, 76, 0.3);
+}
+
+.receipt-head {
+    padding: 1.75rem 1.5rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+}
+
+.receipt-check {
+    display: inline-grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.75rem;
+    border-radius: 50%;
+    color: var(--success);
+    background: var(--success-tint);
+    font-size: 1.75rem;
+}
+
+.receipt-head h2 {
+    margin-bottom: 0.25rem;
+}
+
+.receipt-table td {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.receipt-points {
+    color: var(--success);
+    font-weight: 600;
+}
+
+/* Phones: the basket rows stack, one card per product */
+@media (max-width: 767.98px) {
+    .basket-table thead {
+        display: none;
+    }
+
+    .basket-table,
+    .basket-table tbody,
+    .basket-table tr,
+    .basket-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .basket-table tr {
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .basket-table tr:last-child {
+        border-bottom: 0;
+    }
+
+    .table-responsive > .basket-table > :not(caption) > * > td,
+    .basket-table > :not(caption) > * > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.2rem 0;
+        border-bottom: 0;
+        text-align: right;
+    }
+
+    .basket-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 0.85rem;
+        font-weight: 400;
+    }
+
+    .table-responsive > .basket-table > :not(caption) > * > td.cell-title {
+        display: block;
+        padding: 0 0 0.5rem;
+        text-align: left;
+    }
+
+    .basket-table td.cell-title::before,
+    .basket-table td.cell-actions::before {
+        content: none;
+    }
+
+    .table-responsive > .basket-table > :not(caption) > * > td.cell-actions {
+        justify-content: flex-end;
+        padding-top: 0.4rem;
     }
 }
 
@@ -797,13 +1062,6 @@ th[aria-sort] .sort-button i {
 
 .image-field > .flex-grow-1 {
     flex-basis: 240px;
-}
-
-/* On a phone the basket has no room for pictures */
-@media (max-width: 575.98px) {
-    #basket-rows .product-image {
-        display: none;
-    }
 }
 
 .stock-cell {
