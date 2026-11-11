@@ -35,7 +35,9 @@ def basket_items(epcs):
     items = [{"epc": r["epc"], "productID": r["productID"], "name": r["productName"], "price": r["price"], "image": r["imagePath"]}
              for r in rows if r["status"] == "in_stock"]
     sold = sum(1 for r in rows if r["status"] == "sold")
-    return items, sold, len(set(epcs)) - len(rows) + sum(1 for r in rows if r["status"] == "removed")
+    removed = sum(1 for r in rows if r["status"] == "removed")
+    not_found = len(set(epcs)) - len(rows)
+    return items, sold, not_found + removed
 
 
 # Save a paid basket: the receipt, one line per product, and mark each tag as sold

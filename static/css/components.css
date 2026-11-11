@@ -1122,10 +1122,6 @@ th[aria-sort] .sort-button i {
     background: var(--danger-tint);
 }
 
-.stat-meter {
-    margin-top: 0.5rem;
-}
-
 .detail-tabs {
     padding: 0.75rem 1.25rem 0;
     background: var(--tint);

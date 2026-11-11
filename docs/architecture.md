@@ -92,6 +92,7 @@ flowchart TD
     controllers --> fan["hardware/fan.py"]
     controllers --> mail_send["mail/send_email.py"]
     mail_send -->|"finds the admin emails"| models
+    mail_send -->|"receipt words"| translations["mail/translations.py"]
 
     models["models/<br/>customer, fridge, reading, product,<br/>product_image, reception, unit, checkout"] --> database["models/database.py"]
     database --> db[("store.db")]
@@ -151,10 +152,12 @@ sequenceDiagram
 A few details are easy to miss:
 
 - The basket lives in the browser. The server only learns what is in it when the customer presses Pay, and it checks every tag again at that point.
-- Pressing Remove or Clear takes items out of the basket in the browser. A removed tag stays out until it has left the reader's range, so an item still lying on the reader isn't added straight back.
+- The light at the top right of the page says whether the reader is answering. It turns to "Paying..." and stops reading while a payment goes through.
+- Once someone is signed in, the summary shows their name, membership number, points balance and how many points this basket will earn. "Not you?" signs them out.
+- The trash button on a line, or Clear, takes items out of the basket in the browser. A removed tag stays out until it has left the reader's range, so an item still lying on the reader isn't added straight back.
 - Saving a purchase is one database transaction. If any tag can't be marked as sold, the whole purchase is cancelled.
 - Every complete $5 of the subtotal (before tax) earns 10 loyalty points. The points are saved on the purchase and added to the customer's balance in that same transaction, so a cancelled purchase gives no points. The receipt and the purchase history show the points earned.
-- The receipt is emailed automatically after paying, to the customer's email address. The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
+- The receipt is emailed automatically after paying, to the customer's email address, in the language picked in the menu (see [Languages](#languages)). The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
 - Tax is 15%. To change it, edit `TAX_RATE` in `models/checkout.py`, and the page and the receipts follow.
 - The customer is signed out right after paying, so the next person starts fresh. The session keeps the purchase number, which lets them still email that one receipt. The page reloads when they press Done, or after 60 seconds.
 - A barcode scanner types like a keyboard: the number very fast, then Enter. `auth/barcode_login.js` listens for that, so a card works even when the cursor isn't in the box. An admin's card goes to the admin page instead.
@@ -168,6 +171,16 @@ Every action tells the person what happened with a toast, a small box at the bot
 - A route that saves something and then reloads the page calls `flash()`. `base.html` shows each flashed message as a toast.
 - A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan off) do this.
 - Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "Can't read items") stay in the basket, because they can repeat on every read and would pile up.
+
+## Languages
+
+The pages are written in English. The language picker at the top right of the menu offers 11 languages: English, French, Farsi, Greek, Italian, Dutch, Mandarin, Hakka, Arabic, Vietnamese and Hindi.
+
+- `static/js/language.js` saves the choice in the `googtrans` cookie (like `/en/fr`) and reloads the page. The cookie has no expiry date, so closing the browser goes back to English.
+- Google Translate translates each page in the browser. Its script is only loaded when the language isn't English, so an English page loads nothing extra. Farsi and Arabic also turn the page right to left.
+- Names, money amounts and the language list itself have `notranslate` on them, so Google leaves them alone.
+- Google can't run inside an email, so the receipt email has its own hand-written words in `mail/translations.py`. `send_receipt_email()` reads the same cookie, so the receipt comes in the language the customer was using when they paid or pressed Send email. The text template, the subject and the HTML template (including right to left) all use these words.
+- The stock emails and the fridge alerts go to staff and are always in English.
 
 ## Accounts
 

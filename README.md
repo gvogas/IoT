@@ -7,6 +7,7 @@ Each purchase earns loyalty points, and the receipt is emailed to them automatic
 They can see their purchases and points, and email a receipt again, from My Account.
 Admins manage products, stock and customers on the website.
 They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
+The language picker in the menu shows the pages in 11 languages, and the receipt email follows it.
 
 For the fridges, an ESP32 with 2 DHT11 sensors sends the temperature and humidity over MQTT,
 and the website shows them live.
@@ -27,12 +28,12 @@ routes/             Flask pages and API endpoints, one file per area. guards.py 
 models/             talks to the database (database.py has query, query_one, execute and transaction)
 controllers/        MqttController receives readings; FanController controls the shared fan
 hardware/           talks to the Pi pins and the RFID reader (fan.py, signals.py, rfid.py)
-mail/               sends the alerts and receipts, and reads the YES/NO replies
+mail/               sends the alerts and receipts, and reads the YES/NO replies. translations.py has the receipt email in each language
 tools/              database setup and customer role management
 templates/          the HTML pages and the emails, one folder per area
 static/uploads/     product images uploaded on the website (not in git, back it up along with store.db)
 static/css/         theme.css has every colour, components.css has the layout
-static/js/          common.js runs on every page, table_filter.js is shared by the lists, then one folder per area
+static/js/          common.js and language.js run on every page, table_filter.js is shared by the lists, then one folder per area
 esp32/fridge/       ESP32 code (both DHT11 sensors on one board), open fridge.ino in Arduino IDE
 docs/               project documents
 ```
@@ -41,7 +42,7 @@ docs/               project documents
 
 The colours are the Arctic Reflection palette: `#5289AD`, `#243C4C`, `#ACBCBF`, `#F4FCFB` and `#698696`. They are all at the top of [static/css/theme.css](static/css/theme.css), so changing a value there changes every page.
 
-The pages load Bootstrap, its icons and the Inter font from a CDN, so the browser needs internet to show them properly.
+The pages load Bootstrap, its icons and the Inter font from a CDN, so the browser needs internet to show them properly. Any language other than English also needs internet, because Google Translate does the translating.
 
 ## Setup
 

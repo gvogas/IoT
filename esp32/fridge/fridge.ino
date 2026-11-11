@@ -73,6 +73,7 @@ void loop() {
   fridge1.readAndPublish(client);
   fridge2.readAndPublish(client);
 
+  // "I'm alive" message. The app doesn't use it, but mosquitto_sub -t vanier shows the ESP32 is sending
   client.publish("vanier", "I am ESP32");
   delay(2000);
 }

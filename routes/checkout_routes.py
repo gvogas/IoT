@@ -49,15 +49,9 @@ def pay_basket():
         return jsonify(error=str(err)), 409
     paid_receipt = receipt(purchase_id)
 
-    # Email the receipt automatically when the signed-in customer has an email address.
-    # Keep the manual Send Email button as a retry option if the automatic email fails.
+    # Email the receipt straight away. If it fails, the Send email button on the receipt tries again
     address = receipt_email_address(purchase_id)
-    email_sent = bool(address and send_receipt_email(address, paid_receipt))
-    if email_sent:
-        try:
-            mark_receipt_emailed(purchase_id)
-        except sqlite3.Error:
-            pass  # The email was sent; only the email-status update failed.
+    email_sent = bool(address) and email_and_record(purchase_id, address, paid_receipt)
 
     # Tell the admin if this sale made anything low or out of stock
     alerts = stock_alerts(purchase_id)
@@ -82,6 +76,17 @@ def pay_basket():
     )
 
 
+# Email a receipt and remember that it went out. Gives back True if it was sent
+def email_and_record(purchase_id, address, paid_receipt):
+    if not send_receipt_email(address, paid_receipt):
+        return False
+    try:
+        mark_receipt_emailed(purchase_id)
+    except sqlite3.Error:
+        pass   # the email went out, only the record failed
+    return True
+
+
 # Send one receipt to the customer's current email. Gives back the answer for the page
 def send_receipt(purchase_id):
     address = receipt_email_address(purchase_id)
@@ -89,12 +94,8 @@ def send_receipt(purchase_id):
     if not address or paid_receipt is None:
         return jsonify(error="No email address on this account."), 400
 
-    if not send_receipt_email(address, paid_receipt):
+    if not email_and_record(purchase_id, address, paid_receipt):
         return jsonify(error="The email could not be sent. Please try again."), 502
-    try:
-        mark_receipt_emailed(purchase_id)
-    except sqlite3.Error:
-        pass   # the email went out, only the record failed
     return jsonify(success=f"Receipt sent to {address}.")
 
 
