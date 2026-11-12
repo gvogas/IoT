@@ -53,7 +53,8 @@
 
                     <div class="summary-lines">
                         <div class="summary-line num"><span>Subtotal</span><span id="basket-subtotal">$0.00</span></div>
-                        <div class="summary-line num"><span>Tax ({{ '%g'|format(tax_basis_points / 100) }}%)</span><span id="basket-tax">$0.00</span></div>
+                        <div class="summary-line num"><span>GST ({{ gst_percent }}%)</span><span id="basket-gst">$0.00</span></div>
+                        <div class="summary-line num"><span>QST ({{ qst_percent }}%)</span><span id="basket-qst">$0.00</span></div>
                         <div class="summary-total"><span>Total</span><span class="amount" id="basket-total">$0.00</span></div>
                     </div>
 
@@ -104,7 +105,7 @@
 {% endblock %}
 
 {% block scripts %}
-    <script>window.taxBasisPoints = {{ tax_basis_points }};
+    <script>window.taxParts = { gst: {{ gst_parts }}, qst: {{ qst_parts }} };
     window.signedIn = {{ 'true' if customer else 'false' }};
     window.points = { step: {{ points_step }}, perStep: {{ points_per_step }} };</script>
     <script src="{{ url_for('static', filename='js/auth/barcode_login.js') }}"></script>

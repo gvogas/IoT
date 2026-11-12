@@ -11,6 +11,11 @@ def connect():
     return conn
 
 
+# A money amount as text for the database, or None if it is empty
+def money_or_none(amount):
+    return None if amount is None else str(amount)
+
+
 # The ?,?,? for an IN (...) list of these items
 def placeholders(items):
     return ",".join("?" * len(items))

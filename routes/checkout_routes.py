@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, render_template, request, session, url_for
 from hardware.rfid import scan_once
 from mail.send_email import send_receipt_email, send_stock_alert
 from models.checkout import (
-    POINTS_PER_STEP, POINTS_STEP, TAX_BASIS_POINTS, basket_items, mark_receipt_emailed, pay, purchase_belongs_to, receipt, receipt_email_address,
+    GST_PARTS, GST_PERCENT, POINTS_PER_STEP, POINTS_STEP, QST_PARTS, QST_PERCENT, basket_items, mark_receipt_emailed, pay, purchase_belongs_to, receipt, receipt_email_address,
     stock_alerts,
 )
 from models.customer import get_customer, get_customer_by_membership
@@ -20,7 +20,8 @@ checkout_routes = Blueprint("checkout_routes", __name__)
 def checkout():
     # The signed-in customer, for the membership card in the summary (None for a guest)
     customer = get_customer(session["id"]) if is_signed_in() else None
-    return render_template("checkout/checkout.html", tax_basis_points=TAX_BASIS_POINTS, customer=customer,
+    return render_template("checkout/checkout.html", gst_parts=GST_PARTS, qst_parts=QST_PARTS,
+                           gst_percent=GST_PERCENT, qst_percent=QST_PERCENT, customer=customer,
                            points_step=POINTS_STEP, points_per_step=POINTS_PER_STEP)
 
 
@@ -28,7 +29,7 @@ def checkout():
 @checkout_routes.route("/api/checkout/scan", methods=["POST"])
 def scan_basket():
     items, sold, unknown = basket_items(scan_once())
-    items = [{"epc": i["epc"], "productID": i["productID"], "name": i["name"], "price": float(i["price"]),
+    items = [{"epc": i["epc"], "productID": i["productID"], "name": i["name"], "price": float(i["price"]), "taxable": i["taxable"],
               "image": url_for("static", filename=i["image"]) if i["image"] else None} for i in items]
     return jsonify(items=items, sold=sold, unknown=unknown)
 

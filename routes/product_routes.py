@@ -109,8 +109,9 @@ def product_to_form(product):
     return {
         "name": product["productName"], "category": product["categoryName"], "producer": product["producerName"],
         "price": f"{product['price']:.2f}", "upc": product["upc"],
+        "costPrice": "" if product["costPrice"] is None else f"{product['costPrice']:.2f}",
         "description": product["description"] or "", "lowStockThreshold": product["lowStockThreshold"],
-        "active": product["isActive"],
+        "active": bool(product["isActive"]), "taxable": bool(product["isTaxable"]),
     }
 
 
@@ -118,7 +119,7 @@ def product_to_form(product):
 @admin_page
 def new_product():
     if request.method == "GET":
-        return render_product_form(None, {"active": True, "lowStockThreshold": 5})
+        return render_product_form(None, {"active": True, "taxable": True, "lowStockThreshold": 5})
 
     product, errors = read_product_form(request.form)
     image_data = read_uploaded_image(errors)

@@ -103,6 +103,15 @@
                         {% if errors.get('price') %}<div class="invalid-feedback d-block" id="price_error">{{ errors['price'] }}</div>{% endif %}
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label" for="costPrice">Cost per unit</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input id="costPrice" name="costPrice" class="form-control{% if errors.get('costPrice') %} is-invalid{% endif %}"{% if errors.get('costPrice') %} aria-invalid="true" aria-describedby="costPrice_error"{% endif %} type="text" inputmode="decimal" value="{{ values.get('costPrice', '') }}">
+                        </div>
+                        {% if errors.get('costPrice') %}<div class="invalid-feedback d-block" id="costPrice_error">{{ errors['costPrice'] }}</div>{% endif %}
+                        <div class="form-text">What the store pays for one unit. Used for the net profit on the admin page.</div>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label" for="lowStockThreshold">Low stock alert at</label>
                         <input id="lowStockThreshold" name="lowStockThreshold" class="form-control{% if errors.get('lowStockThreshold') %} is-invalid{% endif %}"{% if errors.get('lowStockThreshold') %} aria-invalid="true" aria-describedby="lowStockThreshold_error"{% endif %} type="number" min="0" max="100000" inputmode="numeric" value="{{ values.get('lowStockThreshold', 5) }}">
                         {% if errors.get('lowStockThreshold') %}<div class="invalid-feedback d-block" id="lowStockThreshold_error">{{ errors['lowStockThreshold'] }}</div>{% endif %}
@@ -113,6 +122,13 @@
                         <input id="upc" name="upc" class="form-control code{% if errors.get('upc') %} is-invalid{% endif %}"{% if errors.get('upc') %} aria-invalid="true" aria-describedby="upc_error"{% endif %} maxlength="13" required inputmode="numeric" value="{{ values.get('upc', '') }}">
                         {% if errors.get('upc') %}<div class="invalid-feedback d-block" id="upc_error">{{ errors['upc'] }}</div>{% endif %}
                         <div class="form-text">Up to 13 digits. Scan the barcode or type it.</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="taxable" name="taxable" {% if values.get('taxable') %}checked{% endif %}>
+                            <label class="form-check-label" for="taxable">Taxable (charge GST and QST)</label>
+                        </div>
+                        <div class="form-text">Turn this off for products with no sales tax, like basic groceries.</div>
                     </div>
                 </div>
             </div>

@@ -4,37 +4,128 @@
 {% block content %}
     <div class="page-head">
         <div>
-            <h1>Store dashboards</h1>
-            <p>Everything behind the checkout, in one place.</p>
+            <h1>Admin</h1>
+            <p>Manage stock, products, fridges and customers.</p>
         </div>
     </div>
 
+    {# Money for the chosen period. The buttons reload the page with ?period= in the address #}
+    <section class="mb-4" aria-labelledby="money-title">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 id="money-title" class="mb-0">Sales and profit</h2>
+            <div class="btn-group period-picker" role="group" aria-label="Time period">
+                {% for key, label in periods.items() %}
+                <a class="btn btn-outline-secondary{{ ' active' if key == period }}" href="/admin?period={{ key }}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body py-3">
+                        <div class="stat-label">Sales before tax</div>
+                        <div class="stat-value">${{ '{:,.2f}'.format(money.sales) }}</div>
+                        <div class="stat-note">What customers paid, not counting GST and QST</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body py-3">
+                        <div class="stat-label">Cost of items sold</div>
+                        <div class="stat-value">${{ '{:,.2f}'.format(money.cost) }}</div>
+                        <div class="stat-note">What the store paid for those items</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body py-3">
+                        <div class="stat-label">Net profit</div>
+                        <div class="stat-value{{ ' alert-value' if money.profit < 0 }}">${{ '{:,.2f}'.format(money.profit) }}</div>
+                        <div class="stat-note">
+                            {% if money.margin is not none %}{{ money.margin }}% of sales is profit{% else %}Add product costs to see the profit{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body py-3">
+                        <div class="stat-label">Tax collected</div>
+                        <div class="stat-value">${{ '{:,.2f}'.format(money.tax) }}</div>
+                        <div class="stat-note">GST ${{ '{:,.2f}'.format(money.gst) }} · QST ${{ '{:,.2f}'.format(money.qst) }}, owed to the government</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-secondary small mt-3 mb-0">
+            {{ money.orders }} {{ 'order' if money.orders == 1 else 'orders' }},
+            {{ money.units }} {{ 'item' if money.units == 1 else 'items' }} sold.
+            {% if money.missing %}
+            <span class="text-warning-emphasis"><i class="bi bi-info-circle" aria-hidden="true"></i>
+            {{ money.missing }} {{ 'item has' if money.missing == 1 else 'items have' }} no cost yet, so {{ 'it is' if money.missing == 1 else 'they are' }} left out of the cost and the profit. Add the cost on the product's Edit page.</span>
+            {% endif %}
+        </p>
+    </section>
+
+    {% if top %}
+    <section class="card mb-4" aria-labelledby="top-title">
+        <div class="card-head">
+            <h2 id="top-title">Best products by profit</h2>
+            <span class="text-secondary small">{{ periods[period] }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr><th>Product</th><th class="text-end">Sold</th><th class="text-end">Sales before tax</th><th class="text-end">Profit</th></tr>
+                </thead>
+                <tbody>
+                    {% for product in top %}
+                    <tr>
+                        <td><a class="row-link" href="/products/{{ product.productID }}">{{ product.productName }}</a></td>
+                        <td class="text-end num">{{ product.units }}</td>
+                        <td class="text-end num">${{ '{:,.2f}'.format(product.sales) }}</td>
+                        <td class="text-end num">
+                            {% if product.profit is not none %}${{ '{:,.2f}'.format(product.profit) }}{% if product.missing %}<div class="small text-secondary">{{ product.missing }} without a cost left out</div>{% endif %}{% else %}<span class="text-secondary">No cost yet</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <h2 class="mb-3">Dashboards</h2>
     <div class="tile-grid">
         <a class="card nav-tile" href="/inventory">
             <div class="card-body">
                 <span class="tile-icon"><i class="bi bi-boxes" aria-hidden="true"></i></span>
-                <h2>Inventory</h2>
+                <h3>Inventory</h3>
                 <p>Units in stock, low stock alerts and deliveries</p>
             </div>
         </a>
         <a class="card nav-tile" href="/products">
             <div class="card-body">
                 <span class="tile-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
-                <h2>Products <span class="count">{{ product_count }}</span></h2>
+                <h3>Products <span class="count">{{ product_count }}</span></h3>
                 <p>Add, edit and delete products</p>
             </div>
         </a>
         <a class="card nav-tile" href="/fridges">
             <div class="card-body">
                 <span class="tile-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
-                <h2>Fridges</h2>
+                <h3>Fridges</h3>
                 <p>Temperature, humidity and the limit of each fridge</p>
             </div>
         </a>
         <a class="card nav-tile" href="/customers">
             <div class="card-body">
                 <span class="tile-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
-                <h2>Customers <span class="count">{{ customer_count }}</span></h2>
+                <h3>Customers <span class="count">{{ customer_count }}</span></h3>
                 <p>Everyone with a membership, and their roles</p>
             </div>
         </a>

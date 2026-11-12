@@ -55,10 +55,13 @@ def main():
             categoryID INTEGER NOT NULL REFERENCES Category(categoryID),
             producerID INTEGER NOT NULL REFERENCES Producer(producerID),
             price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+            costPrice DECIMAL(10,2) CHECK (costPrice >= 0),
             upc VARCHAR(13) NOT NULL UNIQUE CHECK (length(upc) <= 13),
             imagePath VARCHAR(255),
             lowStockThreshold INTEGER NOT NULL DEFAULT 5 CHECK (lowStockThreshold >= 0),
-            isActive INTEGER NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
+            -- SQLite has no real true/false type: a BOOLEAN column saves True as 1 and False as 0
+            isActive BOOLEAN NOT NULL DEFAULT 1 CHECK (isActive IN (0, 1)),
+            isTaxable BOOLEAN NOT NULL DEFAULT 1 CHECK (isTaxable IN (0, 1)),
             createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             description VARCHAR(500)
         );''')
@@ -69,6 +72,12 @@ def main():
         cursor.execute("ALTER TABLE Product ADD COLUMN lowStockThreshold INTEGER NOT NULL DEFAULT 5 CHECK (lowStockThreshold >= 0)")
     if "description" not in existing:
         cursor.execute("ALTER TABLE Product ADD COLUMN description VARCHAR(500)")
+    # What the store pays for one unit. Empty until the admin fills it in on the product form
+    if "costPrice" not in existing:
+        cursor.execute("ALTER TABLE Product ADD COLUMN costPrice DECIMAL(10,2) CHECK (costPrice >= 0)")
+    # Does the checkout charge GST and QST on this product? Products that were already there are taxable
+    if "isTaxable" not in existing:
+        cursor.execute("ALTER TABLE Product ADD COLUMN isTaxable BOOLEAN NOT NULL DEFAULT 1 CHECK (isTaxable IN (0, 1))")
     # A product has no EPC of its own. Each unit has one (ProductItem), so an EPC column from an earlier try is removed
     if "epc" in existing:
         cursor.execute("DROP INDEX IF EXISTS idx_product_epc")
@@ -96,13 +105,27 @@ def main():
             customerID INTEGER REFERENCES Customer(customerID),
             purchaseDate DATETIME NOT NULL,
             subtotal DECIMAL(10,2) NOT NULL CHECK (subtotal >= 0),
+            gstAmount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (gstAmount >= 0),
+            qstAmount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (qstAmount >= 0),
             taxAmount DECIMAL(10,2) NOT NULL DEFAULT 0,
             total DECIMAL(10,2) NOT NULL CHECK (total >= 0),
             pointsEarned INTEGER NOT NULL DEFAULT 0,
             paymentMethod VARCHAR(20) NOT NULL DEFAULT 'card'
                 CHECK (paymentMethod IN ('card', 'cash', 'mobile')),
-            emailSent INTEGER NOT NULL DEFAULT 0 CHECK (emailSent IN (0, 1))
+            emailSent BOOLEAN NOT NULL DEFAULT 0 CHECK (emailSent IN (0, 1))
         );''')
+
+    # Databases made before the tax was split into GST and QST get the two columns here.
+    # Old purchases are filled in so they still add up: GST is 5% of the subtotal, and QST is the rest of the tax they paid.
+    # Purchases that paid no tax at all keep 0 for both
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(Purchase)")}
+    if "gstAmount" not in existing:
+        cursor.execute("ALTER TABLE Purchase ADD COLUMN gstAmount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (gstAmount >= 0)")
+        cursor.execute("ALTER TABLE Purchase ADD COLUMN qstAmount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (qstAmount >= 0)")
+        cursor.execute("UPDATE Purchase SET gstAmount = ROUND(subtotal * 0.05, 2) WHERE taxAmount > 0")
+        cursor.execute("UPDATE Purchase SET qstAmount = ROUND(taxAmount - gstAmount, 2) WHERE taxAmount > 0")
+    # An earlier version of the step above gave untaxed purchases 5% GST and a negative QST. This puts them back to 0
+    cursor.execute("UPDATE Purchase SET gstAmount = 0, qstAmount = 0 WHERE taxAmount = 0")
 
     # Receipt lines, one per product
     cursor.execute('''
@@ -112,8 +135,21 @@ def main():
             productID INTEGER NOT NULL REFERENCES Product(productID),
             quantity INTEGER NOT NULL CHECK (quantity > 0),
             unitPrice DECIMAL(10,2) NOT NULL CHECK (unitPrice >= 0),
+            unitCost DECIMAL(10,2) CHECK (unitCost >= 0),
+            isTaxable BOOLEAN NOT NULL DEFAULT 1 CHECK (isTaxable IN (0, 1)),
             UNIQUE (purchaseID, productID)
         );''')
+
+    # The product's cost at the time of the sale, so changing a cost later doesn't change old profit.
+    # Sales made before this column existed have none, and the admin page uses the product's cost for them
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(PurchaseItem)")}
+    if "unitCost" not in existing:
+        cursor.execute("ALTER TABLE PurchaseItem ADD COLUMN unitCost DECIMAL(10,2) CHECK (unitCost >= 0)")
+    # Was GST and QST charged on this line? Saved at the time of the sale, so the receipt can say "No tax".
+    # Older lines count as taxed, except the ones on purchases that paid no tax at all
+    if "isTaxable" not in existing:
+        cursor.execute("ALTER TABLE PurchaseItem ADD COLUMN isTaxable BOOLEAN NOT NULL DEFAULT 1 CHECK (isTaxable IN (0, 1))")
+        cursor.execute("UPDATE PurchaseItem SET isTaxable = 0 WHERE purchaseID IN (SELECT purchaseID FROM Purchase WHERE taxAmount = 0)")
 
     # One row per physical RFID-tagged unit (sold <=> linked to a receipt line)
     cursor.execute('''

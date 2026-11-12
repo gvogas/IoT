@@ -117,7 +117,7 @@
                             {% endif %}
                             <div class="purchase-line-name">
                                 <div>{{ line.productName }}</div>
-                                <div class="small text-secondary">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}</div>
+                                <div class="small text-secondary">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}{% if not line.isTaxable %} · No tax{% endif %}</div>
                             </div>
                             <div class="num">${{ '%.2f'|format(line.quantity * line.unitPrice) }}</div>
                         </div>
@@ -125,7 +125,8 @@
 
                         <div class="purchase-sums">
                             <div class="summary-line num text-secondary"><span>Subtotal</span><span>${{ '%.2f'|format(purchase.subtotal) }}</span></div>
-                            <div class="summary-line num text-secondary"><span>Tax</span><span>${{ '%.2f'|format(purchase.taxAmount) }}</span></div>
+                            <div class="summary-line num text-secondary"><span>GST</span><span>${{ '%.2f'|format(purchase.gstAmount) }}</span></div>
+                            <div class="summary-line num text-secondary"><span>QST</span><span>${{ '%.2f'|format(purchase.qstAmount) }}</span></div>
                             <div class="summary-line num fw-bold"><span>Total</span><span>${{ '%.2f'|format(purchase.total) }}</span></div>
                             <div class="summary-line small text-success"><span>Loyalty points earned</span><span>+{{ purchase.pointsEarned }}</span></div>
                         </div>

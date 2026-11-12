@@ -37,7 +37,7 @@ def check_reception(product_id, epcs, date_text):
     product = query_one("SELECT isActive FROM Product WHERE productID = ?", (product_id,))
     if product is None:
         errors.append("That product does not exist.")
-    elif product["isActive"] == 0:
+    elif not product["isActive"]:
         errors.append("This product is hidden. Show it in inventory before receiving stock.")
 
     try:

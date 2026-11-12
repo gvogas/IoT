@@ -1,6 +1,6 @@
 # Phase 3 Status
 
-Checked against `Phase-3.pdf` on 2026-11-11. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
+Checked against `Phase-3.pdf` on 2026-11-11, extras updated 2026-11-12. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
 **Progress:** 34 of 35 items done. The 1 open item is a bonus (responsive).
 
@@ -10,6 +10,8 @@ Checked against `Phase-3.pdf` on 2026-11-11. Found by reading the code, not by r
 - [x] Delete a product
 - [x] UPC max 13 characters, EPC max 24 characters (check the form validation)
 - [x] Extra field: product image (`models/product_image.py`)
+
+Extra, not in the PDF: each product has an optional cost per unit and a Taxable switch (GST and QST on or off).
 
 ## Inventory
 - [x] Receive stock multiple times per product (quantity and date, `Reception` table)
@@ -26,12 +28,12 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 
 ## Self-Checkout
 - [x] Scan all items at once with RFID (`/api/checkout/scan`)
-- [x] Shopping list with items, tax and total
+- [x] Shopping list with items, GST, QST and total
 - [x] Remove unwanted items before paying (trash button per product, plus Clear)
 - [x] Payment simulation (`pay()`, tags marked as sold)
 - [x] Membership card step
 - [x] Points added to the customer's account (10 points for every complete $5 spent before tax; balance updated in the sale transaction)
-- [x] Receipt generated after payment (window with lines, tax, total, date and points earned)
+- [x] Receipt generated after payment (window with lines, GST, QST, total, date and points earned)
 - [x] Receipt emailed automatically after payment when the customer has an email address; Send email button remains available for retry and from purchase history
 
 ## Customer Accounts
@@ -42,6 +44,8 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] Purchase history shows points earned per receipt
 
 Extra, not in the PDF: customers can change their own email on My Account (`/account/email`).
+
+Extra, not in the PDF: the admin page (`/admin`) shows the sales before tax, cost, net profit and margin, GST and QST collected, and the best products by profit, for today, this month or all time.
 
 ## Receipt Contents
 - [x] Product list (name, quantity, price)

@@ -10,7 +10,7 @@ Everything except the ESP32 runs in one Python process on the Raspberry Pi. You 
 |---|---|
 | Anyone | Scan items at the checkout, sign up, sign in |
 | Signed-in customer | Pay, see their purchase history, email a past receipt, change their email |
-| Admin | Everything above, plus manage products, stock and customers, and watch the fridges |
+| Admin | Everything above, plus see the sales and profit, manage products, stock and customers, and watch the fridges |
 
 Everyone who signs up starts as a customer. To make the first admin, run `python -m tools.set_role`.
 
@@ -158,7 +158,7 @@ A few details are easy to miss:
 - Saving a purchase is one database transaction. If any tag can't be marked as sold, the whole purchase is cancelled.
 - Every complete $5 of the subtotal (before tax) earns 10 loyalty points. The points are saved on the purchase and added to the customer's balance in that same transaction, so a cancelled purchase gives no points. The receipt and the purchase history show the points earned.
 - The receipt is emailed automatically after paying, to the customer's email address, in the language picked in the menu (see [Languages](#languages)). The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
-- Tax is 15%. To change it, edit `TAX_RATE` in `models/checkout.py`, and the page and the receipts follow.
+- Tax is Quebec's two sales taxes, each worked out on the subtotal of the taxable items: the federal GST (5%) and the Quebec QST (9.975%), 14.975% together. The checkout, the receipt window, the receipt email and My Account show them on separate lines. Each product has a Taxable switch on its form (on by default). Products with it off get no GST or QST. The basket shows "No tax" under their name, and the receipt window, the receipt email and My Account show it next to the line. Each receipt line saves whether it was taxed, so changing the switch later doesn't change old receipts. The checkout page shows the rates next to GST and QST. Receipts show only the amounts, so an old receipt never shows a rate that changed after it. To change them, edit `GST_RATE` and `QST_RATE` in `models/checkout.py`, and the page and the receipts follow.
 - The customer is signed out right after paying, so the next person starts fresh. The session keeps the purchase number, which lets them still email that one receipt. The page reloads when they press Done, or after 60 seconds.
 - A barcode scanner types like a keyboard: the number very fast, then Enter. `auth/barcode_login.js` listens for that, so a card works even when the cursor isn't in the box. An admin's card goes to the admin page instead.
 
@@ -211,6 +211,8 @@ Changing an email asks for the password because anyone holding a card can sign i
 ## Products and stock
 
 A product is the thing on the shelf, like "Milk 1 L". A unit is one physical item of it, with its own RFID tag. Stock isn't stored as a number. It is counted from the units still marked `in_stock`, so it can't drift away from what was received and sold.
+
+Each product can have a cost per unit, what the store pays for it. A sale saves that cost on each receipt line, so changing a cost later doesn't change the profit of old sales. The admin page has Today, This month and All time buttons, and for that period shows the sales before tax (GST and QST go to the government), the cost of the items sold, the net profit (the first minus the second, with the margin), the GST and QST collected, the number of orders and items, and the five products that made the most profit (each one's profit counts only its units with a cost, and says how many were left out). Units sold with no cost known are left out of the cost and the profit, and the page says how many there are. `profit_summary()` and `top_products()` in `models/checkout.py` work these out.
 
 ```mermaid
 flowchart LR
@@ -316,7 +318,7 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/api/checkout/receipt-email` (POST) | after paying | routes/checkout_routes.py | Emails the receipt that was just paid |
 | `/api/receipts/<id>/email` (POST) | signed in, own receipts | routes/checkout_routes.py | Emails a past receipt from the purchase history |
 | `/api/scan-login` (POST) | everyone | routes/checkout_routes.py | Signs in with the barcode on a membership card |
-| `/admin` | admin | routes/admin_routes.py | A card for each dashboard |
+| `/admin?period=today\|month\|all` | admin | routes/admin_routes.py | Sales, cost, profit and tax for the period (all time if left out), the best products, and a card for each dashboard |
 | `/signin`, `/signout` | everyone | routes/auth_routes.py | Checks email + password, stores `id`, `name`, `role` in the session cookie |
 | `/signup` | everyone | routes/customer_routes.py | Sign up form (auth/signup.js sends it to `/submit`) |
 | `/submit` (POST) | everyone | routes/customer_routes.py | Validates and saves a new customer, flashes the LEDs |

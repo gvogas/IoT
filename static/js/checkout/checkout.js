@@ -27,6 +27,11 @@ function cents(value) {
     return Math.round(value * 100);
 }
 
+// Items saved in the basket before the taxable setting existed count as taxable
+function isTaxable(item) {
+    return item.taxable !== false;
+}
+
 function plural(count, word) {
     return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -44,6 +49,13 @@ function productCell(line) {
     const name = document.createElement("span");
     name.className = "product-name";
     name.textContent = line.name;
+    // Say so under the name when a product has no sales tax
+    if (!line.taxable) {
+        const note = document.createElement("small");
+        note.className = "d-block text-secondary fw-normal";
+        note.textContent = "No tax";
+        name.append(note);
+    }
     const box = document.createElement("div");
     box.className = "product-cell";
     box.append(picture, name);
@@ -56,7 +68,7 @@ function productCell(line) {
 function render() {
     const lines = new Map();
     items.forEach((item) => {
-        const line = lines.get(item.productID) || { name: item.name, price: item.price, image: item.image, qty: 0 };
+        const line = lines.get(item.productID) || { name: item.name, price: item.price, image: item.image, taxable: isTaxable(item), qty: 0 };
         line.qty++;
         lines.set(item.productID, line);
     });
@@ -89,10 +101,14 @@ function render() {
     });
 
     const subtotalCents = items.reduce((sum, item) => sum + cents(item.price), 0);
-    const taxCents = Math.floor((subtotalCents * window.taxBasisPoints + 5000) / 10000);   // rounded half up
+    // GST and QST are each worked out on the taxable items only, and rounded half up to the cent, the same as the server
+    const taxableCents = items.filter(isTaxable).reduce((sum, item) => sum + cents(item.price), 0);
+    const gstCents = Math.floor((taxableCents * window.taxParts.gst + 50000) / 100000);
+    const qstCents = Math.floor((taxableCents * window.taxParts.qst + 50000) / 100000);
     document.getElementById("basket-subtotal").textContent = money(subtotalCents / 100);
-    document.getElementById("basket-tax").textContent = money(taxCents / 100);
-    const total = money((subtotalCents + taxCents) / 100);
+    document.getElementById("basket-gst").textContent = money(gstCents / 100);
+    document.getElementById("basket-qst").textContent = money(qstCents / 100);
+    const total = money((subtotalCents + gstCents + qstCents) / 100);
     basketTotal.textContent = total;
     payLabel.textContent = items.length ? `Pay ${total}` : "Pay";
     itemCount.textContent = items.length;
@@ -137,7 +153,9 @@ async function scanLoop() {
                 setReaderStatus("ok", "Reader ready");
             } catch (err) {
                 setReaderStatus("error", "Reader not answering");
-                notify(basketMessage, `Can't read items: ${err.message} Trying again...`, "danger");
+                // Customers get a plain message. The technical reason goes to the browser console for staff
+                console.error("Reader error:", err.message);
+                notify(basketMessage, "The item reader is not working right now. Please ask a member of staff for help.", "danger");
                 pause = RETRY_PAUSE;
             }
         }
@@ -238,15 +256,23 @@ function showReceipt(receipt, emailMessage) {
     table.className = "table table-sm receipt-table";
     receipt.lines.forEach((line) => {
         const row = table.insertRow();
-        [line.name, `${line.quantity} × ${money(line.unitPrice)}`, money(line.lineTotal)].forEach((text, i) => {
+        // Products with no GST or QST say so after the name
+        const name = line.taxable === false ? `${line.name} (No tax)` : line.name;
+        [name, `${line.quantity} × ${money(line.unitPrice)}`, money(line.lineTotal)].forEach((text, i) => {
             const cell = row.insertCell();
             cell.textContent = text;
             if (i > 0) cell.className = "text-end";
         });
     });
-    [["Subtotal", receipt.subtotal], ["Tax", receipt.tax], ["Total", receipt.total]].forEach(([label, value], i) => {
+    const sums = [
+        ["Subtotal", receipt.subtotal],
+        ["GST", receipt.gst],
+        ["QST", receipt.qst],
+        ["Total", receipt.total],
+    ];
+    sums.forEach(([label, value], i) => {
         const row = table.insertRow();
-        if (i === 2) row.className = "total-row";
+        if (i === sums.length - 1) row.className = "total-row";
         row.insertCell().textContent = label;
         row.insertCell();
         const cell = row.insertCell();

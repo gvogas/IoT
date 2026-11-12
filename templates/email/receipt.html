@@ -76,7 +76,7 @@
                                 <tr>
                                     <td align="{{ t.start }}" style="padding: 12px 0; padding-{{ t.end }}: 12px; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C;">
                                         {{ line.name }}
-                                        <div style="font-size: 13px; line-height: 18px; color: #4E6A7A;">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}</div>
+                                        <div style="font-size: 13px; line-height: 18px; color: #4E6A7A;">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}{% if not line.taxable %} · {{ t.no_tax }}{% endif %}</div>
                                     </td>
                                     <td align="{{ t.end }}" valign="top" style="padding: 12px 0; border-bottom: 1px solid #D6E0E2; font-size: 15px; line-height: 20px; color: #243C4C; white-space: nowrap;">${{ '%.2f'|format(line.lineTotal) }}</td>
                                 </tr>
@@ -86,8 +86,12 @@
                                     <td align="{{ t.end }}" style="padding: 14px 0 4px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.subtotal) }}</td>
                                 </tr>
                                 <tr>
-                                    <td align="{{ t.start }}" style="padding: 4px 0 12px; font-size: 14px; color: #4E6A7A;">{{ t.tax }}</td>
-                                    <td align="{{ t.end }}" style="padding: 4px 0 12px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.tax) }}</td>
+                                    <td align="{{ t.start }}" style="padding: 4px 0; font-size: 14px; color: #4E6A7A;">{{ t.gst }}</td>
+                                    <td align="{{ t.end }}" style="padding: 4px 0; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.gst) }}</td>
+                                </tr>
+                                <tr>
+                                    <td align="{{ t.start }}" style="padding: 4px 0 12px; font-size: 14px; color: #4E6A7A;">{{ t.qst }}</td>
+                                    <td align="{{ t.end }}" style="padding: 4px 0 12px; font-size: 14px; color: #243C4C;">${{ '%.2f'|format(receipt.qst) }}</td>
                                 </tr>
                                 <tr>
                                     <td align="{{ t.start }}" style="padding: 4px 0 12px; font-size: 14px; color: #16804A;">{{ t.points_earned }}</td>

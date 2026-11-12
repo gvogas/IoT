@@ -8,10 +8,11 @@
 {{ t.items_heading|upper }}
 {% for line in receipt.lines %}
 {{ line.name }}
-  {{ line.quantity }} x ${{ '%.2f'|format(line.unitPrice) }} = ${{ '%.2f'|format(line.lineTotal) }}
+  {{ line.quantity }} x ${{ '%.2f'|format(line.unitPrice) }} = ${{ '%.2f'|format(line.lineTotal) }}{% if not line.taxable %} ({{ t.no_tax }}){% endif %}
 {% endfor %}
 {{ t.subtotal }}: ${{ '%.2f'|format(receipt.subtotal) }}
-{{ t.tax }}: ${{ '%.2f'|format(receipt.tax) }}
+{{ t.gst }}: ${{ '%.2f'|format(receipt.gst) }}
+{{ t.qst }}: ${{ '%.2f'|format(receipt.qst) }}
 {{ t.total|upper }}: ${{ '%.2f'|format(receipt.total) }}
 {{ t.points_earned }}: +{{ receipt.pointsEarned }}
 {% if receipt.customerPoints is not none %}{{ t.points_balance }}: {{ receipt.customerPoints }} {{ t.points }}

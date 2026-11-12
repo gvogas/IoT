@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from models.database import execute, query, query_one, transaction
+from models.database import execute, money_or_none, query, query_one, transaction
 
 # The longest each one can be. These match the sizes in tools/init_database.py
 MAX_NAME = 100
@@ -50,6 +50,18 @@ def read_product_form(form, product_id=None):
     except (InvalidOperation, ValueError):
         errors["price"] = "Please enter the price as a number, like 2.50."
 
+    # The cost is optional. Empty means not known yet, and the product's sales don't count in the profit until it is filled in
+    cost = None
+    raw_cost = form.get("costPrice", "").strip()
+    if raw_cost:
+        try:
+            cost = Decimal(raw_cost).quantize(Decimal("0.01"))
+            if cost < 0 or cost > MAX_PRICE:
+                errors["costPrice"] = "Cost must be between 0 and 99999999.99."
+                cost = None
+        except (InvalidOperation, ValueError):
+            errors["costPrice"] = "Please enter the cost as a number, like 1.20."
+
     upc = form.get("upc", "").strip()
     upc_ok = False
     if not upc:
@@ -74,9 +86,10 @@ def read_product_form(form, product_id=None):
             errors["lowStockThreshold"] = f"Low stock alert must be a whole number from 0 to {MAX_THRESHOLD}."
 
     product = {
-        "name": name, "category": category, "producer": producer, "price": price,
+        "name": name, "category": category, "producer": producer, "price": price, "cost": cost,
         "upc": upc, "description": description or None,
-        "threshold": threshold, "active": 1 if form.get("active") else 0,
+        "threshold": threshold, "active": bool(form.get("active")),
+        "taxable": bool(form.get("taxable")),
     }
 
     # Only check the database when the value itself is well formed
@@ -117,8 +130,8 @@ def all_products():
 # One product with its category and producer names, or None if the ID is not there
 def get_product(product_id):
     return query_one("""
-        SELECT p.productID, p.productName, p.price, p.upc, p.description, p.imagePath,
-               p.lowStockThreshold, p.isActive, p.createdAt, c.categoryName, pr.producerName
+        SELECT p.productID, p.productName, p.price, p.costPrice, p.upc, p.description, p.imagePath,
+               p.lowStockThreshold, p.isActive, p.isTaxable, p.createdAt, c.categoryName, pr.producerName
         FROM Product p
         JOIN Category c ON c.categoryID = p.categoryID
         JOIN Producer pr ON pr.producerID = p.producerID
@@ -141,12 +154,12 @@ def save_product(product):
         category_id = _find_or_add(conn, "Category", "categoryID", "categoryName", product["category"])
         producer_id = _find_or_add(conn, "Producer", "producerID", "producerName", product["producer"])
         cursor = conn.execute(
-            """INSERT INTO Product (productName, categoryID, producerID, price, upc, description, imagePath,
-                                    lowStockThreshold, isActive, createdAt)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (product["name"], category_id, producer_id, str(product["price"]), product["upc"],
+            """INSERT INTO Product (productName, categoryID, producerID, price, costPrice, upc, description, imagePath,
+                                    lowStockThreshold, isActive, isTaxable, createdAt)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (product["name"], category_id, producer_id, str(product["price"]), money_or_none(product["cost"]), product["upc"],
              product["description"], product["image"],
-             product["threshold"], product["active"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+             product["threshold"], product["active"], product["taxable"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         )
         return cursor.lastrowid
     return transaction(work)
@@ -158,13 +171,13 @@ def update_product(product_id, product):
         category_id = _find_or_add(conn, "Category", "categoryID", "categoryName", product["category"])
         producer_id = _find_or_add(conn, "Producer", "producerID", "producerName", product["producer"])
         cursor = conn.execute(
-            """UPDATE Product SET productName = ?, categoryID = ?, producerID = ?, price = ?, upc = ?,
+            """UPDATE Product SET productName = ?, categoryID = ?, producerID = ?, price = ?, costPrice = ?, upc = ?,
                                   description = ?, imagePath = ?,
-                                  lowStockThreshold = ?, isActive = ?
+                                  lowStockThreshold = ?, isActive = ?, isTaxable = ?
                WHERE productID = ?""",
-            (product["name"], category_id, producer_id, str(product["price"]), product["upc"],
+            (product["name"], category_id, producer_id, str(product["price"]), money_or_none(product["cost"]), product["upc"],
              product["description"], product["image"],
-             product["threshold"], product["active"], product_id),
+             product["threshold"], product["active"], product["taxable"], product_id),
         )
         return cursor.rowcount > 0
     return transaction(work)
