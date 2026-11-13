@@ -83,6 +83,9 @@
                 <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="ok">In stock</button>
                 <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="low">Low</button>
                 <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="out">Out</button>
+                {% if hidden %}
+                <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="hidden">Hidden</button>
+                {% endif %}
             </div>
             <div class="table-tools-end">
                 {% if categories|length > 1 %}
@@ -113,7 +116,11 @@
                 </thead>
                 <tbody>
                 {% for row in rows %}
+                {% if not row.isActive %}
+                {% set status = 'hidden' %}
+                {% else %}
                 {% set status = 'out' if row.inStock == 0 else ('low' if row.lowStock else 'ok') %}
+                {% endif %}
                     <tr data-search-row data-search="{{ (row.productName ~ ' ' ~ row.categoryName)|lower }}" data-status="{{ status }}" data-category="{{ row.categoryName }}">
                         <td data-label="Product">
                             <div class="product-cell">
@@ -132,13 +139,17 @@
                                 <b>{{ row.inStock }}</b> <span class="small text-secondary">alert at {{ row.lowStockThreshold }}</span>
                                 {# The alert level is at the middle of the bar, so past the middle means enough #}
                                 {% set full = [row.lowStockThreshold * 2, 1]|max %}
+                                {% if status != 'hidden' %}
                                 <div class="stock-meter {{ status }}" aria-hidden="true"><div style="width: {{ [row.inStock * 100 / full, 100]|min }}%"></div></div>
+                                {% endif %}
                             </div>
                         </td>
                         <td class="text-end" data-label="Sold">{{ row.totalSold }}</td>
                         <td data-label="Last received">{{ row.lastReceived or "Never" }}</td>
-                        <td data-label="Status" data-sort-value="{{ {'out': 0, 'low': 1, 'ok': 2}[status] }}">
-                            {% if status == 'out' %}
+                        <td data-label="Status" data-sort-value="{{ {'out': 0, 'low': 1, 'ok': 2, 'hidden': 3}[status] }}">
+                            {% if status == 'hidden' %}
+                            <span class="badge text-bg-secondary">Hidden</span>
+                            {% elif status == 'out' %}
                             <span class="badge text-bg-danger">Out of stock</span>
                             {% elif status == 'low' %}
                             <span class="badge text-bg-warning">Low stock</span>
@@ -147,7 +158,12 @@
                             {% endif %}
                         </td>
                         <td class="text-end" data-label="">
+                            {% if status == 'hidden' %}
+                            {# A hidden product can't take deliveries. Turn on "Show in inventory" on its form to bring it back #}
+                            <a class="btn btn-outline-secondary btn-sm" href="/products/{{ row.productID }}/edit">Edit</a>
+                            {% else %}
                             <a class="btn btn-outline-secondary btn-sm" href="/products/{{ row.productID }}#receive">Receive</a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

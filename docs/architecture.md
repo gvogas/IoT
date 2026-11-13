@@ -14,7 +14,7 @@ Everything except the ESP32 runs in one Python process on the Raspberry Pi. You 
 
 Everyone who signs up starts as a customer. To make the first admin, run `python -m tools.set_role`.
 
-The menu runs down the left side of every page (`templates/base.html`). Admins see Dashboard, Reports, Inventory, Fridges and Customers under "Manage", and a signed-in customer sees My Account. Below the `lg` width, about 992 px, the menu is hidden and slides in from the ☰ button (Bootstrap's offcanvas). The bar across the top has the language picker and the name and role of whoever is signed in.
+The menu runs down the left side of every page (`templates/base.html`). Admins see Dashboard, Reports, Inventory, Fridges and Customers under "Manage", and a signed-in customer sees My Account. Inventory also stays highlighted on the product pages, which are reached from the inventory list and its Add product button. There is no separate product list: the inventory page lists every product, hidden ones included. Below the `lg` width, about 992 px, the menu is hidden and slides in from the ☰ button (Bootstrap's offcanvas). The bar across the top has the language picker and the name and role of whoever is signed in.
 
 ## The big picture
 
@@ -159,7 +159,7 @@ sequenceDiagram
 A few details are easy to miss:
 
 - The basket lives in the browser. The server only learns what is in it when the customer presses Pay, and it checks every tag again at that point.
-- The light at the top right of the page says whether the reader is answering. It turns to "Paying..." and stops reading while a payment goes through.
+- The light next to the Checkout title says whether the reader is answering ("Reader ready" or "Reader not answering"). It turns to "Paying..." and stops reading while a payment goes through.
 - Once someone is signed in, the summary shows their name, membership number, points balance and how many points this basket will earn. "Not you?" signs them out.
 - The trash button on a line, or Clear, takes items out of the basket in the browser. A removed tag stays out until it has left the reader's range, so an item still lying on the reader isn't added straight back.
 - Saving a purchase is one database transaction. If any tag can't be marked as sold, the whole purchase is cancelled.
@@ -177,7 +177,7 @@ Every action tells the person what happened with a toast, a small box at the bot
 
 - A route that saves something and then reloads the page calls `flash()`. `base.html` shows each flashed message as a toast.
 - A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan off) do this.
-- Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "Can't read items") stay in the basket, because they can repeat on every read and would pile up.
+- Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "2 items in range could not be recognised.") stay in the basket, because they can repeat on every read and would pile up.
 
 ## Languages
 
@@ -244,11 +244,11 @@ flowchart LR
 
 On the receive form, the Scan tags button asks the reader again and again through `/rfid/scan`. New tags go into the box, and tags already in the system are listed but not added. A delivery can't be dated in the future and can't go on a hidden product.
 
-Deleting a product depends on its history. With no deliveries or sales it is removed for good, along with its image. Otherwise it is only hidden, because old receipts still need it. Turning on "Show in inventory" brings it back.
+Deleting a product depends on its history. With no deliveries or sales it is removed for good, along with its image. Otherwise it is only hidden, because old receipts still need it. Either way the admin goes back to the inventory page afterwards. Turning on "Show in inventory" on the product's form brings it back.
 
 Each product can have one image, handled by `models/product_image.py`. Uploads can be JPG, PNG, WebP or GIF, up to 10 MB. Opening the file with Pillow proves it really is an image, whatever its name says. It is then turned the right way up, shrunk to 800 px at most, and saved as WebP under a random name in `static/uploads/products/`. Saving it again also drops extras like a phone photo's GPS location.
 
-The inventory page lists what needs ordering first: out of stock, then low stock, then the rest. A product counts as low when its stock is at or below its own alert level. The page can also find any unit by EPC, including sold ones, and download the stock as a CSV.
+The inventory page lists what needs ordering first: out of stock, then low stock, then the rest. A product counts as low when its stock is at or below its own alert level. Hidden products come last, with a grey Hidden badge, their own filter button, and an Edit button in place of Receive. They are left out of the numbers at the top, the low and out of stock counts, the dashboard and the CSV. `hidden_inventory_rows()` in `models/product.py` finds them, because the `ProductStock` view only has active products. The page can also find any unit by EPC, including sold ones, and download the stock as a CSV.
 
 ### Stock emails
 
@@ -384,7 +384,7 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/api/customers/<id>/role` (POST) | admin | routes/customer_routes.py | Change someone's role (not your own) |
 | `/api/customers/<id>/membership` (POST) | admin | routes/customer_routes.py | Change someone's membership number |
 | `/inventory`, `/inventory.csv` | admin | routes/product_routes.py | Stock of every product, EPC search and the CSV download |
-| `/products`, `/products/new` | admin | routes/product_routes.py | List of products, and the form to add one ("Save and add another" comes back to an empty form) |
+| `/products/new` | admin | routes/product_routes.py | The form to add a product ("Save and add another" comes back to an empty form) |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |
 | `/products/upc-check` | admin | routes/product_routes.py | Says if another product already has a UPC, for the product form |

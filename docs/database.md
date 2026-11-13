@@ -248,7 +248,7 @@ A purchase earns 10 points for every complete $5 of the subtotal, before tax. So
 - Every connection runs `PRAGMA foreign_keys = ON` (in `models/database.py`). SQLite ignores foreign keys without it.
 - Yes/no columns (`isActive`, `isTaxable` and `emailSent`) are BOOLEAN. SQLite has no real true/false type, so it saves True as 1 and False as 0 and gives back 1 or 0. The code turns them back into True or False with `bool()`. Databases made before this still list the columns as INTEGER, which works the same.
 - The app passes the local date and time whenever it saves a row, because SQLite's defaults are in UTC. `now_text()` in `models/database.py` gives it as text like `2026-11-06 15:03:43` (`DATE_FORMAT`), so every date sorts and compares the same way. Only `Product.createdAt` has a default in the table, and the app doesn't rely on it.
-- A product that has deliveries or sales is never deleted. The app sets `isActive` to false (0) instead, so it is hidden from stock but old receipts still make sense. A product with no history is deleted.
+- A product that has deliveries or sales is never deleted. The app sets `isActive` to false (0) instead, so it is left out of `ProductStock` but old receipts still make sense. The inventory page still lists it at the bottom, marked Hidden. A product with no history is deleted.
 - An item must have the same `productID` as its reception. The app takes care of this when receiving, since both come from the same form.
 
 The full SQL is in [tools/init_database.py](../tools/init_database.py).

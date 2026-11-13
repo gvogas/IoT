@@ -114,20 +114,6 @@ def known_producers():
     return [row["producerName"] for row in query("SELECT producerName FROM Producer ORDER BY producerName")]
 
 
-# Every product, active or hidden
-def all_products():
-    return query("""
-        SELECT p.productID, p.productName, p.price, p.upc, p.description, p.imagePath,
-               p.lowStockThreshold, p.isActive, c.categoryName, pr.producerName,
-               (SELECT COUNT(*) FROM ProductItem i WHERE i.productID = p.productID AND i.status = 'in_stock') AS inStock,
-               (SELECT COUNT(*) FROM Reception r WHERE r.productID = p.productID) AS deliveries
-        FROM Product p
-        JOIN Category c ON c.categoryID = p.categoryID
-        JOIN Producer pr ON pr.producerID = p.producerID
-        ORDER BY p.productName COLLATE NOCASE
-    """)
-
-
 # One product with its category and producer, or None
 def get_product(product_id):
     return query_one("""
@@ -208,10 +194,28 @@ def delete_product(product_id):
 def inventory_rows():
     return query("""
         SELECT s.productID, s.productName, s.categoryName, s.price, s.inStock, s.totalSold,
-               s.lowStockThreshold, s.lowStock, s.lastReceived, p.imagePath
+               s.lowStockThreshold, s.lowStock, s.lastReceived, p.imagePath, p.isActive
         FROM ProductStock s
         JOIN Product p ON p.productID = s.productID
         ORDER BY s.productName COLLATE NOCASE
+    """)
+
+
+# Hidden products, with the same columns as inventory_rows (ProductStock only has the active ones)
+def hidden_inventory_rows():
+    return query("""
+        SELECT p.productID, p.productName, c.categoryName, p.price,
+               COALESCE(SUM(i.status = 'in_stock'), 0) AS inStock,
+               COALESCE(SUM(i.status = 'sold'), 0) AS totalSold,
+               p.lowStockThreshold, 0 AS lowStock,
+               (SELECT MAX(r.dateReceived) FROM Reception r WHERE r.productID = p.productID) AS lastReceived,
+               p.imagePath, p.isActive
+        FROM Product p
+        JOIN Category c ON c.categoryID = p.categoryID
+        LEFT JOIN ProductItem i ON i.productID = p.productID
+        WHERE p.isActive = 0
+        GROUP BY p.productID
+        ORDER BY p.productName COLLATE NOCASE
     """)
 
 

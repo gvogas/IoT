@@ -8,7 +8,7 @@ from flask import Blueprint, Response, flash, jsonify, redirect, render_template
 from hardware.rfid import scan_once
 from mail.send_email import send_restock_alert
 from models.product import (
-    all_products, delete_product, get_product, has_history, inventory_rows, known_categories, known_producers,
+    delete_product, get_product, has_history, hidden_inventory_rows, inventory_rows, known_categories, known_producers,
     product_stock, product_with_upc, read_product_form, save_product, update_product,
 )
 from models.product_image import MAX_UPLOAD_BYTES, delete_image, read_image, save_image
@@ -32,10 +32,10 @@ def read_uploaded_image(errors):
     return data
 
 
-# Back to the products page with an error
+# Back to the inventory page with an error
 def product_not_found():
     flash("That product was not found.", "error")
-    return redirect("/products")
+    return redirect("/inventory")
 
 
 # Inventory
@@ -49,16 +49,19 @@ def inventory():
     out = [row for row in rows if row["inStock"] == 0]
     # What needs ordering comes first: out of stock, then low, then the rest
     rows = out + low + [row for row in rows if not row["lowStock"] and row["inStock"] > 0]
+    # Hidden products go last. The numbers at the top only count the products still sold
+    hidden = hidden_inventory_rows()
     # The EPC search box
     epc_query = request.args.get("epc", "").strip().upper()
     return render_template(
         "products/inventory.html",
-        rows=rows,
+        rows=rows + hidden,
+        hidden=len(hidden),
         units=sum(row["inStock"] for row in rows),
         value=sum(row["inStock"] * row["price"] for row in rows),
         low=len(low),
         out=len(out),
-        categories=sorted({row["categoryName"] for row in rows}, key=str.lower),
+        categories=sorted({row["categoryName"] for row in rows + hidden}, key=str.lower),
         last=max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
         epc_query=epc_query,
         matches=find_units(epc_query) if epc_query else [],
@@ -81,16 +84,7 @@ def inventory_csv():
                     headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
-# Products: list, add, edit, delete
-
-# Every product, active or hidden
-@product_routes.route("/products")
-@admin_page
-def products():
-    rows = all_products()
-    return render_template("products/list.html", products=rows,
-                           categories=sorted({row["categoryName"] for row in rows}, key=str.lower))
-
+# Products: add, edit, delete
 
 # values fills the boxes: the defaults, the saved product, or what was typed
 def render_product_form(product_id, values, errors=None, image_path=None):
@@ -212,7 +206,7 @@ def remove_product(product_id):
     else:
         delete_image(product["imagePath"])
         flash(f"\"{product['productName']}\" deleted.", "success")
-    return redirect("/products")
+    return redirect("/inventory")
 
 
 # One product: details, stock and receiving

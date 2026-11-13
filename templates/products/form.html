@@ -3,7 +3,7 @@
 {% block main_class %}narrow{% endblock %}
 
 {% block content %}
-    {% set back = '/products/' ~ product_id if product_id else '/products' %}
+    {% set back = '/products/' ~ product_id if product_id else '/inventory' %}
     <a class="back-link" href="{{ back }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back</a>
     <div class="page-head">
         <div>
