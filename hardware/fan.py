@@ -5,6 +5,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 
+# The fan, wired through a motor driver
 class Fan:
 
     def __init__(self, enable_pin, input_pin, input2_pin):
@@ -16,13 +17,15 @@ class Fan:
         GPIO.setup(self.input_pin, GPIO.OUT)
         GPIO.setup(self.input2_pin, GPIO.OUT)
 
-        # Start with the fan off
         self.off()
 
+    # Spin the fan
     def on(self):
-        GPIO.output(self.input_pin, GPIO.LOW)     # which way it spins
-        GPIO.output(self.input2_pin, GPIO.HIGH)   # which way it spins
-        GPIO.output(self.enable_pin, GPIO.HIGH)   # power on
+        # The two inputs set which way it spins
+        GPIO.output(self.input_pin, GPIO.LOW)
+        GPIO.output(self.input2_pin, GPIO.HIGH)
+        GPIO.output(self.enable_pin, GPIO.HIGH)
 
+    # Stop the fan
     def off(self):
-        GPIO.output(self.enable_pin, GPIO.LOW)    # power off
+        GPIO.output(self.enable_pin, GPIO.LOW)

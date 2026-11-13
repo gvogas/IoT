@@ -17,6 +17,7 @@ from models.reading import save_reading, to_number
 SAVE_EVERY = 60
 
 
+# Receives the fridge readings over MQTT and sends the alerts
 class MqttController:
     def __init__(self):
         self.fridges = [Fridge(1), Fridge(2)]
@@ -34,7 +35,7 @@ class MqttController:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
-    # Subscribe to the sensor topics
+    # Subscribe to the sensor and fan topics
     def on_connect(self, client, userdata, flags, reason_code, properties):
         print(f"Connected with result code {reason_code}")
         for fridge in self.fridges:
@@ -42,7 +43,7 @@ class MqttController:
             client.subscribe(fridge.hum_topic)
         client.subscribe(FAN_COMMAND_TOPIC)
 
-    # Receive a sensor reading
+    # A sensor reading or a fan command
     def on_message(self, client, userdata, msg):
         value = msg.payload.decode().strip()
         print(f"{msg.topic}: {value}")
@@ -66,8 +67,7 @@ class MqttController:
                 self.readings[fridge.id]["humidity"] = value
                 self.readings[fridge.id]["updated"] = time.time()
 
-    # Email once when a fridge goes over its threshold.
-    # Another email is only sent after it cools down again.
+    # Email once when a fridge goes over its threshold, and again only after it has cooled down
     def check_temperature(self, fridge, value):
         try:
             temperature = float(value)
@@ -90,7 +90,7 @@ class MqttController:
             self.alert_sent[fridge.id] = False
             self.alerts[fridge.id] = None
 
-    # Save the reading to the database once a minute
+    # Save at most one reading every SAVE_EVERY seconds
     def save_if_due(self, fridge):
         now = time.time()
         if now - self.last_saved[fridge.id] < SAVE_EVERY:
@@ -106,7 +106,7 @@ class MqttController:
             # like "no such table: Reading" if init_database wasn't run again
             print(f"Could not save the reading for Frig{fridge.id}: {err}")
 
-    # Send the email and save if it worked
+    # Runs in a thread. Records whether the email went out, for the dashboard
     def send_alert(self, fridge_id, temperature, threshold):
         sent = send_temperature_alert(fridge_id, temperature, threshold)
         self.alerts[fridge_id] = {
@@ -115,14 +115,16 @@ class MqttController:
             "time": datetime.now().strftime("%H:%M"),
         }
 
+    # Connect and listen in a background thread
     def start(self):
         self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
         self.client.loop_start()
 
+    # Stop listening and disconnect
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()
 
 
-# Flask routes and app.py use the same readings and MQTT connection.
+# Shared by the routes and app.py
 mqtt_controller = MqttController()

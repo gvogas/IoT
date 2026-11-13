@@ -1,6 +1,7 @@
 from models.database import execute, query, query_one
 
 
+# One fridge and its MQTT topics
 class Fridge:
 
     def __init__(self, fridge_id, name=None, threshold=None):
@@ -12,22 +13,24 @@ class Fridge:
         self.temp_topic = f"frig{fridge_id}/temperature"
         self.hum_topic = f"frig{fridge_id}/humidity"
 
+    # A Fridge from a database row
     @staticmethod
     def from_row(row):
         return Fridge(row["fridgeID"], name=row["fridgeName"], threshold=row["temp_threshold"])
 
+    # Every fridge, by ID
     @staticmethod
     def get_all():
         rows = query("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge ORDER BY fridgeID")
         return [Fridge.from_row(row) for row in rows]
 
-    # Gives back one Fridge, or None if the ID is not there
+    # One fridge, or None
     @staticmethod
     def get_by_id(fridge_id):
         row = query_one("SELECT fridgeID, fridgeName, temp_threshold FROM Fridge WHERE fridgeID = ?", (fridge_id,))
         return Fridge.from_row(row) if row else None
 
-    # Read every time, so a new threshold from the dashboard works right away
+    # Read from the database every time, so a new threshold works right away
     def get_threshold(self):
         latest = Fridge.get_by_id(self.id)
         self.threshold = latest.threshold if latest else None

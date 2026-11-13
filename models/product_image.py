@@ -18,9 +18,7 @@ MAX_SIDE = 800
 BAD_IMAGE = "That file is not a JPG, PNG, WebP or GIF image."
 
 
-# Check an uploaded file and shrink it. Gives back (image data, error). Both are None if no file was chosen
-# Opening it with Pillow proves it really is an image, whatever its name says. Saving it again also
-# turns photos the right way up and drops the extra data, like the GPS location of a phone photo
+# Check and shrink an upload. Gives back (data, error). Re-saving also drops GPS data
 def read_image(upload):
     if upload is None or not upload.filename:
         return None, None
@@ -39,6 +37,7 @@ def read_image(upload):
         return None, BAD_IMAGE
 
 
+# basename keeps the path inside the upload folder
 def _file_on_disk(path):
     # basename so a path from the database can never point outside the upload folder
     return os.path.join(STATIC_FOLDER, UPLOAD_FOLDER, os.path.basename(path))

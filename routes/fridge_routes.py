@@ -13,12 +13,14 @@ fridge_routes = Blueprint("fridge_routes", __name__)
 HISTORY_HOURS = (1, 24, 168)
 
 
+# All the fridges
 @fridge_routes.route("/fridges")
 @admin_page
 def fridges():
     return render_template("fridges/dashboard.html")
 
 
+# One fridge with its gauges and history
 @fridge_routes.route("/fridges/<int:fridge_id>")
 @admin_page
 def fridge_detail(fridge_id):
@@ -45,14 +47,14 @@ def fridge_data(fridge):
     }
 
 
-# Newest readings for all fridges. The page asks for this every 2 seconds
+# The fridge pages ask for this every 2 seconds
 @fridge_routes.route("/api/fridges")
 @admin_api
 def api_fridges():
     return jsonify([fridge_data(fridge) for fridge in Fridge.get_all()])
 
 
-# Newest readings for one fridge
+# The live data for one fridge
 @fridge_routes.route("/api/fridges/<int:fridge_id>")
 @admin_api
 def api_fridge(fridge_id):
@@ -72,7 +74,7 @@ def api_history(fridge_id):
     return jsonify(get_history(fridge_id, hours))
 
 
-# Change a fridge's threshold
+# Change a fridge's temperature limit
 @fridge_routes.route("/api/fridges/<int:fridge_id>/threshold", methods=["POST"])
 @admin_api
 def set_threshold(fridge_id):

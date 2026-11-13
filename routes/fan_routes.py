@@ -6,12 +6,14 @@ from routes.guards import admin_api
 fan_routes = Blueprint("fan_routes", __name__)
 
 
+# "ON" or "OFF"
 @fan_routes.route("/api/fan")
 @admin_api
 def fan_status():
     return jsonify(state=fan_controller.get_state())
 
 
+# Turn the fan off from the dashboard
 @fan_routes.route("/api/fan/off", methods=["POST"])
 @admin_api
 def turn_off():

@@ -11,10 +11,7 @@ GPIO.setup(LEDBLUE, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(BUZZER, GPIO.OUT, initial=GPIO.LOW)
 
 
-# -------------------------
-# Success: turn on the blue light for 3 seconds
-# -------------------------
-
+# Blue light for 3 seconds
 def send_success():
     print("SUCCESS: Customer information is correct.")
 
@@ -23,10 +20,7 @@ def send_success():
     GPIO.output(LEDBLUE, GPIO.LOW)
 
 
-# -------------------------
-# Error: turn on the red light and beep for 1 second
-# -------------------------
-
+# Red light and a beep for 1 second
 def send_error():
     print("ERROR: Customer information is not correct.")
 

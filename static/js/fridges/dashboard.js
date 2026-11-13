@@ -18,6 +18,7 @@ function setFanState(state) {
     showSummary();
 }
 
+// Get the fan state from the server
 async function updateFan() {
     if (fanOff.disabled) return;
     try {
@@ -70,7 +71,7 @@ function showSummary() {
     summary.className = `fridge-summary ${counts.hot ? "hot" : ""}`;
 }
 
-// Make one tile for each fridge (only the first time)
+// Make a fridge's tile the first time it shows up
 function makeTile(fridge) {
     const template = document.getElementById("tile-template");
     const tile = template.content.firstElementChild.cloneNode(true);
@@ -95,7 +96,7 @@ function showTile(fridge) {
     tile.querySelector(".temp-value").className = `temp-value ${status === "hot" ? "hot" : ""}`;
     setTrend(tile.querySelector(".trend"), fridge.stats);
 
-    // Limit bar
+    // Where the temperature and the limit sit on the scale
     const top = scaleTop(fridge.threshold, fridge.temperature);
     const percent = (value) => `${(Math.min(Math.max(value, 0), top) / top) * 100}%`;
     tile.querySelector(".limit-safe").style.width = percent(fridge.threshold);
@@ -113,7 +114,7 @@ function showTile(fridge) {
     tile.querySelector(".last-reading").textContent = fridge.age === null ? "No reading yet" : `Last reading ${timeAgo(fridge.age)}`;
 }
 
-// Get the latest readings from the server and show them
+// Get the newest readings and show them, too warm fridges first
 async function update() {
     try {
         const response = await fetch("/api/fridges", { cache: "no-store" });
@@ -147,4 +148,4 @@ async function update() {
 update();
 updateFan();
 setInterval(updateFan, 2000);
-setInterval(update, 2000);  // refresh every 2 seconds
+setInterval(update, 2000);

@@ -1,5 +1,4 @@
-/* The Arctic Reflection theme. Every colour in the app comes from this file.
-   Change a value here and every page changes. Bootstrap picks these up through its --bs-* variables. */
+/* The Arctic Reflection theme. Every colour in the app comes from this file */
 
 :root {
     /* The palette */
@@ -9,8 +8,7 @@
     --arctic-ice: #F4FCFB;
     --arctic-slate: #698696;
 
-    /* Darker and lighter steps of the palette. #5289AD and #698696 are too pale for small text
-       (under 4.5:1 on white), so text uses these darker steps of the same colours */
+    /* Darker steps for text, since #5289AD and #698696 are too pale on white */
     --link: #3A6F92;
     --muted: #4E6A7A;
     --navy-hover: #2F4E63;
@@ -19,8 +17,7 @@
     --tint-strong: #CFE2EC;
     --surface: #FFFFFF;
 
-    /* Status colours are not in the palette on purpose: "too warm" and "out of stock" have to stand out from it.
-       They are muted to sit next to the blues */
+    /* Status colours, kept out of the palette so warnings stand out */
     --danger: #A63D32;
     --danger-tint: #F8E6E3;
     --success: #2B7A6B;
@@ -118,20 +115,11 @@
     --bs-btn-disabled-border-color: var(--arctic-mist);
 }
 
-.navbar {
-    --bs-navbar-color: rgba(244, 252, 251, 0.82);
-    --bs-navbar-hover-color: #FFFFFF;
-    --bs-navbar-active-color: #FFFFFF;
-    --bs-navbar-brand-color: #FFFFFF;
-    --bs-navbar-brand-hover-color: #FFFFFF;
-    background: var(--arctic-navy);
-}
-
 .card {
     --bs-card-bg: var(--surface);
     --bs-card-border-color: var(--line);
-    --bs-card-border-radius: 12px;
-    --bs-card-inner-border-radius: 11px;
+    --bs-card-border-radius: 16px;
+    --bs-card-inner-border-radius: 15px;
     --bs-card-spacer-x: 1.25rem;
     --bs-card-spacer-y: 1.25rem;
 }
@@ -185,6 +173,12 @@
 
 .modal {
     --bs-modal-bg: var(--surface);
+}
+
+/* The menu that slides in on phones */
+.offcanvas-lg {
+    --bs-offcanvas-bg: var(--surface);
+    --bs-offcanvas-width: 260px;
 }
 
 .dropdown-menu {

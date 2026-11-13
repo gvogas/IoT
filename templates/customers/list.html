@@ -11,33 +11,45 @@
 
     <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Members</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+                        <span class="stat-label">Members</span>
+                    </div>
                     <div class="stat-value">{{ customers|length }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Admins</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+                        <span class="stat-label">Admins</span>
+                    </div>
                     <div class="stat-value">{{ admin_count }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Joined this month</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon good"><i class="bi bi-person-plus" aria-hidden="true"></i></span>
+                        <span class="stat-label">Joined this month</span>
+                    </div>
                     <div class="stat-value">{{ new_this_month }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Total spent</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon good"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+                        <span class="stat-label">Total spent</span>
+                    </div>
                     <div class="stat-value notranslate" translate="no">${{ '%.2f'|format(total_spent) }}</div>
                 </div>
             </div>
@@ -46,10 +58,10 @@
 
     <div class="table-tools">
         <input type="search" class="form-control search-box" placeholder="Search customers" aria-label="Search customers" data-search>
-        <div class="btn-group filter-chips" role="group" aria-label="Filter by role">
-            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="customer">Customers</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="admin">Admins</button>
+        <div class="segmented" role="group" aria-label="Filter by role">
+            <button type="button" class="segmented-item active" aria-pressed="true" data-status-filter="all">All</button>
+            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="customer">Customers</button>
+            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="admin">Admins</button>
         </div>
         <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
     </div>
@@ -135,12 +147,12 @@
                     <p class="text-secondary mb-3">The current number for <b data-customer-name></b> is <code data-current-number></code>. Their old card stops working once this is changed.</p>
                     <div id="membership-message" role="alert" hidden></div>
                     <label class="form-label" for="membership-input">New number</label>
-                    <input class="form-control code" id="membership-input" name="membershipNumber" type="text" maxlength="32">
-                    <div class="form-text">Scan the new card or type the number. Leave it empty to generate a new number.</div>
+                    <input class="form-control code" id="membership-input" name="membershipNumber" type="text" maxlength="32" required>
+                    <div class="form-text">Scan the new card or type the number.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="membership-save">Generate new number</button>
+                    <button type="submit" class="btn btn-primary" id="membership-save">Save number</button>
                 </div>
             </form>
         </div>

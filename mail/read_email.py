@@ -24,13 +24,13 @@ def body_text(msg):
     return ""
 
 
-# The first word of the reply in capitals, like "YES"
+# Like "YES"
 def first_word(text):
     words = text.split(maxsplit=1)
     return words[0].strip(".,!?").upper() if words else ""
 
 
-# Act on one email. Gives back True if it was a YES or NO reply to an alert
+# Gives back True if the email was a YES or NO reply to an alert
 def handle_reply(msg, client):
     subject = msg.get("Subject", "").lower()
     if not any(alert in subject for alert in ALERT_SUBJECTS):
@@ -52,6 +52,7 @@ def handle_reply(msg, client):
     return False
 
 
+# Act on the unread YES/NO replies in the inbox
 def check_email_replies():
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     try:
@@ -80,7 +81,7 @@ def check_email_replies():
         mail.logout()
 
 
-# Check for replies forever. app.py runs this in the background
+# app.py runs this in a background thread
 def check_forever():
     while True:
         try:

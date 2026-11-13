@@ -10,30 +10,32 @@ async function postJson(url, body) {
     return { ok: response.ok, data: await response.json() };
 }
 
-// Show a message in a box as a coloured alert. kind is "success", "warning" or "danger". Empty text hides the box
-// content can be text, or a list of text and elements (like a link)
+// kind is "success", "warning" or "danger". content is text or a list of text and elements. Empty hides the box
 function setMessage(element, content, kind = "danger") {
     if (!element) return;
     const parts = [].concat(content || []);
     element.replaceChildren(...parts);
     element.hidden = parts.length === 0;
-    element.className = parts.length ? `alert alert-${kind} py-2 px-3 js-message` : "";
+    // Remember the box's own classes from the HTML (like its spacing) so they are kept
+    if (element.dataset.baseClass === undefined) element.dataset.baseClass = element.className;
+    const alertClass = parts.length ? ` alert alert-${kind} py-2 px-3 js-message` : "";
+    element.className = (element.dataset.baseClass + alertClass).trim();
     element.dataset.kind = parts.length ? kind : "";
 }
 
-// The same, but the message goes away by itself. Errors stay longest so they can be read
+// How long a message stays. Errors stay longest so they can be read
 const SHOW_TIME = { success: 5000, warning: 6000, danger: 8000 };
 
+// Like setMessage, but it goes away by itself
 function notify(element, text, kind) {
     if (!element) return;
-    // The same message again (an item held near the reader): keep it, just show it for longer
+    // The same message again (an item held near the reader) just stays longer
     if (element.textContent !== text || element.dataset.kind !== kind) setMessage(element, text, kind);
     clearTimeout(element.hideTimer);
     element.hideTimer = setTimeout(() => setMessage(element, ""), SHOW_TIME[kind]);
 }
 
-// A notification that slides in at the bottom right and goes away by itself. kind is "success", "warning" or "danger"
-// For things the person just did (a button press). Use notify() for a status line that can repeat, like the reader
+// A notification at the bottom right, for something the person just did
 function showToast(text, kind = "success") {
     const container = document.getElementById("toast-container");
     if (!container || !text) return;
@@ -56,13 +58,11 @@ function showToast(text, kind = "success") {
     element.appendChild(row);
     container.appendChild(element);
 
-    // Take the toast off the page once it has faded out
     element.addEventListener("hidden.bs.toast", () => element.remove());
     new bootstrap.Toast(element, { delay: SHOW_TIME[kind] }).show();
 }
 
-// Our own window for "are you sure?". Gives back a promise of true (confirmed) or false (cancelled, closed or Escape)
-// options: title, text, button (the label on the confirm button) and danger (true makes that button red)
+// Our own "are you sure?" window. Resolves to true if confirmed. danger makes the button red
 function askToConfirm({ title, text, button, danger = false }) {
     const element = document.getElementById("confirm-modal");
     const yes = document.getElementById("confirm-yes");
@@ -106,7 +106,7 @@ document.querySelectorAll("form[data-confirm-title]").forEach((form) => {
     });
 });
 
-// Show each notification from the server. Bootstrap's toast fades out by itself after its delay
+// Notifications from flash() on the server
 document.querySelectorAll(".toast[data-delay]").forEach((element) => {
     new bootstrap.Toast(element, { delay: Number(element.dataset.delay) }).show();
 });

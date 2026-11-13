@@ -163,11 +163,11 @@
                 <div class="card-body">
                     <div class="table-tools mb-0">
                         <input type="search" class="form-control search-box" placeholder="Search by EPC" aria-label="Search units by EPC" data-search>
-                        <div class="btn-group filter-chips" role="group" aria-label="Filter by status">
-                            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
-                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="in_stock">In stock</button>
-                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="sold">Sold</button>
-                            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="removed">Removed</button>
+                        <div class="segmented" role="group" aria-label="Filter by status">
+                            <button type="button" class="segmented-item active" aria-pressed="true" data-status-filter="all">All</button>
+                            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="in_stock">In stock</button>
+                            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="sold">Sold</button>
+                            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="removed">Removed</button>
                         </div>
                         <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
                     </div>

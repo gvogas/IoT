@@ -1,6 +1,4 @@
-// Search, filter and sort for the inventory, products and units tables.
-// The search box has data-search, each row has data-search-row with its text in data-search,
-// and a heading with data-sort sorts its column
+// Search, filter and sort for tables with data-search-row rows and data-sort headings
 
 const searchBox = document.querySelector("[data-search]");
 const rows = [...document.querySelectorAll("[data-search-row]")];
@@ -12,6 +10,7 @@ if (searchBox && rows.length) {
     const empty = document.querySelector("[data-empty]");
     let status = "all";
 
+    // Show only the rows that match the search, category and status
     function applyFilters() {
         const words = searchBox.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
         const category = categoryBox ? categoryBox.value : "";
@@ -53,6 +52,7 @@ if (searchBox && rows.length) {
 document.querySelectorAll("th[data-sort]").forEach((heading) => {
     const body = heading.closest("table").tBodies[0];
 
+    // What a cell sorts by
     function cellValue(row) {
         const cell = row.cells[heading.cellIndex];
         return cell.dataset.sortValue ?? cell.textContent.trim();

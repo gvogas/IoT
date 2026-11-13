@@ -1,0 +1,12 @@
+{# The "up 12% vs yesterday" line under a number on the Reports page. `change` is a whole percent, or None #}
+<div class="stat-change">
+    {% if change is none %}
+    No sales {{ compare_label }} to compare with
+    {% elif change > 0 %}
+    <span class="change up"><i class="bi bi-arrow-up-short" aria-hidden="true"></i>{{ change }}%</span> vs {{ compare_label }}
+    {% elif change < 0 %}
+    <span class="change down"><i class="bi bi-arrow-down-short" aria-hidden="true"></i>{{ -change }}%</span> vs {{ compare_label }}
+    {% else %}
+    <span class="change">Same</span> as {{ compare_label }}
+    {% endif %}
+</div>

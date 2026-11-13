@@ -9,7 +9,7 @@ from hardware.rfid import scan_once
 from mail.send_email import send_restock_alert
 from models.product import (
     all_products, delete_product, get_product, has_history, inventory_rows, known_categories, known_producers,
-    product_stock, read_product_form, save_product, update_product,
+    product_stock, product_with_upc, read_product_form, save_product, update_product,
 )
 from models.product_image import MAX_UPLOAD_BYTES, delete_image, read_image, save_image
 from models.reception import check_reception, read_epcs, reception_history, save_reception
@@ -24,7 +24,7 @@ def count_of(count, word):
     return f"{count} {word if count == 1 else word + 's'}"
 
 
-# The image chosen on the product form, checked and shrunk, or None. A bad file is added to errors
+# The uploaded image, checked and shrunk, or None. A bad file is added to errors
 def read_uploaded_image(errors):
     data, error = read_image(request.files.get("image"))
     if error:
@@ -32,15 +32,15 @@ def read_uploaded_image(errors):
     return data
 
 
+# Back to the products page with an error
 def product_not_found():
     flash("That product was not found.", "error")
     return redirect("/products")
 
 
-# -------------------------
-# Inventory dashboard
-# -------------------------
+# Inventory
 
+# Stock of every product, out of stock first
 @product_routes.route("/inventory")
 @admin_page
 def inventory():
@@ -49,7 +49,7 @@ def inventory():
     out = [row for row in rows if row["inStock"] == 0]
     # What needs ordering comes first: out of stock, then low, then the rest
     rows = out + low + [row for row in rows if not row["lowStock"] and row["inStock"] > 0]
-    # The EPC lookup box on the page. Empty means no search
+    # The EPC search box
     epc_query = request.args.get("epc", "").strip().upper()
     return render_template(
         "products/inventory.html",
@@ -65,7 +65,7 @@ def inventory():
     )
 
 
-# Download the inventory as a spreadsheet file (CSV)
+# Download the inventory as a CSV spreadsheet
 @product_routes.route("/inventory.csv")
 @admin_page
 def inventory_csv():
@@ -81,10 +81,9 @@ def inventory_csv():
                     headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
-# -------------------------
 # Products: list, add, edit, delete
-# -------------------------
 
+# Every product, active or hidden
 @product_routes.route("/products")
 @admin_page
 def products():
@@ -93,18 +92,18 @@ def products():
                            categories=sorted({row["categoryName"] for row in rows}, key=str.lower))
 
 
-# Show the product form. values is what goes in the boxes: the defaults, the saved product, or what was typed
+# values fills the boxes: the defaults, the saved product, or what was typed
 def render_product_form(product_id, values, errors=None, image_path=None):
     return render_template(
         "products/form.html", product_id=product_id, values=values, errors=errors or {},
         categories=known_categories(), producers=known_producers(), image_path=image_path,
         max_upload_bytes=MAX_UPLOAD_BYTES,
-        # A product with deliveries or sales can only be hidden, so the page says that up front
+        # A product with deliveries or sales can only be hidden
         can_delete=product_id is None or not has_history(product_id),
     )
 
 
-# The saved product, with the same names the form fields use
+# The saved product, keyed by the form field names
 def product_to_form(product):
     return {
         "name": product["productName"], "category": product["categoryName"], "producer": product["producerName"],
@@ -115,6 +114,7 @@ def product_to_form(product):
     }
 
 
+# Add a product
 @product_routes.route("/products/new", methods=["GET", "POST"])
 @admin_page
 def new_product():
@@ -138,9 +138,25 @@ def new_product():
         return render_product_form(None, request.form), 500
 
     flash(f"Product \"{product['name']}\" added successfully.", "success")
+    # "Save and add another" comes back to an empty form
+    if request.form.get("next") == "another":
+        return redirect("/products/new")
     return redirect(f"/products/{product_id}")
 
 
+# The form asks this as soon as a UPC is scanned, so a duplicate shows before saving
+@product_routes.route("/products/upc-check")
+@admin_api
+def upc_check():
+    upc = request.args.get("upc", "").strip()
+    product_id = request.args.get("productID", type=int)  # When editing, the product itself doesn't count
+    other = product_with_upc(upc, product_id) if upc else None
+    if other is None:
+        return jsonify(taken=False)
+    return jsonify(taken=True, productID=other["productID"], name=other["productName"])
+
+
+# Change a product and its image
 @product_routes.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
 @admin_page
 def edit_product(product_id):
@@ -178,6 +194,7 @@ def edit_product(product_id):
     return redirect(f"/products/{product_id}")
 
 
+# Delete a product, or hide it if it has history
 @product_routes.route("/products/<int:product_id>/delete", methods=["POST"])
 @admin_page
 def remove_product(product_id):
@@ -198,11 +215,9 @@ def remove_product(product_id):
     return redirect("/products")
 
 
-# -------------------------
 # One product: details, stock and receiving
-# -------------------------
 
-# The product page. The receive form keeps what was typed if there are errors
+# The receive form keeps what was typed if there are errors
 def render_product_detail(product, epc_text="", date_text=None, errors=None):
     product_id = product["productID"]
     units, unit_total = units_for_product(product_id)
@@ -214,6 +229,7 @@ def render_product_detail(product, epc_text="", date_text=None, errors=None):
     )
 
 
+# One product with its stock and deliveries
 @product_routes.route("/products/<int:product_id>")
 @admin_page
 def product_detail(product_id):
@@ -223,6 +239,7 @@ def product_detail(product_id):
     return render_product_detail(product)
 
 
+# Save a delivery, one unit per EPC
 @product_routes.route("/products/<int:product_id>/receive", methods=["POST"])
 @admin_page
 def receive_stock(product_id):
@@ -246,7 +263,6 @@ def receive_stock(product_id):
         flash(f"Stock not received. Database error: {err}", "error")
         return redirect(f"/products/{product_id}")
 
-    # Tell the admin if this product was low or out of stock before the delivery
     if stock_before <= product["lowStockThreshold"]:
         send_restock_alert(product["productName"], len(epcs), stock_before + len(epcs), product["lowStockThreshold"])
 
@@ -271,8 +287,7 @@ def clear_epcs(product_id):
     return redirect(f"/products/{product_id}")
 
 
-# The "Scan tags" button on the receive form. Asks the reader once and gives back the new EPCs it saw,
-# and the ones already in the system
+# The "Scan tags" button on the receive form: the new EPCs the reader sees, and the ones already in the system
 @product_routes.route("/rfid/scan", methods=["POST"])
 @admin_api
 def rfid_scan():

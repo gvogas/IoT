@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1>Reports</h1>
+            <p>Sales and profit for {{ periods[period]|lower }}{% if compare_label %}, compared with {{ compare_label }}{% endif %}.</p>
+        </div>
+        {# The buttons reload the page with ?period= in the address #}
+        <div class="segmented" role="group" aria-label="Time period">
+            {% for key, label in periods.items() %}
+            <a class="segmented-item{{ ' active' if key == period }}" href="/reports?period={{ key }}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# The four numbers. Under each one: how much it went up or down since the period before #}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-3">
+        <div class="col">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+                        <span class="stat-label">Sales</span>
+                    </div>
+                    <div class="stat-value">{{ money.sales|money }}</div>
+                    {% if changes %}{% with change=changes.sales %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+                    <div class="stat-note">{{ money.orders }} {{ 'order' if money.orders == 1 else 'orders' }}, before tax</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon good"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+                        <span class="stat-label">Net profit</span>
+                    </div>
+                    <div class="stat-value{{ ' alert-value' if money.profit < 0 }}">{{ money.profit|money }}</div>
+                    {% if changes %}{% with change=changes.profit %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+                    <div class="stat-note">{% if money.margin is not none %}{{ money.margin }}% margin · {% endif %}items cost {{ money.cost|money }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-basket" aria-hidden="true"></i></span>
+                        <span class="stat-label">Average order</span>
+                    </div>
+                    <div class="stat-value">{{ money.average|money }}</div>
+                    {% if changes %}{% with change=changes.average %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+                    <div class="stat-note">{{ money.items_per_order }} items per order</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-bank" aria-hidden="true"></i></span>
+                        <span class="stat-label">Tax owed</span>
+                    </div>
+                    <div class="stat-value">{{ money.tax|money }}</div>
+                    <div class="stat-note">GST {{ money.gst|money }} · QST {{ money.qst|money }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if money.missing %}
+    <p class="text-secondary small mb-4">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        {{ money.missing }} {{ 'item has' if money.missing == 1 else 'items have' }} no cost yet, so {{ 'it is' if money.missing == 1 else 'they are' }} left out of the cost and the profit.
+    </p>
+    {% else %}
+    <div class="mb-4"></div>
+    {% endif %}
+
+    {# One bar per day (a month) or per month (all time). The best one is dark and shows its amount. Hover a bar for its amount #}
+    {% if bars %}
+    <section class="card mb-4" aria-labelledby="chart-title">
+        <div class="card-head">
+            <h2 id="chart-title">{{ 'Sales per month' if period == 'all' else 'Sales per day' }}</h2>
+            <span class="text-secondary small">Before tax</span>
+        </div>
+        <div class="card-body pt-0">
+            <div class="bar-chart{{ ' month-chart' if bars|length > 12 }}">
+                {% for bar in bars %}
+                {% set best = bar.sales > 0 and bar.sales == best_bar %}
+                <div class="bar-day{{ ' today' if best }}">
+                    <span class="bar-amount">{% if best %}{{ '${:,.0f}'.format(bar.sales) }}{% endif %}</span>
+                    <div class="bar-track">
+                        <div class="bar" style="height: {{ bar.sales * 100 / best_bar }}%" title="{{ bar.title }}: {{ bar.sales|money }}"></div>
+                    </div>
+                    <span class="bar-label">{{ bar.label }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="row g-3">
+        <section class="col-lg-7">
+            <div class="card h-100" aria-labelledby="top-title">
+                <div class="card-head">
+                    <h2 id="top-title">Best products</h2>
+                    <span class="text-secondary small">By profit</span>
+                </div>
+                {% if top %}
+                {# The best seller gets a big picture at the top #}
+                {% set best = top[0] %}
+                <a class="spotlight" href="/products/{{ best.productID }}">
+                    {% if best.imagePath %}
+                    <img class="product-image spot" src="{{ url_for('static', filename=best.imagePath) }}" alt="">
+                    {% else %}
+                    <span class="product-image spot no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
+                    {% endif %}
+                    <span class="spotlight-text">
+                        <span class="spotlight-tag"><i class="bi bi-trophy" aria-hidden="true"></i> Best seller</span>
+                        <b>{{ best.productName }}</b>
+                        <small>{{ best.units }} sold · {{ best.sales|money }} in sales</small>
+                    </span>
+                    <span class="spotlight-profit num">
+                        {% if best.profit is not none %}{{ best.profit|money }}<small>profit</small>{% else %}<small>No cost yet</small>{% endif %}
+                    </span>
+                </a>
+
+                {% if top|length > 1 %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr><th>Product</th><th class="text-end">Sold</th><th class="text-end">Sales</th><th class="text-end">Profit</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top[1:] %}
+                            <tr>
+                                <td>
+                                    <div class="product-cell">
+                                        {% if product.imagePath %}
+                                        <img class="product-image sm" src="{{ url_for('static', filename=product.imagePath) }}" alt="" loading="lazy">
+                                        {% else %}
+                                        <span class="product-image sm no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
+                                        {% endif %}
+                                        <a class="row-link" href="/products/{{ product.productID }}">{{ product.productName }}</a>
+                                    </div>
+                                </td>
+                                <td class="text-end num">{{ product.units }}</td>
+                                <td class="text-end num">{{ product.sales|money }}</td>
+                                <td class="text-end num">
+                                    {% if product.profit is none %}
+                                    <span class="text-secondary">No cost</span>
+                                    {% elif product.profit < 0 %}
+                                    <span class="loss">{{ product.profit|money }}</span>
+                                    <div><span class="badge text-bg-danger">Sold at a loss</span></div>
+                                    {% else %}
+                                    {{ product.profit|money }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="card-body pt-0"><p class="text-secondary mb-0">Nothing sold in this period.</p></div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="col-lg-5">
+            <div class="card h-100" aria-labelledby="category-title">
+                <div class="card-head">
+                    <h2 id="category-title">By category</h2>
+                </div>
+                {% if categories %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr><th>Category</th><th class="text-end">Sales</th><th class="text-end">Share</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            {% set share = category.sales * 100 / category_total %}
+                            <tr>
+                                <td>
+                                    {{ category.categoryName }}
+                                    <div class="share-track" aria-hidden="true"><div style="width: {{ share }}%"></div></div>
+                                </td>
+                                <td class="text-end num">{{ category.sales|money }}<div class="small text-secondary">{{ category.units }} sold</div></td>
+                                <td class="text-end num">{{ '%.0f'|format(share) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body pt-0"><p class="text-secondary mb-0">Nothing sold in this period.</p></div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+{% endblock %}

@@ -1,6 +1,4 @@
-// Sign in with a membership card, on the sign in page and the checkout.
-// A barcode scanner types like a keyboard: the number very fast, then Enter.
-// It works in the scan box, and also when the cursor is not in any box.
+// Membership card sign in. The scanner types the number very fast, then Enter
 
 const MAX_KEY_GAP = 100;     // milliseconds between keys. A person types slower than this
 const MIN_CODE_LENGTH = 4;
@@ -11,6 +9,7 @@ function setupBarcodeLogin(onCustomer) {
     const input = document.getElementById("scan-input");
     const message = document.getElementById("scan-message");
 
+    // Send the scanned number to the server
     async function signIn(code) {
         if (!code) {
             notify(message, "Scan your membership card, or type the number on it.", "danger");

@@ -198,7 +198,7 @@ A receipt has one line per product, with the quantity on it (`UNIQUE (purchaseID
 ## How the app uses it
 
 ### Customer accounts
-Signing up saves the customer with a hash of their password, never the password itself. `membershipNumber` is the barcode scanned at sign up, or a new number like `VM12345678`. Emails are saved in lowercase, so `Ann@X.com` and `ann@x.com` count as the same address.
+Signing up saves the customer with a hash of their password, never the password itself. `membershipNumber` is the barcode scanned at sign up. Emails are saved in lowercase, so `Ann@X.com` and `ann@x.com` count as the same address.
 
 A customer can change their own email on My Account by entering their password. The new address must not belong to anyone else. An admin can change someone's `role` or `membershipNumber` on the Customers page.
 

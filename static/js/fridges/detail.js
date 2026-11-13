@@ -11,10 +11,6 @@ function $(selector) {
     return page.querySelector(selector);
 }
 
-// -------------------------
-// Gauges
-// -------------------------
-
 // Thermometer: 0 °C at y=150, top of the scale at y=20
 function showThermometer(fridge, status) {
     const top = scaleTop(fridge.threshold, fridge.temperature);
@@ -33,7 +29,6 @@ function showThermometer(fridge, status) {
     $(".scale-green").setAttribute("y", limitY);
     $(".scale-green").setAttribute("height", 150 - limitY);
 
-    // Numbers down the side
     page.querySelectorAll(".ticks text").forEach((text, i) => {
         text.textContent = `${Math.round(top * (4 - i) / 4)}°`;
     });
@@ -96,6 +91,7 @@ function showFridge(fridge) {
     }
 }
 
+// Get the newest reading from the server
 async function update() {
     try {
         const response = await fetch(`/api/fridges/${fridgeId}`, { cache: "no-store" });
@@ -115,6 +111,7 @@ async function update() {
     }
 }
 
+// Get the fan state from the server
 async function updateFan() {
     try {
         const response = await fetch("/api/fan", { cache: "no-store" });
@@ -125,10 +122,6 @@ async function updateFan() {
         fanState.textContent = "UNKNOWN";
     }
 }
-
-// -------------------------
-// Change the limit
-// -------------------------
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -146,12 +139,10 @@ form.addEventListener("submit", async (event) => {
     }
 });
 
-// -------------------------
 // History chart
-// -------------------------
-
 const CHART_W = 1000, CHART_H = 240;
 
+// "2026-11-06 15:03:43" -> Date
 function parseTime(text) {
     return new Date(text.replace(" ", "T"));
 }
@@ -182,12 +173,14 @@ function shadePath(points, limit, x) {
     return d;
 }
 
+// Time for the chart, with the day for a week
 function timeLabel(date) {
     const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     if (historyHours <= 24) return time;
     return date.toLocaleDateString([], { weekday: "short" }) + " " + time;
 }
 
+// Draw the history chart
 function drawChart(rows) {
     const empty = rows.length === 0;
     $(".history-empty").hidden = !empty;
@@ -221,13 +214,14 @@ function drawChart(rows) {
     }));
 }
 
+// Get the saved readings for the chart
 async function updateHistory() {
     try {
         const response = await fetch(`/api/fridges/${fridgeId}/history?hours=${historyHours}`, { cache: "no-store" });
         const rows = await response.json();
         if (response.ok) drawChart(rows);
     } catch (error) {
-        // keep showing the old chart if the server can't be reached
+        // Keep showing the old chart if the server can't be reached
     }
 }
 
@@ -241,6 +235,6 @@ page.querySelectorAll(".range-buttons button").forEach((button) => {
 
 update().then(updateHistory);
 updateFan();
-setInterval(update, 2000);         // newest reading every 2 seconds
+setInterval(update, 2000);
 setInterval(updateFan, 2000);
-setInterval(updateHistory, 60000); // a new reading is saved every minute
+setInterval(updateHistory, 60000); // a reading is saved once a minute

@@ -6,21 +6,18 @@ https://www.electronicshub.org/esp32-dht11-tutorial/
 
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include "config.h"        // WiFi, broker and pin settings
+#include "config.h"
 #include "DHT11Sensor.h"
 
-// The two DHT11 sensors on this ESP32: pin, name, temperature topic, humidity topic
-// (don't change the topics, the Pi listens for "frig1/..." and "frig2/...")
+// Don't change the topics: the Pi listens for "frig1/..." and "frig2/..."
 DHT11Sensor fridge1(FRIDGE1_PIN, "Fridge 1", "frig1/temperature", "frig1/humidity");
 DHT11Sensor fridge2(FRIDGE2_PIN, "Fridge 2", "frig2/temperature", "frig2/humidity");
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-
 void setup_wifi() {
   delay(10);
-  // First, connect to the WiFi
   Serial.print("Connecting to Wifi:");
   Serial.println(WIFI_SSID);
 
@@ -36,20 +33,15 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-
 void reconnect() {
-  // Keep trying until we are connected again
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    // Try to connect
     if (client.connect(MQTT_CLIENT)) {
       Serial.println("connected");
-     
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds, then try again
       delay(5000);
     }
   }

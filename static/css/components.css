@@ -1,21 +1,36 @@
 /* Layout and the app's own components. Colours come from theme.css, Bootstrap does the rest */
 
-/* -------------------------
-   Page
-   ------------------------- */
+/* ---------- Page ---------- */
 body {
     min-height: 100dvh;
+    line-height: 1.5;
+}
+
+/* The menu on the left, and everything else on the right */
+.app {
+    display: flex;
+    min-height: 100dvh;
+}
+
+.app-body {
+    flex: 1;
+    min-width: 0; /* lets wide tables scroll instead of pushing the page wider */
     display: flex;
     flex-direction: column;
-    line-height: 1.5;
 }
 
 main {
     flex: 1;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
-    padding: 2rem 1rem 3rem;
+    padding: 0.5rem 1rem 3rem;
+}
+
+@media (min-width: 992px) {
+    main {
+        padding-inline: 2rem;
+    }
 }
 
 main.narrow {
@@ -103,9 +118,7 @@ table,
 }
 
 
-/* -------------------------
-   Controls: big enough to tap on the kiosk screen
-   ------------------------- */
+/* ---------- Controls: big enough to tap on the kiosk screen ---------- */
 .btn,
 .form-control,
 .input-group-text {
@@ -155,9 +168,7 @@ table,
 }
 
 
-/* -------------------------
-   The "are you sure?" window
-   ------------------------- */
+/* ---------- The "are you sure?" window ---------- */
 .confirm-body {
     display: flex;
     gap: 1rem;
@@ -187,43 +198,182 @@ table,
 }
 
 
-/* -------------------------
-   Navigation
-   ------------------------- */
+/* ---------- Navigation ---------- */
 .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: 650;
+    gap: 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--arctic-navy);
+    text-decoration: none;
 }
 
-.brand i {
-    color: var(--arctic-mist);
+.brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: #FFFFFF;
+    background: var(--arctic-navy);
+    font-size: 1rem;
 }
 
-.navbar .nav-link {
+/* The menu on the left. Big screens show it all the time, smaller ones slide it in */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1rem;
+}
+
+.sidebar-top {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    min-height: 44px;
-    border-bottom: 2px solid transparent;
+    justify-content: space-between;
+    padding: 0 0.5rem 1.25rem;
 }
 
-.navbar .nav-link.active {
+.side-nav {
+    flex: 1;
+}
+
+.side-label {
+    margin: 1rem 0.75rem 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.side-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    margin-bottom: 2px;
+    border-radius: 10px;
+    color: var(--arctic-navy);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.side-link i {
+    font-size: 1.1rem;
+    color: var(--muted);
+}
+
+.side-link:hover {
+    background: var(--tint);
+    color: var(--arctic-navy);
+}
+
+.side-link.active {
+    background: var(--tint-strong);
     font-weight: 600;
 }
 
-/* Language picker next to "Sign out" */
+.side-link.active i {
+    color: var(--link);
+}
+
+.side-foot {
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+
+@media (min-width: 992px) {
+    /* The white column the menu sits in. It stays put while the page scrolls */
+    .sidebar-column {
+        flex: none;
+        width: 248px;
+        position: sticky;
+        top: 0;
+        height: 100dvh;
+        overflow-y: auto;
+        background: var(--surface);
+        border-inline-end: 1px solid var(--line);
+    }
+
+    .sidebar {
+        min-height: 100%;
+    }
+}
+
+/* The bar across the top of every page */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 64px;
+    padding: 0.75rem 1rem;
+}
+
+.menu-button {
+    font-size: 1.5rem;
+    width: 44px;
+    height: 44px;
+}
+
+.topbar-end {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-inline-start: auto;
+}
+
+@media (min-width: 992px) {
+    .topbar {
+        padding-inline: 2rem;
+    }
+}
+
+/* Who is signed in, top right */
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.user-chip .avatar {
+    width: 38px;
+    height: 38px;
+}
+
+.user-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.user-text b {
+    font-weight: 600;
+}
+
+.user-text small {
+    color: var(--muted);
+}
+
+@media (max-width: 575.98px) {
+    .user-text {
+        display: none;
+    }
+}
+
+/* Language picker in the top bar */
 .language-item {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    min-height: 44px;
-    color: var(--bs-navbar-color);
+    color: var(--muted);
 }
 
 .language-select {
     width: auto;
+    min-height: 38px;
+    border-color: var(--line);
+    border-radius: 999px;
 }
 
 /* Hide the bar and pop-ups Google Translate adds, we have our own picker */
@@ -238,39 +388,466 @@ body {
     top: 0 !important; /* Google pushes the page down to make room for its bar */
 }
 
-@media (min-width: 768px) {
-    .navbar {
-        padding-block: 0;
-    }
 
-    .language-item {
-        min-height: 56px;
-        padding-inline: 0.75rem;
-    }
-
-    .navbar .nav-link {
-        min-height: 56px;
-        padding-inline: 0.75rem !important;
-    }
-
-    .navbar .nav-link.active {
-        border-bottom-color: var(--arctic-blue);
-    }
+/* ---------- Cards and tiles ---------- */
+.card {
+    box-shadow: 0 1px 3px rgba(36, 60, 76, 0.05);
 }
 
-
-/* -------------------------
-   Cards and tiles
-   ------------------------- */
 .stat-label {
-    font-size: 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
 }
 
 .stat-value {
     font-size: 1.75rem;
-    font-weight: 650;
+    font-weight: 700;
     line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-note {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* A number card: an icon and its name on top, then the number */
+.stat-top {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+}
+
+.stat-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    color: var(--link);
+    background: var(--tint-strong);
+}
+
+.stat-icon.good {
+    color: var(--success);
+    background: var(--success-tint);
+}
+
+.stat-icon.warn {
+    color: var(--warning-text);
+    background: var(--warning-tint);
+}
+
+.stat-icon.bad {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+/* Buttons joined in one rounded bar, for picking a period or a filter. The picked one is filled in */
+.segmented {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+}
+
+.segmented-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 36px;
+    padding: 0 0.9rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.segmented-item:hover {
+    color: var(--arctic-navy);
+    background: var(--tint);
+}
+
+.segmented-item.active {
+    font-weight: 600;
+    color: var(--arctic-navy);
+    background: var(--tint-strong);
+}
+
+.segmented-item:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Bar chart of the last 7 days. Today's bar is the dark one */
+.bar-chart {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    height: 240px;
+}
+
+.bar-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.bar-track {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 56px;
+    border-radius: 10px;
+    background: var(--tint);
+}
+
+.bar {
+    width: 100%;
+    min-height: 4px;
+    border-radius: 10px;
+    background: var(--arctic-blue);
+    transition: height 0.4s ease-out;
+}
+
+.bar-day.today .bar {
+    background: var(--arctic-navy);
+}
+
+.bar-amount {
+    min-height: 1.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.bar-label {
+    min-height: 1.2rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.bar-day.today .bar-label {
+    font-weight: 600;
+    color: var(--arctic-navy);
+}
+
+/* The big total under a card title */
+.big-number {
+    margin-top: 0.25rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Dashboard: one line per order or best seller. A picture or initial, the name, then the amount */
+.order-row,
+.seller-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--line);
+}
+
+.order-row:first-child,
+.seller-row:first-child {
+    border-top: 0;
+}
+
+.seller-row {
+    color: inherit;
+    text-decoration: none;
+}
+
+.seller-row:hover {
+    color: inherit;
+}
+
+.seller-row:hover b {
+    color: var(--link);
+}
+
+.order-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.order-text b {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.order-text small,
+.order-end small {
+    color: var(--muted);
+}
+
+.order-end {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.35;
+}
+
+/* The 1, 2, 3 next to the best sellers. Number 1 is dark */
+.seller-rank {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--tint);
+}
+
+.seller-row:first-child .seller-rank {
+    color: #FFFFFF;
+    background: var(--arctic-navy);
+}
+
+/* Dashboard: the red bar at the top when a fridge is too warm */
+.fridge-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #E9C4BE;
+    border-radius: 14px;
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+.fridge-banner > i {
+    font-size: 1.75rem;
+}
+
+.fridge-banner div div {
+    color: var(--arctic-navy);
+}
+
+/* Dashboard: shown when nothing needs attention */
+.all-good {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #1F5F53;
+}
+
+.all-good i {
+    font-size: 1.75rem;
+    color: var(--success);
+}
+
+/* Reports: "up 12% vs yesterday" under a number */
+.stat-change {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.change {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--tint);
+}
+
+.change.up {
+    color: #1F5F53;
+    background: var(--success-tint);
+}
+
+.change.down {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+/* Reports: a month of days is 28 to 31 bars, so they are thinner and closer */
+.month-chart {
+    gap: 0.25rem;
+}
+
+.month-chart .bar-track,
+.month-chart .bar {
+    border-radius: 4px;
+}
+
+/* Reports: the best seller, with a big picture */
+.spotlight {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0 1.25rem 1rem;
+    padding: 1rem;
+    border-radius: 14px;
+    color: inherit;
+    text-decoration: none;
+    background: var(--tint);
+}
+
+.spotlight:hover {
+    color: inherit;
+    background: var(--tint-strong);
+}
+
+.product-image.spot {
+    width: 88px;
+    height: 88px;
+    border-radius: 12px;
+    font-size: 2rem;
+}
+
+.spotlight-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.spotlight-text b {
+    font-size: 1.15rem;
+    font-weight: 650;
+}
+
+.spotlight-text small {
+    color: var(--muted);
+}
+
+.spotlight-tag {
+    align-self: flex-start;
+    margin-bottom: 0.25rem;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warning-text);
+    background: var(--warning-tint);
+}
+
+.spotlight-profit {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.spotlight-profit small {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+/* Reports: a negative profit */
+.loss {
+    font-weight: 600;
+    color: var(--danger);
+}
+
+/* Reports: a thin bar under each category name for its share of the sales */
+.share-track {
+    height: 6px;
+    max-width: 180px;
+    margin-top: 0.35rem;
+    border-radius: 3px;
+    background: var(--tint);
+    overflow: hidden;
+}
+
+.share-track > div {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--arctic-blue);
+}
+
+/* The "Needs attention" list on the dashboard: one line per thing to do, with a button to fix it */
+.todo-list {
+    margin: 0;
+    padding: 0 1.25rem 0.5rem;
+    list-style: none;
+}
+
+.todo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+}
+
+.todo:first-child {
+    border-top: 0;
+}
+
+.todo-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--warning-text);
+    background: var(--warning-tint);
+}
+
+.todo.urgent .todo-icon {
+    color: var(--danger);
+    background: var(--danger-tint);
+}
+
+.todo-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.todo-text b {
+    font-weight: 600;
+}
+
+.todo-text small {
+    color: var(--muted);
 }
 
 .stat-value.small-value {
@@ -360,14 +937,50 @@ body {
 }
 
 
-/* -------------------------
-   Tables
-   ------------------------- */
+/* ---------- Status badges ---------- */
+/* Soft tinted pills instead of Bootstrap's solid badges. Bootstrap marks its badge colours !important, so these have to as well */
+.badge {
+    padding: 0.35em 0.75em;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge.text-bg-success {
+    color: #1F5F53 !important;
+    background-color: var(--success-tint) !important;
+}
+
+.badge.text-bg-warning {
+    color: var(--warning-text) !important;
+    background-color: var(--warning-tint) !important;
+}
+
+.badge.text-bg-danger {
+    color: var(--danger) !important;
+    background-color: var(--danger-tint) !important;
+}
+
+.badge.text-bg-secondary {
+    color: var(--muted) !important;
+    background-color: var(--tint) !important;
+}
+
+
+/* ---------- Tables ---------- */
 .table th {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--muted);
     white-space: nowrap;
+}
+
+.table > thead th {
+    background: var(--tint);
+}
+
+.table > :not(caption) > * > * {
+    padding-block: 0.75rem;
 }
 
 .card .table > tbody > tr:last-child > * {
@@ -469,9 +1082,7 @@ body {
 }
 
 
-/* -------------------------
-   Sign in
-   ------------------------- */
+/* ---------- Sign in ---------- */
 .or-divider {
     display: flex;
     align-items: center;
@@ -489,9 +1100,7 @@ body {
 }
 
 
-/* -------------------------
-   Checkout
-   ------------------------- */
+/* ---------- Checkout ---------- */
 .checkout-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
@@ -525,8 +1134,7 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--line);
+    padding: 1.25rem 1.25rem 0.75rem;
 }
 
 .card-head h2 {
@@ -787,9 +1395,7 @@ body {
 }
 
 
-/* -------------------------
-   Account
-   ------------------------- */
+/* ---------- Account ---------- */
 .member-card {
     color: var(--arctic-ice);
     background: var(--arctic-navy);
@@ -943,9 +1549,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* -------------------------
-   Customers
-   ------------------------- */
+/* ---------- Customers ---------- */
 .customer-cell {
     display: flex;
     align-items: center;
@@ -991,9 +1595,7 @@ body {
 }
 
 
-/* -------------------------
-   Inventory and products
-   ------------------------- */
+/* ---------- Inventory and products ---------- */
 .table-tools {
     display: flex;
     flex-wrap: wrap;
@@ -1002,13 +1604,46 @@ body {
     margin-bottom: 1rem;
 }
 
+/* When the tools sit inside the table's card, line them up with the card title */
+.card > .table-tools {
+    padding: 0 1.25rem;
+}
+
+.table-tools-end {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* A search box with a magnifying glass inside it */
+.search-field {
+    position: relative;
+    flex: 1 1 260px;
+    max-width: 380px;
+}
+
+.search-field i {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 0.9rem;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.search-field .search-box {
+    width: 100%;
+    max-width: none;
+    padding-inline-start: 2.4rem;
+    border-radius: 999px;
+}
+
 .category-filter {
     flex: 0 1 200px;
     min-height: 44px;
-}
-
-.filter-chips {
-    flex-wrap: wrap;
+    border-radius: 999px;
 }
 
 .chip-count {
@@ -1158,15 +1793,12 @@ fieldset:disabled {
 }
 
 
-/* -------------------------
-   Product form
-   ------------------------- */
+/* ---------- Product form ---------- */
 .description-box {
     min-height: 100px;
 }
 
-/* The suggestion list under the category and producer boxes.
-   Bootstrap hides .dropdown-menu until it has .show, so it needs this to appear */
+/* Category and producer suggestions. Bootstrap hides .dropdown-menu without this */
 .combo-menu:not([hidden]) {
     display: block;
     top: 100%;
@@ -1182,9 +1814,7 @@ fieldset:disabled {
 }
 
 
-/* -------------------------
-   Fridges: status and temperature
-   ------------------------- */
+/* ---------- Fridges: status and temperature ---------- */
 .ok { color: var(--success); }
 .hot { color: var(--danger); }
 
@@ -1238,9 +1868,7 @@ fieldset:disabled {
 }
 
 
-/* -------------------------
-   Fridge dashboard
-   ------------------------- */
+/* ---------- Fridge dashboard ---------- */
 .fridge-summary.hot {
     font-weight: 600;
 }
@@ -1435,9 +2063,7 @@ fieldset:disabled {
 }
 
 
-/* -------------------------
-   Fridge page
-   ------------------------- */
+/* ---------- Fridge page ---------- */
 .detail-status {
     display: flex;
     flex-wrap: wrap;
@@ -1692,22 +2318,4 @@ fieldset:disabled {
     .detail-stats div:nth-child(3) {
         border-left: 0;
     }
-}
-
-/* -------------------------
-   Admin page: the money numbers
-   ------------------------- */
-
-/* The line under each number that says what it means */
-.stat-note {
-    margin-top: 0.25rem;
-    font-size: 0.875rem;
-    color: var(--muted);
-}
-
-/* Today / This month / All time. Tall enough to tap */
-.period-picker .btn {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
 }

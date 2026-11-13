@@ -2,6 +2,7 @@ import sqlite3
 
 from config import DB_PATH
 
+# Create the tables, or update an older database
 def main():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -115,9 +116,7 @@ def main():
             emailSent BOOLEAN NOT NULL DEFAULT 0 CHECK (emailSent IN (0, 1))
         );''')
 
-    # Databases made before the tax was split into GST and QST get the two columns here.
-    # Old purchases are filled in so they still add up: GST is 5% of the subtotal, and QST is the rest of the tax they paid.
-    # Purchases that paid no tax at all keep 0 for both
+    # Older databases: split the tax into GST (5%) and QST (the rest)
     existing = {row[1] for row in cursor.execute("PRAGMA table_info(Purchase)")}
     if "gstAmount" not in existing:
         cursor.execute("ALTER TABLE Purchase ADD COLUMN gstAmount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (gstAmount >= 0)")
@@ -140,13 +139,11 @@ def main():
             UNIQUE (purchaseID, productID)
         );''')
 
-    # The product's cost at the time of the sale, so changing a cost later doesn't change old profit.
-    # Sales made before this column existed have none, and the admin page uses the product's cost for them
+    # Cost at the time of sale, so a later cost change doesn't change old profit
     existing = {row[1] for row in cursor.execute("PRAGMA table_info(PurchaseItem)")}
     if "unitCost" not in existing:
         cursor.execute("ALTER TABLE PurchaseItem ADD COLUMN unitCost DECIMAL(10,2) CHECK (unitCost >= 0)")
-    # Was GST and QST charged on this line? Saved at the time of the sale, so the receipt can say "No tax".
-    # Older lines count as taxed, except the ones on purchases that paid no tax at all
+    # Was tax charged on this line? Older lines count as taxed unless the purchase paid none
     if "isTaxable" not in existing:
         cursor.execute("ALTER TABLE PurchaseItem ADD COLUMN isTaxable BOOLEAN NOT NULL DEFAULT 1 CHECK (isTaxable IN (0, 1))")
         cursor.execute("UPDATE PurchaseItem SET isTaxable = 0 WHERE purchaseID IN (SELECT purchaseID FROM Purchase WHERE taxAmount = 0)")

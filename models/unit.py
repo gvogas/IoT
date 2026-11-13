@@ -1,11 +1,11 @@
-from models.database import placeholders, query, transaction
+from models.database import placeholders, query, query_one, transaction
 
 UNIT_LIMIT = 500
 
 
-# Every unit of one product, newest delivery first. Gives back (units, total) so the page can say how many there are
+# Units of one product, newest delivery first. Gives back (units, total), since units stops at UNIT_LIMIT
 def units_for_product(product_id):
-    total = query("SELECT COUNT(*) AS n FROM ProductItem WHERE productID = ?", (product_id,))[0]["n"]
+    total = query_one("SELECT COUNT(*) AS n FROM ProductItem WHERE productID = ?", (product_id,))["n"]
     units = query("""
         SELECT i.epc, i.status, i.receptionID, r.dateReceived
         FROM ProductItem i
@@ -17,7 +17,7 @@ def units_for_product(product_id):
     return units, total
 
 
-# Find units whose EPC contains the text, across all products. Gives back at most 50 matches
+# Units whose EPC contains the text, across all products
 def find_units(text):
     return query("""
         SELECT i.epc, i.status, i.productID, p.productName, r.dateReceived
@@ -30,7 +30,7 @@ def find_units(text):
     """, (f"%{text}%",))
 
 
-# Which of these EPCs are already units in the database? Gives back a set
+# The EPCs from this list that are already in the database
 def known_epcs(epcs):
     if not epcs:
         return set()
@@ -38,8 +38,7 @@ def known_epcs(epcs):
     return {row["epc"] for row in rows}
 
 
-# For testing: delete every unit (EPC) and delivery of one product, so its tags can be received again.
-# The product and customer receipts are kept. Gives back how many units were deleted
+# For testing: delete a product's units and deliveries so its tags can be received again
 def clear_product_units(product_id):
     def work(conn):
         count = conn.execute("DELETE FROM ProductItem WHERE productID = ?", (product_id,)).rowcount

@@ -1,5 +1,4 @@
-// Category and producer boxes: suggest the names already in the database as you type, closest matches first.
-// The dropdown button shows them all
+// Category and producer boxes: suggest known names as you type, closest first
 document.querySelectorAll("[data-combo]").forEach((combo) => {
     const input = combo.querySelector("input");
     const menu = combo.querySelector("[data-combo-menu]");
@@ -19,6 +18,7 @@ document.querySelectorAll("[data-combo]").forEach((combo) => {
         return -1;
     }
 
+    // Put the chosen name in the box and close the list
     function choose(name) {
         input.value = name;
         menu.hidden = true;
@@ -64,6 +64,7 @@ document.querySelectorAll("[data-combo]").forEach((combo) => {
         input.setAttribute("aria-expanded", String(!menu.hidden));
     }
 
+    // Mark one suggestion for the arrow keys
     function highlight(index) {
         const items = menu.querySelectorAll("[role='option']");
         items.forEach((item, i) => item.classList.toggle("active", i === index));

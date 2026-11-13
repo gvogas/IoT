@@ -2,10 +2,12 @@
 const epcBox = document.querySelector("[data-epc-input]");
 const receiveButton = document.querySelector("[data-receive-button]");
 
+// "1 unit", "3 units"
 function unitsLabel(count) {
     return `${count} ${count === 1 ? "unit" : "units"}`;
 }
 
+// Count the EPCs in the box and update the button
 function updateReceiveForm() {
     if (!epcBox || !receiveButton) return;
 
@@ -38,6 +40,7 @@ if (epcBox && scanButton) {
     // Every tag seen since scanning started, so a tag held near the reader is added once, even if it is deleted from the box
     let seen = new Set();
 
+    // Add new EPCs to the box, each one once
     function addEpcs(epcs) {
         const have = new Set(epcBox.value.split(/[\s,;]+/).filter(Boolean).map((token) => token.toUpperCase()));
         const fresh = epcs.filter((epc) => !have.has(epc) && !seen.has(epc));
@@ -48,6 +51,7 @@ if (epcBox && scanButton) {
         updateReceiveForm();
     }
 
+    // Start or stop scanning
     function setScanning(on) {
         scanning = on;
         scanButton.querySelector("[data-scan-label]").textContent = on ? "Stop scanning" : "Scan tags";
@@ -57,6 +61,7 @@ if (epcBox && scanButton) {
         if (!on) scanKnown.hidden = true;
     }
 
+    // Ask the reader again and again while scanning
     async function scanLoop() {
         while (scanning) {
             try {
@@ -90,8 +95,7 @@ if (epcBox && scanButton) {
     });
 }
 
-// The Receive button on the inventory page comes here ready to scan or type
-// (after the page has loaded, because the browser's jump to #receive clears the focus)
+// Focus the EPC box after load, since the jump to #receive clears the focus
 window.addEventListener("load", () => {
     if (epcBox && !epcBox.matches(":disabled") && window.location.hash === "#receive") {
         requestAnimationFrame(() => epcBox.focus());

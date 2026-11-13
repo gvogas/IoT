@@ -1,4 +1,4 @@
-// One DHT11 sensor for one fridge. It reads the sensor, prints the numbers and sends them to MQTT
+// One DHT11 sensor for one fridge. It prints each reading and publishes it to MQTT
 #pragma once
 
 #include <PubSubClient.h>
@@ -15,7 +15,6 @@ class DHT11Sensor {
       dht.begin();
     }
 
-
     void readAndPublish(PubSubClient &client) {
       float temperature = dht.readTemperature();
       float humidity = dht.readHumidity();
@@ -26,7 +25,6 @@ class DHT11Sensor {
         return;
       }
 
-      // Print the readings to the Serial Monitor
       Serial.println(name);
 
       Serial.print("Temperature: ");
@@ -38,8 +36,7 @@ class DHT11Sensor {
       Serial.println(" %");
       Serial.println("-------------------------");
 
-
-      // Convert the numbers to text for MQTT.
+      // MQTT messages are text
       char tempString[8];
       char humString[8];
 

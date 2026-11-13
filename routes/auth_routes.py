@@ -6,6 +6,7 @@ from routes.guards import remember_sign_in
 auth_routes = Blueprint("auth_routes", __name__)
 
 
+# Admins go to the admin page, customers to the checkout
 @auth_routes.route("/signin", methods=["GET", "POST"])
 def signin():
     if request.method == "GET":
@@ -16,10 +17,10 @@ def signin():
         return render_template("auth/signin.html", error="Wrong email or password.")
 
     remember_sign_in(customer)
-    # Admins go to the admin page, customers go to the checkout
     return redirect("/admin" if customer["role"] == "admin" else "/")
 
 
+# Forget who is signed in
 @auth_routes.route("/signout")
 def signout():
     session.clear()

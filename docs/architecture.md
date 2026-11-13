@@ -331,6 +331,7 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/products`, `/products/new` | admin | routes/product_routes.py | List of products, and the form to add one |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |
+| `/products/upc-check` | admin | routes/product_routes.py | Says if another product already has a UPC, for the product form |
 | `/rfid/scan` (POST) | admin | routes/product_routes.py | Asks the RFID reader for tags, for the receive form |
 | `/fridges` | admin | routes/fridge_routes.py | Dashboard with both fridges |
 | `/fridges/<id>` | admin | routes/fridge_routes.py | One fridge: gauges, stats, history chart, threshold form |

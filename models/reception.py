@@ -6,11 +6,12 @@ from models.database import placeholders, query, query_one, transaction
 # Shown in the error message, so a long list of duplicates doesn't fill the screen
 SHOW_LIMIT = 5
 
-# An EPC is hexadecimal (0-9 and A-F), up to 24 characters, whether it was typed or scanned from a tag
-SCANNED_EPC_REGEX = r"^[0-9A-F]+$"
+# An EPC is hexadecimal (0-9 and A-F), up to 24 characters
+EPC_REGEX = r"^[0-9A-F]+$"
+MAX_EPC = 24
 
-# Turn the scanned text into a list of EPCs. Gives back (epcs, errors)
-# The text can have one EPC per line, or be separated by spaces or commas (what a reader or a paste gives)
+
+# Split text into EPCs by lines, spaces, commas or semicolons. Gives back (epcs, errors)
 def read_epcs(text):
     epcs = []
     errors = []
@@ -18,7 +19,7 @@ def read_epcs(text):
         if not token:
             continue
         epc = token.upper()
-        if len(epc) > 24 or not re.match(SCANNED_EPC_REGEX, epc):
+        if len(epc) > MAX_EPC or not re.match(EPC_REGEX, epc):
             errors.append(f"\"{token}\" is not a valid EPC. EPCs use the letters A to F and digits 0 to 9, up to 24 characters.")
         else:
             epcs.append(epc)
@@ -30,7 +31,7 @@ def read_epcs(text):
     return epcs, errors
 
 
-# Check a delivery before saving it. Gives back a list of problems (empty if it's fine)
+# Gives back a list of problems, empty if the delivery is fine
 def check_reception(product_id, epcs, date_text):
     errors = []
 

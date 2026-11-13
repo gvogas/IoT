@@ -1,5 +1,3 @@
-// The checkout page: the basket and paying
-
 const basketRows = document.getElementById("basket-rows");
 const basketEmpty = document.getElementById("basket-empty");
 const basketTotal = document.getElementById("basket-total");
@@ -18,6 +16,7 @@ let items = [];
 // The basket is kept in this tab, so it is still there after signing in
 try { items = JSON.parse(sessionStorage.getItem("basket") || "[]"); } catch (e) { items = []; }
 
+// 12.5 -> "$12.50"
 function money(value) {
     return "$" + value.toFixed(2);
 }
@@ -32,11 +31,12 @@ function isTaxable(item) {
     return item.taxable !== false;
 }
 
+// "1 item", "3 items"
 function plural(count, word) {
     return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-// The first column of the basket: the product's picture and name
+// The basket's first column: picture and name
 function productCell(line) {
     const picture = document.createElement(line.image ? "img" : "span");
     picture.className = `product-image sm ${line.image ? "" : "no-image"}`;
@@ -49,7 +49,6 @@ function productCell(line) {
     const name = document.createElement("span");
     name.className = "product-name";
     name.textContent = line.name;
-    // Say so under the name when a product has no sales tax
     if (!line.taxable) {
         const note = document.createElement("small");
         note.className = "d-block text-secondary fw-normal";
@@ -65,6 +64,7 @@ function productCell(line) {
     return cell;
 }
 
+// Draw the basket and the totals
 function render() {
     const lines = new Map();
     items.forEach((item) => {
@@ -77,7 +77,7 @@ function render() {
     lines.forEach((line, productID) => {
         const row = document.createElement("tr");
         row.appendChild(productCell(line));
-        // The labels are shown next to each value when the table is stacked on a phone
+        // data-label shows next to each value when the table is stacked on a phone
         [["Qty", line.qty], ["Price", money(line.price)], ["Total", money(line.price * line.qty)]].forEach(([label, text], i) => {
             const cell = document.createElement("td");
             cell.textContent = text;
@@ -101,7 +101,7 @@ function render() {
     });
 
     const subtotalCents = items.reduce((sum, item) => sum + cents(item.price), 0);
-    // GST and QST are each worked out on the taxable items only, and rounded half up to the cent, the same as the server
+    // Same as the server: GST and QST on the taxable items only, rounded half up to the cent
     const taxableCents = items.filter(isTaxable).reduce((sum, item) => sum + cents(item.price), 0);
     const gstCents = Math.floor((taxableCents * window.taxParts.gst + 50000) / 100000);
     const qstCents = Math.floor((taxableCents * window.taxParts.qst + 50000) / 100000);
@@ -115,7 +115,6 @@ function render() {
     itemCount.hidden = items.length === 0;
     summaryCount.textContent = plural(items.length, "item");
     if (pointsPreview) {
-        // The same rule as the server: points for every complete step spent before tax
         const earned = Math.floor(subtotalCents / (window.points.step * 100)) * window.points.perStep;
         pointsPreview.textContent = plural(earned, "point");
     }
@@ -126,22 +125,22 @@ function render() {
     try { sessionStorage.setItem("basket", JSON.stringify(items)); } catch (e) { /* storage blocked */ }
 }
 
-// The reader scans all the time. Each new tag in range is added to the basket
+// The reader scans all the time, and each new tag in range is added to the basket
 const SCAN_PAUSE = 300;
-const RETRY_PAUSE = 3000;   // when the reader does not answer, try again after this long
+const RETRY_PAUSE = 3000;   // after the reader fails to answer
 let paused = false;         // true while paying
 // The tags the reader saw on its last read, to tell an item held in range from one scanned again
 let lastSeen = new Set();
-// Tags the customer took out of the basket. They are ignored until they leave the reader's range,
-// so an item still lying on the reader is not added straight back
+// Removed tags, ignored until they leave the reader's range
 let removedTags = new Set();
 
-// The little light at the top of the page: is the reader working?
+// The light next to the page title
 function setReaderStatus(state, text) {
     readerStatus.dataset.state = state;
     readerStatusText.textContent = text;
 }
 
+// Ask the reader for tags again and again
 async function scanLoop() {
     while (true) {
         let pause = SCAN_PAUSE;
@@ -153,7 +152,7 @@ async function scanLoop() {
                 setReaderStatus("ok", "Reader ready");
             } catch (err) {
                 setReaderStatus("error", "Reader not answering");
-                // Customers get a plain message. The technical reason goes to the browser console for staff
+                // Customers get a plain message. Staff can find the reason in the browser console
                 console.error("Reader error:", err.message);
                 notify(basketMessage, "The item reader is not working right now. Please ask a member of staff for help.", "danger");
                 pause = RETRY_PAUSE;
@@ -163,6 +162,7 @@ async function scanLoop() {
     }
 }
 
+// Add the new tags to the basket and say what happened
 function handleScan(data) {
     const inRange = new Set(data.items.map((item) => item.epc));
     removedTags.forEach((epc) => { if (!inRange.has(epc)) removedTags.delete(epc); });
@@ -191,8 +191,7 @@ function handleScan(data) {
     }
 }
 
-// Take every item of one product out of the basket (the other products stay)
-// The tags stay out of the basket until the item is held near the reader again
+// Take every item of one product out of the basket
 function removeProduct(productID, name) {
     items.filter((item) => item.productID === productID).forEach((item) => removedTags.add(item.epc));
     items = items.filter((item) => item.productID !== productID);
@@ -209,7 +208,7 @@ clearButton.addEventListener("click", () => {
 
 payButton.addEventListener("click", async () => {
     payButton.disabled = true;
-    paused = true;   // stop reading while paying, so the paid items are not looked at again
+    paused = true;   // so the paid items are not scanned again
     setReaderStatus("paused", "Paying...");
     try {
         const { ok, data } = await postJson("/api/checkout/pay", { epcs: items.map((item) => item.epc) });
@@ -232,9 +231,10 @@ payButton.addEventListener("click", async () => {
     render();
 });
 
-// The receipt after paying: shown in a window until the customer taps Done (or leaves it for a while)
+// The receipt stays up until the customer taps Done, or for RECEIPT_TIMEOUT
 const RECEIPT_TIMEOUT = 60000;
 
+// The receipt window after paying
 function showReceipt(receipt, emailMessage) {
     if (!receipt) {
         setTimeout(() => window.location.reload(), SHOW_TIME.success);
@@ -256,7 +256,6 @@ function showReceipt(receipt, emailMessage) {
     table.className = "table table-sm receipt-table";
     receipt.lines.forEach((line) => {
         const row = table.insertRow();
-        // Products with no GST or QST say so after the name
         const name = line.taxable === false ? `${line.name} (No tax)` : line.name;
         [name, `${line.quantity} × ${money(line.unitPrice)}`, money(line.lineTotal)].forEach((text, i) => {
             const cell = row.insertCell();
@@ -281,7 +280,6 @@ function showReceipt(receipt, emailMessage) {
     });
     body.appendChild(table);
 
-    // Show the points earned on this purchase and the customer's updated balance.
     add("p", `Loyalty points earned: +${receipt.pointsEarned || 0}`, "receipt-points mb-1");
     if (receipt.customerPoints !== null && receipt.customerPoints !== undefined) {
         add("p", `Your points balance: ${receipt.customerPoints} points ($${Math.floor(receipt.customerPoints / 100)} in rewards)`, "small text-secondary mb-2");
@@ -311,7 +309,6 @@ function showReceipt(receipt, emailMessage) {
     setTimeout(finish, RECEIPT_TIMEOUT);
     modal.show();
 }
-
 
 // Customers stay here, so reload to show they are signed in
 setupBarcodeLogin(() => window.location.reload());

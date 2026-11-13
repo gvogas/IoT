@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta
 
-from models.database import connect, execute, query
-
-TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+from models.database import DATE_FORMAT, connect, execute, now_text, query
 
 
-# Turns "23.5" into 23.5, or None if it isn't a number
+# "23.5" -> 23.5, or None if it isn't a number
 def to_number(value):
     try:
         return float(value)
@@ -13,17 +11,17 @@ def to_number(value):
         return None
 
 
-# Save one reading
+# Save one reading with the current time
 def save_reading(fridge_id, temperature, humidity):
     execute(
         "INSERT INTO Reading (fridgeID, temperature, humidity, recordedAt) VALUES (?, ?, ?, ?)",
-        (fridge_id, temperature, humidity, datetime.now().strftime(TIME_FORMAT)),
+        (fridge_id, temperature, humidity, now_text()),
     )
 
 
-# Readings from the last few hours, for the history chart
+# Readings from the last `hours` hours, for the history chart
 def get_history(fridge_id, hours):
-    since = (datetime.now() - timedelta(hours=hours)).strftime(TIME_FORMAT)
+    since = (datetime.now() - timedelta(hours=hours)).strftime(DATE_FORMAT)
     rows = query(
         "SELECT recordedAt, temperature, humidity FROM Reading WHERE fridgeID = ? AND recordedAt >= ? ORDER BY recordedAt",
         (fridge_id, since),
@@ -31,11 +29,11 @@ def get_history(fridge_id, hours):
     return [{"time": row["recordedAt"], "temperature": row["temperature"], "humidity": row["humidity"]} for row in rows]
 
 
-# Lowest, highest, in range and trend for one fridge
+# Lowest, highest, time in range and trend for one fridge
 def get_stats(fridge_id, threshold):
     now = datetime.now()
-    day_ago = (now - timedelta(hours=24)).strftime(TIME_FORMAT)
-    hour_ago = (now - timedelta(hours=1)).strftime(TIME_FORMAT)
+    day_ago = (now - timedelta(hours=24)).strftime(DATE_FORMAT)
+    hour_ago = (now - timedelta(hours=1)).strftime(DATE_FORMAT)
     midnight = now.strftime("%Y-%m-%d 00:00:00")
 
     conn = connect()
@@ -79,13 +77,13 @@ def get_stats(fridge_id, threshold):
     # °C per hour (needs at least 10 minutes of readings)
     trend = None
     if first and last and first["recordedAt"] != last["recordedAt"]:
-        hours = (datetime.strptime(last["recordedAt"], TIME_FORMAT) - datetime.strptime(first["recordedAt"], TIME_FORMAT)).total_seconds() / 3600
+        hours = (datetime.strptime(last["recordedAt"], DATE_FORMAT) - datetime.strptime(first["recordedAt"], DATE_FORMAT)).total_seconds() / 3600
         if hours >= 10 / 60:
             trend = round((last["temperature"] - first["temperature"]) / hours, 1)
 
     since = None
     if over_since:
-        since_time = datetime.strptime(over_since, TIME_FORMAT)
+        since_time = datetime.strptime(over_since, DATE_FORMAT)
         since = {"time": since_time.strftime("%H:%M"), "minutes": int((now - since_time).total_seconds() // 60)}
 
     total = day["total"]

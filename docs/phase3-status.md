@@ -38,7 +38,7 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 
 ## Customer Accounts
 - [x] Create an account
-- [x] Name, email, auto-generated membership number, total points
+- [x] Name, email, membership number (scanned from the card), total points
 - [x] Sign in
 - [x] Purchase history (list of past receipts)
 - [x] Purchase history shows points earned per receipt

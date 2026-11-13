@@ -1,3 +1,5 @@
+import os
+import subprocess
 import threading
 import time
 
@@ -20,13 +22,34 @@ _port = None
 _leftover = b""
 
 
+# Terminal colors so the RFID messages stand out from Flask's output
+RED = "\033[91m"
+YELLOW = "\033[93m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
+
+# The Pi doesn't know the CF600's USB id, so after a reboot /dev/ttyUSB0 is missing
+# until we tell the usbserial driver about it. Only runs if the port isn't there yet.
+def setup_reader():
+    if os.path.exists(RFID_PORT):
+        return
+    print(f"{YELLOW}{RFID_PORT} not found, loading the usbserial driver for the RFID reader...{RESET}")
+    subprocess.run(["sudo", "modprobe", "usbserial", "vendor=0x0483", "product=0x5750"])
+    # Give Linux a moment to create the port
+    time.sleep(1)
+    if os.path.exists(RFID_PORT):
+        print(f"{GREEN}RFID reader ready on {RFID_PORT}{RESET}")
+    else:
+        print(f"{RED}RFID reader still not found on {RFID_PORT}. Is it plugged in?{RESET}")
+
+
+# The reader is unplugged or not answering
 class ReaderError(Exception):
     pass
 
 
-# Pull EPCs out of CF600 tag frames
 # Frame: CF | addr | cmd(2) | len | status | rssi(2) | ant | ? | epc_len | epc | crc(2)
-# Gives back (list of EPC hex strings, leftover bytes of an incomplete frame)
 def parse_epcs(buf):
     epcs = []
     i = 0
@@ -47,7 +70,7 @@ def parse_epcs(buf):
         i = end
 
 
-# Open the reader's serial port the first time it is needed, then keep it open
+# Opened the first time it is needed, then kept open
 def _open_port():
     global _port
     if serial is None:
@@ -61,7 +84,7 @@ def _open_port():
     return _port
 
 
-# Ask the reader once and give back the EPCs of the tags it saw (each tag once, even if it was read many times)
+# The EPCs the reader sees right now, each one once
 def scan_once():
     global _port, _leftover
     with _lock:

@@ -14,57 +14,83 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.18/index.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+{% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-md" data-bs-theme="dark">
-        <div class="container-fluid">
-            <a class="navbar-brand brand" href="/"><i class="bi bi-snow2" aria-hidden="true"></i> Store</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-menu"
-                    aria-controls="main-menu" aria-expanded="false" aria-label="Toggle menu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="main-menu">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path == '/' }}" href="/"><i class="bi bi-cart3" aria-hidden="true"></i> Checkout</a></li>
-                    {% if session.role == "admin" %}
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/admin') }}" href="/admin"><i class="bi bi-grid" aria-hidden="true"></i> Admin</a></li>
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/inventory') }}" href="/inventory"><i class="bi bi-boxes" aria-hidden="true"></i> Inventory</a></li>
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/products') }}" href="/products"><i class="bi bi-tags" aria-hidden="true"></i> Products</a></li>
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/fridges') }}" href="/fridges"><i class="bi bi-thermometer-half" aria-hidden="true"></i> Fridges</a></li>
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/customers') }}" href="/customers"><i class="bi bi-people" aria-hidden="true"></i> Customers</a></li>
-                    {% elif session.id %}
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/account') }}" href="/account"><i class="bi bi-person" aria-hidden="true"></i> My Account</a></li>
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav">
-                    {# Language picker. language.js handles it. "notranslate" stops Google from translating the choices #}
-                    <li class="nav-item language-item notranslate" translate="no">
-                        <label class="visually-hidden" for="language-select">Language</label>
-                        <i class="bi bi-translate" aria-hidden="true"></i>
-                        <select class="form-select form-select-sm language-select" id="language-select">
-                            <option value="en">English</option>
-                            <option value="fr">Français</option>
-                            <option value="fa">فارسی</option>
-                            <option value="el">Ελληνικά</option>
-                            <option value="it">Italiano</option>
-                            <option value="nl">Nederlands</option>
-                            <option value="zh-CN">普通话</option>
-                            <option value="hak">客家話</option>
-                            <option value="ar">العربية</option>
-                            <option value="vi">Tiếng Việt</option>
-                            <option value="hi">हिन्दी</option>
-                        </select>
-                    </li>
-                    {% if session.id %}
-                    <li class="nav-item"><a class="nav-link" href="/signout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out (<span class="notranslate" translate="no">{{ session.name }}</span>)</a></li>
-                    {% else %}
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/signin') }}" href="/signin"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a></li>
-                    <li class="nav-item"><a class="nav-link{{ ' active' if request.path.startswith('/signup') }}" href="/signup"><i class="bi bi-person-plus" aria-hidden="true"></i> Sign up</a></li>
-                    {% endif %}
-                </ul>
+    <div class="app">
+    {# The menu down the left side. On phones and tablets it is hidden and slides in from the ☰ button (Bootstrap "offcanvas") #}
+    <div class="sidebar-column">
+        <aside class="offcanvas-lg offcanvas-start sidebar" tabindex="-1" id="sidebar" aria-label="Main menu">
+            <div class="sidebar-top">
+                <a class="brand" href="/"><span class="brand-icon"><i class="bi bi-snow2" aria-hidden="true"></i></span> Store</a>
+                <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close menu"></button>
             </div>
+
+            <nav class="side-nav">
+                <p class="side-label">Store</p>
+                <a class="side-link{{ ' active' if request.path == '/' }}" href="/"><i class="bi bi-cart3" aria-hidden="true"></i> Checkout</a>
+                {% if session.role == "admin" %}
+                <p class="side-label">Manage</p>
+                <a class="side-link{{ ' active' if request.path.startswith('/admin') }}" href="/admin"><i class="bi bi-grid" aria-hidden="true"></i> Dashboard</a>
+                <a class="side-link{{ ' active' if request.path.startswith('/reports') }}" href="/reports"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Reports</a>
+                <a class="side-link{{ ' active' if request.path.startswith(('/inventory', '/products')) }}" href="/inventory"><i class="bi bi-boxes" aria-hidden="true"></i> Inventory</a>
+                <a class="side-link{{ ' active' if request.path.startswith('/fridges') }}" href="/fridges"><i class="bi bi-thermometer-half" aria-hidden="true"></i> Fridges</a>
+                <a class="side-link{{ ' active' if request.path.startswith('/customers') }}" href="/customers"><i class="bi bi-people" aria-hidden="true"></i> Customers</a>
+                {% elif session.id %}
+                <a class="side-link{{ ' active' if request.path.startswith('/account') }}" href="/account"><i class="bi bi-person" aria-hidden="true"></i> My Account</a>
+                {% endif %}
+            </nav>
+
+            <div class="side-foot">
+                {% if session.id %}
+                <a class="side-link" href="/signout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out</a>
+                {% else %}
+                <a class="side-link{{ ' active' if request.path.startswith('/signin') }}" href="/signin"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>
+                <a class="side-link{{ ' active' if request.path.startswith('/signup') }}" href="/signup"><i class="bi bi-person-plus" aria-hidden="true"></i> Sign up</a>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
+
+    <div class="app-body">
+    {# The bar across the top: the ☰ button on small screens, then the language picker and who is signed in #}
+    <header class="topbar">
+        <button type="button" class="btn btn-icon menu-button d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar"
+                aria-controls="sidebar" aria-label="Open menu"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <a class="brand d-lg-none" href="/"><span class="brand-icon"><i class="bi bi-snow2" aria-hidden="true"></i></span> Store</a>
+
+        <div class="topbar-end">
+            {# Language picker. language.js handles it. "notranslate" stops Google from translating the choices #}
+            <div class="language-item notranslate" translate="no">
+                <label class="visually-hidden" for="language-select">Language</label>
+                <i class="bi bi-translate" aria-hidden="true"></i>
+                <select class="form-select form-select-sm language-select" id="language-select">
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                    <option value="fa">فارسی</option>
+                    <option value="el">Ελληνικά</option>
+                    <option value="it">Italiano</option>
+                    <option value="nl">Nederlands</option>
+                    <option value="zh-CN">普通话</option>
+                    <option value="hak">客家話</option>
+                    <option value="ar">العربية</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="hi">हिन्दी</option>
+                </select>
+            </div>
+            {% if session.id %}
+            <div class="user-chip">
+                <span class="avatar{{ ' admin' if session.role == 'admin' }}" aria-hidden="true">{{ session.name[:1]|upper }}</span>
+                <span class="user-text">
+                    <b class="notranslate" translate="no">{{ session.name }}</b>
+                    <small>{{ 'Admin' if session.role == 'admin' else 'Member' }}</small>
+                </span>
+            </div>
+            {% elif not request.path.startswith('/signin') %}
+            <a class="btn btn-primary btn-sm" href="/signin">Sign in</a>
+            {% endif %}
         </div>
-    </nav>
+    </header>
 
     {# Notifications after each action. The routes send them with flash(), and common.js adds more with showToast() #}
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container">
@@ -82,6 +108,8 @@
     <main class="{% block main_class %}{% endblock %}">
 {% block content %}{% endblock %}
     </main>
+    </div>
+    </div>
 
     {# The "are you sure?" window. common.js fills it in #}
     <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-title" aria-describedby="confirm-text" aria-hidden="true">

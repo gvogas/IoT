@@ -1,6 +1,6 @@
-// The windows for changing a membership number or a role.
-// After a change the page reloads, and the server's notification says what happened
+// The windows for changing a membership number or a role
 
+// Send one form field to the server. Gives back { ok, result }
 async function postForm(url, field, value) {
     const body = new FormData();
     body.append(field, value);
@@ -8,9 +8,7 @@ async function postForm(url, field, value) {
     return { ok: response.ok, result: await response.json() };
 }
 
-// -------------------------
 // Membership number
-// -------------------------
 const membershipElement = document.getElementById("membership-modal");
 const membershipModal = new bootstrap.Modal(membershipElement);
 const membershipForm = document.getElementById("membership-form");
@@ -19,10 +17,6 @@ const membershipMessage = document.getElementById("membership-message");
 const membershipSave = document.getElementById("membership-save");
 let membershipCustomer = null;
 
-function updateSaveLabel() {
-    membershipSave.textContent = membershipInput.value.trim() ? "Save number" : "Generate new number";
-}
-
 document.querySelectorAll("[data-edit-membership]").forEach((button) => {
     button.addEventListener("click", () => {
         membershipCustomer = button.dataset.id;
@@ -30,14 +24,12 @@ document.querySelectorAll("[data-edit-membership]").forEach((button) => {
         membershipElement.querySelector("[data-current-number]").textContent = button.dataset.number;
         membershipInput.value = "";
         setMessage(membershipMessage, "");
-        updateSaveLabel();
         membershipModal.show();
     });
 });
 
 // Ready for the scanner as soon as the window opens
 membershipElement.addEventListener("shown.bs.modal", () => membershipInput.focus());
-membershipInput.addEventListener("input", updateSaveLabel);
 
 membershipForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -57,9 +49,7 @@ membershipForm.addEventListener("submit", async (event) => {
     membershipInput.select();
 });
 
-// -------------------------
 // Role
-// -------------------------
 const roleModal = new bootstrap.Modal(document.getElementById("role-modal"));
 const roleMessage = document.getElementById("role-message");
 const roleConfirm = document.getElementById("role-confirm");

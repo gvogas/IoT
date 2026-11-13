@@ -9,16 +9,17 @@ from routes.auth_routes import auth_routes
 from routes.checkout_routes import checkout_routes
 from routes.customer_routes import customer_routes
 from routes.fan_routes import fan_routes
-from routes.formats import nice_date, nice_datetime
+from routes.formats import money, nice_date, nice_datetime
 from routes.fridge_routes import fridge_routes
 from routes.product_routes import product_routes
 
 
+# API errors are sent as JSON
 def is_api_request():
     return request.path.startswith(("/api/", "/rfid/"))
 
 
-# Add every page and API endpoint to the app, and the errors they all share
+# Add every page, filter and error handler to the app
 def register_routes(app):
     for blueprint in (admin_routes, auth_routes, checkout_routes, customer_routes,
                       fan_routes, fridge_routes, product_routes):
@@ -26,8 +27,9 @@ def register_routes(app):
 
     app.add_template_filter(nice_date)
     app.add_template_filter(nice_datetime)
+    app.add_template_filter(money)
 
-    # Any database problem a route doesn't handle itself, like "no such table" if init_database wasn't run
+    # Database errors no route handles, like "no such table" if init_database wasn't run
     @app.errorhandler(sqlite3.Error)
     def database_error(err):
         text = f"Database error: {err}"
@@ -41,7 +43,7 @@ def register_routes(app):
         flash(f"That image is too big. The limit is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", "error")
         return redirect(request.path)
 
-    # The RFID reader is unplugged or not answering. Only the scan endpoints use it
+    # The RFID reader is unplugged or not answering
     @app.errorhandler(ReaderError)
     def reader_error(err):
         return jsonify(error=str(err)), 503

@@ -14,7 +14,6 @@ form.addEventListener("submit", async (event) => {
             message.scrollIntoView({ block: "center" });
             return;
         }
-        // Signed in already: go to the home page
         setMessage(message, result.success, "success");
         window.location.href = result.redirect || "/";
     } catch (error) {

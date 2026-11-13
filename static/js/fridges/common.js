@@ -16,18 +16,20 @@ function oneDecimal(value) {
     return value === null || value === undefined ? "--" : value.toFixed(1);
 }
 
+// "5 s ago", "3 min ago", "2 h ago"
 function timeAgo(seconds) {
     if (seconds < 60) return `${seconds} s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
     return `${Math.floor(seconds / 3600)} h ago`;
 }
 
+// "45 min" or "1 h 20 min"
 function duration(minutes) {
     if (minutes < 60) return `${minutes} min`;
     return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
 
-// Top of the temperature scale
+// Top of the temperature scale: the first step that fits every value with 2 degrees to spare
 function scaleTop(...values) {
     const highest = Math.max(...values.filter((v) => v !== null && v !== undefined));
     for (const top of [12, 20, 40, 60, 100]) {
@@ -91,7 +93,7 @@ function setStatus(element, status) {
     element.querySelector(".status-text").textContent = STATUS_TEXT[status];
 }
 
-// Show the trend
+// Show the trend arrow and text
 function setTrend(element, stats) {
     const trend = trendInfo(stats);
     element.className = `trend ${trend.rising ? "hot" : ""}`;

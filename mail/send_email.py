@@ -1,6 +1,5 @@
 import smtplib
 import threading
-from datetime import datetime
 from email.message import EmailMessage
 
 from flask import render_template
@@ -8,10 +7,10 @@ from flask import render_template
 from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_TO, SMTP_PORT, SMTP_SERVER
 from mail.translations import receipt_text
 from models.customer import admin_emails
+from models.database import now_text
 
 
-# Send one email from the store's Gmail account. Gives back True if it was sent, False if not
-# html is optional. Email apps that can't show it, or block it, show the text instead
+# Send from the store's Gmail account. Gives back True if it was sent
 def send(to_address, subject, text, html=None):
     if not (ALERT_EMAIL and ALERT_EMAIL_PASSWORD and to_address):
         print(f"Email not sent ({subject}): set ALERT_EMAIL, ALERT_EMAIL_PASSWORD and ALERT_TO (see config.py)")
@@ -55,16 +54,15 @@ def admin_address():
     return ", ".join(admin_emails()) or ALERT_TO
 
 
-# Send an email to the admin in a thread, so the customer or the admin doesn't wait for it to send
+# In a thread, so the page doesn't wait for the email to send
 def send_to_admin_in_background(subject, text, html):
     threading.Thread(target=send, args=(admin_address(), subject, text, html), daemon=True).start()
 
 
-# Tell the admin which products are low or out of stock. alerts is the list from models.checkout.stock_alerts()
-# The templates can only be filled in during a web request, so that happens here and not in the thread
+# Rendered here, not in the thread, because templates need the web request
 def send_stock_alert(alerts):
     names = ", ".join(alert["name"] for alert in alerts)
-    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date = now_text()
     send_to_admin_in_background(
         f"Stock Alert - {names}",
         render_template("email/stock_alert.txt", alerts=alerts, date=date),
@@ -72,9 +70,9 @@ def send_stock_alert(alerts):
     )
 
 
-# Tell the admin a low or out of stock product just got a delivery
+# A low or out of stock product just got a delivery
 def send_restock_alert(name, received, in_stock, threshold):
-    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    date = now_text()
     send_to_admin_in_background(
         f"Restocked - {name}",
         render_template("email/restocked.txt", name=name, received=received, in_stock=in_stock, threshold=threshold, date=date),
@@ -82,9 +80,7 @@ def send_restock_alert(name, received, in_stock, threshold):
     )
 
 
-# Email a receipt to the customer. receipt is the dict from models.checkout.receipt()
-# The templates are in templates/email/. This runs inside a web request, so they can be filled in here
-# It is written in the language picked in the menu (see mail/translations.py)
+# receipt comes from models.checkout.receipt(). The email uses the language picked in the menu
 def send_receipt_email(to_address, receipt):
     t = receipt_text()
     return send(

@@ -21,10 +21,10 @@
             {% for category in categories %}<option>{{ category }}</option>{% endfor %}
         </select>
         {% endif %}
-        <div class="btn-group filter-chips" role="group" aria-label="Filter by visibility">
-            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="shown">Shown</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="hidden">Hidden</button>
+        <div class="segmented" role="group" aria-label="Filter by visibility">
+            <button type="button" class="segmented-item active" aria-pressed="true" data-status-filter="all">All</button>
+            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="shown">Shown</button>
+            <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="hidden">Hidden</button>
         </div>
         <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
     </div>

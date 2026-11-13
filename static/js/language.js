@@ -1,14 +1,11 @@
-// Language picker in the menu (English, French, Farsi, Greek, Italian, Dutch,
-// Mandarin, Hakka, Arabic, Vietnamese, Hindi). Google Translate does the translating
-// Google remembers the chosen language in a cookie called "googtrans", like "/en/fr"
-// The pages are written in English, so with no cookie the page stays in English
+// Language picker. Google Translate translates, and saves the choice in the "googtrans" cookie
 
 const LANGUAGES = ["en", "fr", "fa", "el", "it", "nl", "zh-CN", "hak", "ar", "vi", "hi"];
 
 // Farsi and Arabic are written right to left
 const RIGHT_TO_LEFT = ["fa", "ar"];
 
-// Read the language from the cookie. No cookie means English
+// No cookie means English
 function currentLanguage() {
     const match = document.cookie.match(/(?:^|;\s*)googtrans=\/en\/([\w-]+)/);
     if (match && LANGUAGES.includes(match[1])) return match[1];

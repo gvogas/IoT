@@ -15,41 +15,56 @@
 
     <div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Units in stock</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+                        <span class="stat-label">Units in stock</span>
+                    </div>
                     <div class="stat-value">{{ units }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Stock value</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon good"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+                        <span class="stat-label">Stock value</span>
+                    </div>
                     <div class="stat-value">${{ '%.2f'|format(value) }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Low stock</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+                        <span class="stat-label">Low stock</span>
+                    </div>
                     <div class="stat-value{{ ' alert-value' if low > 0 }}">{{ low }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Out of stock</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon bad"><i class="bi bi-x-octagon" aria-hidden="true"></i></span>
+                        <span class="stat-label">Out of stock</span>
+                    </div>
                     <div class="stat-value{{ ' alert-value' if out > 0 }}">{{ out }}</div>
                 </div>
             </div>
         </div>
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Last delivery</div>
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
+                        <span class="stat-label">Last delivery</span>
+                    </div>
                     <div class="stat-value small-value">{{ last or 'None yet' }}</div>
                 </div>
             </div>
@@ -57,24 +72,31 @@
     </div>
 
     {% if rows %}
-    <div class="table-tools">
-        <input type="search" class="form-control search-box" placeholder="Search by name or category" aria-label="Search products" data-search>
-        {% if categories|length > 1 %}
-        <select class="form-select category-filter" aria-label="Filter by category" data-category-filter>
-            <option value="">All categories</option>
-            {% for category in categories %}<option>{{ category }}</option>{% endfor %}
-        </select>
-        {% endif %}
-        <div class="btn-group filter-chips" role="group" aria-label="Filter by stock">
-            <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" data-status-filter="all">All</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="low">Low</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="out">Out</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-status-filter="ok">OK</button>
-        </div>
-        <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
-    </div>
-
     <div class="card mb-4">
+        <div class="card-head">
+            <h2>Product stock</h2>
+            <span class="text-secondary small" data-count aria-live="polite"></span>
+        </div>
+        <div class="table-tools">
+            <div class="segmented" role="group" aria-label="Filter by stock">
+                <button type="button" class="segmented-item active" aria-pressed="true" data-status-filter="all">All</button>
+                <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="ok">In stock</button>
+                <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="low">Low</button>
+                <button type="button" class="segmented-item" aria-pressed="false" data-status-filter="out">Out</button>
+            </div>
+            <div class="table-tools-end">
+                {% if categories|length > 1 %}
+                <select class="form-select category-filter" aria-label="Filter by category" data-category-filter>
+                    <option value="">All categories</option>
+                    {% for category in categories %}<option>{{ category }}</option>{% endfor %}
+                </select>
+                {% endif %}
+                <div class="search-field">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" class="form-control search-box" placeholder="Search by name or category" aria-label="Search products" data-search>
+                </div>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 stock-table">
                 <thead>

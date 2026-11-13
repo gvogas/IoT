@@ -14,6 +14,7 @@ from routes.guards import admin_api, admin_page, is_signed_in, remember_sign_in
 customer_routes = Blueprint("customer_routes", __name__)
 
 
+# The sign up form
 @customer_routes.route("/signup")
 def signup():
     return render_template("auth/signup.html")
@@ -32,7 +33,6 @@ def submit():
     )
 
     try:
-        # Show every problem at once, each on its own line
         errors = customer.validate()
         if errors:
             send_error()
@@ -42,7 +42,7 @@ def submit():
         remember_sign_in(check_sign_in(customer.email, customer.password))
 
     except sqlite3.IntegrityError:
-        # Just in case two people sign up with the same email at the exact same time
+        # Two people signing up with the same email at the same moment
         send_error()
         return jsonify(error="This email or phone number is already registered."), 400
 
@@ -55,6 +55,7 @@ def submit():
     return jsonify(success="Account created!", redirect="/"), 200
 
 
+# My Account: the membership card and purchase history
 @customer_routes.route("/account")
 def account():
     if not is_signed_in():
@@ -102,6 +103,7 @@ def change_email():
     return redirect("/account")
 
 
+# The customers page for admins
 @customer_routes.route("/customers")
 @admin_page
 def customers():
@@ -115,6 +117,7 @@ def customers():
     )
 
 
+# Make a customer an admin, or not. Not your own role
 @customer_routes.route("/api/customers/<int:customer_id>/role", methods=["POST"])
 @admin_api
 def change_role(customer_id):
@@ -122,7 +125,6 @@ def change_role(customer_id):
     if role not in ROLES:
         return jsonify(error=f"Role must be one of {', '.join(ROLES)}."), 400
 
-    # An admin can't change their own role
     if customer_id == session["id"]:
         return jsonify(error="You can't change your own role. Ask another admin."), 400
 
@@ -130,12 +132,13 @@ def change_role(customer_id):
     if customer is None:
         return jsonify(error=f"Customer {customer_id} not found."), 404
 
-    # The page reloads after this, and the notification says what happened
+    # The page reloads after this and shows the flash message
     message = f"{customer['customerName']} is now {'an admin' if role == 'admin' else 'a customer'}."
     flash(message, "success")
     return jsonify(success=message, role=role), 200
 
 
+# Give a customer a new card number
 @customer_routes.route("/api/customers/<int:customer_id>/membership", methods=["POST"])
 @admin_api
 def change_membership(customer_id):

@@ -1,10 +1,9 @@
 import re
-from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from models.database import execute, money_or_none, query, query_one, transaction
+from models.database import execute, money_or_none, now_text, query, query_one, transaction
 
-# The longest each one can be. These match the sizes in tools/init_database.py
+# These match the column sizes in tools/init_database.py
 MAX_NAME = 100
 MAX_CATEGORY = 50
 MAX_PRODUCER = 100
@@ -13,13 +12,10 @@ MAX_UPC = 13
 MAX_PRICE = Decimal("99999999.99")
 MAX_THRESHOLD = 100000
 
-# A UPC is only digits
 UPC_REGEX = r"^[0-9]+$"
 
 
-# Clean up the form and check every field. Gives back (product, errors)
-# product is a dict with clean values, and errors has the message for each field with a problem (empty if all is good)
-# Pass the product's ID when editing, so its own UPC doesn't count as taken
+# Gives back (product, errors). Pass product_id when editing, so its own UPC doesn't count as taken
 def read_product_form(form, product_id=None):
     errors = {}
 
@@ -50,7 +46,7 @@ def read_product_form(form, product_id=None):
     except (InvalidOperation, ValueError):
         errors["price"] = "Please enter the price as a number, like 2.50."
 
-    # The cost is optional. Empty means not known yet, and the product's sales don't count in the profit until it is filled in
+    # Optional. Sales of a product with no cost don't count in the profit
     cost = None
     raw_cost = form.get("costPrice", "").strip()
     if raw_cost:
@@ -92,28 +88,33 @@ def read_product_form(form, product_id=None):
         "taxable": bool(form.get("taxable")),
     }
 
-    # Only check the database when the value itself is well formed
     if upc_ok and upc_taken(upc, product_id):
         errors["upc"] = "This UPC is already used by another product."
 
     return product, errors
 
 
-# Is this UPC used by another product? Pass the product's own ID when editing so it doesn't match itself
+# The other product that already uses this UPC, or None
+def product_with_upc(upc, product_id=None):
+    return query_one("SELECT productID, productName FROM Product WHERE upc = ? AND productID IS NOT ?", (upc, product_id))
+
+
+# Is the UPC used by another product?
 def upc_taken(upc, product_id=None):
-    return query_one("SELECT 1 FROM Product WHERE upc = ? AND productID IS NOT ?", (upc, product_id)) is not None
+    return product_with_upc(upc, product_id) is not None
 
 
-# Category and producer names that already exist, for the suggestions on the form
+# For the suggestions on the product form
 def known_categories():
     return [row["categoryName"] for row in query("SELECT categoryName FROM Category ORDER BY categoryName")]
 
 
+# For the suggestions on the product form
 def known_producers():
     return [row["producerName"] for row in query("SELECT producerName FROM Producer ORDER BY producerName")]
 
 
-# Every product, active or hidden, for the products page
+# Every product, active or hidden
 def all_products():
     return query("""
         SELECT p.productID, p.productName, p.price, p.upc, p.description, p.imagePath,
@@ -127,7 +128,7 @@ def all_products():
     """)
 
 
-# One product with its category and producer names, or None if the ID is not there
+# One product with its category and producer, or None
 def get_product(product_id):
     return query_one("""
         SELECT p.productID, p.productName, p.price, p.costPrice, p.upc, p.description, p.imagePath,
@@ -139,7 +140,7 @@ def get_product(product_id):
     """, (product_id,))
 
 
-# Find a category or producer by name (ignoring capitals), or add it if it's new. Gives back its ID
+# Gives back the ID of the category or producer, adding it if it's new
 def _find_or_add(conn, table, id_column, name_column, name):
     row = conn.execute(f"SELECT {id_column} FROM {table} WHERE {name_column} = ? COLLATE NOCASE", (name,)).fetchone()
     if row is None:
@@ -148,7 +149,7 @@ def _find_or_add(conn, table, id_column, name_column, name):
     return row[0]
 
 
-# Add a new product. Gives back its ID
+# Add a product. Gives back its ID
 def save_product(product):
     def work(conn):
         category_id = _find_or_add(conn, "Category", "categoryID", "categoryName", product["category"])
@@ -159,13 +160,13 @@ def save_product(product):
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (product["name"], category_id, producer_id, str(product["price"]), money_or_none(product["cost"]), product["upc"],
              product["description"], product["image"],
-             product["threshold"], product["active"], product["taxable"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+             product["threshold"], product["active"], product["taxable"], now_text()),
         )
         return cursor.lastrowid
     return transaction(work)
 
 
-# Change a product. Gives back False if that ID is not there
+# False if that ID is not there
 def update_product(product_id, product):
     def work(conn):
         category_id = _find_or_add(conn, "Category", "categoryID", "categoryName", product["category"])
@@ -183,7 +184,7 @@ def update_product(product_id, product):
     return transaction(work)
 
 
-# Does this product have any deliveries or sales? Then it can't be deleted, only hidden
+# Does the product have deliveries or sales?
 def has_history(product_id):
     row = query_one("""
         SELECT (SELECT COUNT(*) FROM Reception WHERE productID = ?)
@@ -192,8 +193,7 @@ def has_history(product_id):
     return row["n"] > 0
 
 
-# Delete a product with no history. A product with history is hidden instead, so old records still make sense.
-# Gives back "deleted", "hidden" or None (if the ID is not there)
+# A product with deliveries or sales is hidden instead, so old records still make sense
 def delete_product(product_id):
     if get_product(product_id) is None:
         return None
@@ -204,7 +204,7 @@ def delete_product(product_id):
     return "deleted"
 
 
-# Stock of every active product, for the inventory dashboard (from the ProductStock view)
+# Stock of every active product
 def inventory_rows():
     return query("""
         SELECT s.productID, s.productName, s.categoryName, s.price, s.inStock, s.totalSold,
@@ -215,9 +215,27 @@ def inventory_rows():
     """)
 
 
-# How many units of one product are on the shelf and sold. Counts the units, so it works for hidden products too
+# Not from ProductStock, so it works for hidden products too
 def product_stock(product_id):
     return query_one("""
         SELECT COALESCE(SUM(status = 'in_stock'), 0) AS inStock, COALESCE(SUM(status = 'sold'), 0) AS totalSold
         FROM ProductItem WHERE productID = ?
     """, (product_id,))
+
+
+# Active products with no cost yet
+def products_without_cost():
+    return query("""
+        SELECT productID, productName FROM Product
+        WHERE costPrice IS NULL AND isActive = 1
+        ORDER BY productName COLLATE NOCASE
+    """)
+
+
+# Active products that sell for less than they cost
+def products_below_cost():
+    return query("""
+        SELECT productID, productName, price, costPrice FROM Product
+        WHERE costPrice IS NOT NULL AND price < costPrice AND isActive = 1
+        ORDER BY productName COLLATE NOCASE
+    """)

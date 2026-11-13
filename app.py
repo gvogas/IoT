@@ -6,18 +6,22 @@ from config import FRIDGES_ENABLED, SECRET_KEY
 from controllers.fan_controller import fan_controller
 from controllers.mqtt_controller import mqtt_controller
 from hardware import signals
+from hardware.rfid import setup_reader
 from mail.read_email import check_forever
 from models.product_image import MAX_UPLOAD_BYTES
 from routes import register_routes
 
 app = Flask(__name__)
-app.secret_key = SECRET_KEY   # Flask needs this so people can stay signed in
+app.secret_key = SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 register_routes(app)
 
 
 if __name__ == "__main__":
     try:
+        # Make /dev/ttyUSB0 show up for the RFID reader (only needed after a reboot)
+        setup_reader()
+
         if FRIDGES_ENABLED:
             # Listen to the sensors, and check the inbox for YES/NO replies to alert emails
             mqtt_controller.start()

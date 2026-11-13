@@ -1,9 +1,6 @@
 from flask import request
 
-# The words in the receipt email, in each language the site offers (English, French, Farsi, Greek, Italian, Dutch,
-# Mandarin, Hakka, Arabic, Vietnamese, Hindi)
-# Google Translate can't run inside an email, so these are written out by hand
-# The templates use them like {{ t.subtotal }}
+# Receipt email words in each language, since Google Translate can't run inside an email
 
 RECEIPT_TEXT = {
     "en": {
@@ -284,8 +281,7 @@ RECEIPT_TEXT = {
 }
 
 
-# The language picked in the menu. language.js saves it in the "googtrans" cookie, like "/en/fr"
-# No cookie (or one we don't know) means English
+# From the "googtrans" cookie, like "/en/fr". English if missing or unknown
 def chosen_language():
     language = request.cookies.get("googtrans", "").split("/")[-1]
     if language in RECEIPT_TEXT:

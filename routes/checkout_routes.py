@@ -5,8 +5,8 @@ from flask import Blueprint, jsonify, render_template, request, session, url_for
 from hardware.rfid import scan_once
 from mail.send_email import send_receipt_email, send_stock_alert
 from models.checkout import (
-    GST_PARTS, GST_PERCENT, POINTS_PER_STEP, POINTS_STEP, QST_PARTS, QST_PERCENT, basket_items, mark_receipt_emailed, pay, purchase_belongs_to, receipt, receipt_email_address,
-    stock_alerts,
+    GST_PARTS, GST_PERCENT, POINTS_PER_STEP, POINTS_STEP, QST_PARTS, QST_PERCENT, basket_items, mark_receipt_emailed,
+    pay, purchase_belongs_to, receipt, receipt_email_address, stock_alerts,
 )
 from models.customer import get_customer, get_customer_by_membership
 from models.reception import read_epcs
@@ -15,17 +15,16 @@ from routes.guards import is_signed_in, remember_sign_in
 checkout_routes = Blueprint("checkout_routes", __name__)
 
 
-# The main page. Anyone can scan items, but paying needs someone signed in
+# Anyone can scan items, but paying needs someone signed in
 @checkout_routes.route("/")
 def checkout():
-    # The signed-in customer, for the membership card in the summary (None for a guest)
     customer = get_customer(session["id"]) if is_signed_in() else None
     return render_template("checkout/checkout.html", gst_parts=GST_PARTS, qst_parts=QST_PARTS,
                            gst_percent=GST_PERCENT, qst_percent=QST_PERCENT, customer=customer,
                            points_step=POINTS_STEP, points_per_step=POINTS_PER_STEP)
 
 
-# Ask the RFID reader which tags are in the basket right now
+# The tags in the basket right now
 @checkout_routes.route("/api/checkout/scan", methods=["POST"])
 def scan_basket():
     items, sold, unknown = basket_items(scan_once())
@@ -34,7 +33,7 @@ def scan_basket():
     return jsonify(items=items, sold=sold, unknown=unknown)
 
 
-# Pay for the basket. The customer must be signed in
+# Pay, email the receipt, and sign the customer out
 @checkout_routes.route("/api/checkout/pay", methods=["POST"])
 def pay_basket():
     if not is_signed_in():
@@ -54,7 +53,6 @@ def pay_basket():
     address = receipt_email_address(purchase_id)
     email_sent = bool(address) and email_and_record(purchase_id, address, paid_receipt)
 
-    # Tell the admin if this sale made anything low or out of stock
     alerts = stock_alerts(purchase_id)
     if alerts:
         send_stock_alert(alerts)
@@ -62,7 +60,7 @@ def pay_basket():
     # The next person at the checkout starts signed out
     name = session.get("name", "")
     session.clear()
-    # Remember this one receipt so the customer can still email it after being signed out
+    # So the customer can still email this receipt after being signed out
     session["last_purchase"] = purchase_id
     email_message = (
         f"Receipt emailed to {address}." if email_sent
@@ -77,7 +75,7 @@ def pay_basket():
     )
 
 
-# Email a receipt and remember that it went out. Gives back True if it was sent
+# Gives back True if the email was sent
 def email_and_record(purchase_id, address, paid_receipt):
     if not send_receipt_email(address, paid_receipt):
         return False
@@ -88,7 +86,7 @@ def email_and_record(purchase_id, address, paid_receipt):
     return True
 
 
-# Send one receipt to the customer's current email. Gives back the answer for the page
+# Send a receipt to the customer's current email
 def send_receipt(purchase_id):
     address = receipt_email_address(purchase_id)
     paid_receipt = receipt(purchase_id)
@@ -100,7 +98,7 @@ def send_receipt(purchase_id):
     return jsonify(success=f"Receipt sent to {address}.")
 
 
-# Email the receipt that was just paid. The customer is signed out by now, so the session remembers which one
+# The receipt that was just paid. The customer is signed out by now, so the session remembers which one
 @checkout_routes.route("/api/checkout/receipt-email", methods=["POST"])
 def email_receipt():
     purchase_id = session.get("last_purchase")
@@ -109,7 +107,7 @@ def email_receipt():
     return send_receipt(purchase_id)
 
 
-# Email a past receipt, from the purchase history on My Account. Only the customer's own receipts
+# A past receipt from My Account. Only the customer's own receipts
 @checkout_routes.route("/api/receipts/<int:purchase_id>/email", methods=["POST"])
 def email_past_receipt(purchase_id):
     if not is_signed_in():
@@ -119,8 +117,7 @@ def email_past_receipt(purchase_id):
     return send_receipt(purchase_id)
 
 
-# Sign in by scanning the barcode on a membership card (the scanner types the number, then Enter)
-# Admins are sent to the admin page. Customers stay on the checkout
+# Sign in by scanning a membership card. Admins go to the admin page, customers stay on the checkout
 @checkout_routes.route("/api/scan-login", methods=["POST"])
 def scan_login():
     code = (request.get_json(silent=True) or {}).get("code", "")

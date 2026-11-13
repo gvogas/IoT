@@ -1,8 +1,18 @@
 import sqlite3
+from datetime import datetime
 
 from config import DB_PATH
 
+# Dates are saved as text in this format, so they sort and compare with < and >
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+
+# The current time as saved in the database
+def now_text():
+    return datetime.now().strftime(DATE_FORMAT)
+
+
+# Open the database with rows as dicts
 def connect():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -50,8 +60,7 @@ def execute(sql, args=()):
         conn.close()
 
 
-# Run several writes as one: they are all saved, or none of them are
-# work is a function that takes the connection and does the writes
+# Run work(conn) as one: all of its writes are saved, or none
 def transaction(work):
     conn = connect()
     try:
