@@ -5,9 +5,10 @@ A small self-checkout store with two monitored fridges, running on a Raspberry P
 Customers scan their items with an RFID reader, sign in with a membership card and pay at the checkout.
 Each purchase earns loyalty points, and the receipt is emailed to them automatically.
 They can see their purchases and points, and email a receipt again, from My Account.
-Admins manage products, stock and customers on the website, and see the sales, profit and tax collected.
+Admins manage products, stock and customers on the website.
+Their dashboard shows today's sales against yesterday and lists what needs attention, and the Reports page has the sales, profit and tax for any period.
 They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
-The language picker in the menu shows the pages in 11 languages, and the receipt email follows it.
+The language picker in the top bar shows the pages in 11 languages, and the receipt email follows it.
 
 For the fridges, an ESP32 with 2 DHT11 sensors sends the temperature and humidity over MQTT,
 and the website shows them live.
@@ -68,6 +69,8 @@ Then fill in your own values:
 
 The email settings can also come from the `ALERT_EMAIL`, `ALERT_EMAIL_PASSWORD` and `ALERT_TO` environment variables.
 
+The Pi doesn't recognise the CF600's USB id, so after a reboot `/dev/ttyUSB0` is missing. When `RFID_PORT` isn't there, app.py runs `sudo modprobe usbserial vendor=0x0483 product=0x5750` to create it, so it may ask for your password when it starts. If the reader still isn't found, it prints a red message and the app keeps running.
+
 ```
 python -m venv .venv
 .venv\Scripts\activate          (Windows)
@@ -83,7 +86,7 @@ Always run from the project folder.
 
 ```
 python app.py               then go to http://127.0.0.1:5000/
-                            (also starts the MQTT controller for sensor readings)
+                            (also sets up the RFID port and starts the MQTT controller for sensor readings)
                             The admin pages need a customer with the admin role (see below)
 ```
 
@@ -97,7 +100,7 @@ There is only one MQTT controller and one fan controller, and the whole app shar
 python -m tools.set_role          make a customer an admin (or a normal customer again)
 ```
 
-To make the first admin, sign up on the website, then run `python -m tools.set_role` and give yourself the admin role. Stock emails go to the email on every admin account.
+To make the first admin, sign up on the website (it needs a membership card barcode, scanned or typed), then run `python -m tools.set_role` and give yourself the admin role. Stock emails go to the email on every admin account.
 
 To start over with an empty database, delete `store.db` and run `python -m tools.init_database` again.
 

@@ -10,9 +10,11 @@ Everything except the ESP32 runs in one Python process on the Raspberry Pi. You 
 |---|---|
 | Anyone | Scan items at the checkout, sign up, sign in |
 | Signed-in customer | Pay, see their purchase history, email a past receipt, change their email |
-| Admin | Everything above, plus see the sales and profit, manage products, stock and customers, and watch the fridges |
+| Admin | Everything above, plus the dashboard and Reports (sales, profit, tax), manage products, stock and customers, and watch the fridges |
 
 Everyone who signs up starts as a customer. To make the first admin, run `python -m tools.set_role`.
+
+The menu runs down the left side of every page (`templates/base.html`). Admins see Dashboard, Reports, Inventory, Fridges and Customers under "Manage", and a signed-in customer sees My Account. Below the `lg` width, about 992 px, the menu is hidden and slides in from the ☰ button (Bootstrap's offcanvas). The bar across the top has the language picker and the name and role of whoever is signed in.
 
 ## The big picture
 
@@ -58,7 +60,7 @@ flowchart LR
     FanC --> HW
     HW --> Fan
     HW --> LEDs
-    HW <-->|"serial port"| Reader
+    HW <-->|"serial port<br/>(driver loaded at start)"| Reader
     Barcode -->|"types like a keyboard"| Browser
     Models <--> DB
     Models --> Images
@@ -66,7 +68,7 @@ flowchart LR
     Flask --> Models
     Flask -->|"scan tags, flash LEDs"| HW
     Flask -->|"receipts, stock emails"| Send
-    Flask -->|"live readings, alerts"| MQTT
+    Flask -->|"live readings, alerts<br/>(fridge pages + dashboard)"| MQTT
     Flask -->|"fan state, turn off"| FanC
 ```
 
@@ -85,6 +87,7 @@ flowchart TD
     routes["routes/<br/>admin, auth, checkout, customer,<br/>fan, fridge, product"] --> models
     routes --> controllers
     routes --> signals["hardware/signals.py, rfid.py"]
+    app -->|"setup_reader() at start"| signals
     routes --> mail_send
     routes --> templates["templates/ + static/"]
 
@@ -125,7 +128,11 @@ sequenceDiagram
 
     C->>JS: scan membership card
     JS->>F: POST /api/scan-login
-    F-->>JS: signed in, page reloads
+    alt a customer's card
+        F-->>JS: signed in, page reloads
+    else an admin's card
+        F-->>JS: signed in, go to the dashboard (/admin)
+    end
 
     C->>JS: press Pay
     JS->>F: POST /api/checkout/pay with the tags
@@ -157,10 +164,10 @@ A few details are easy to miss:
 - The trash button on a line, or Clear, takes items out of the basket in the browser. A removed tag stays out until it has left the reader's range, so an item still lying on the reader isn't added straight back.
 - Saving a purchase is one database transaction. If any tag can't be marked as sold, the whole purchase is cancelled.
 - Every complete $5 of the subtotal (before tax) earns 10 loyalty points. The points are saved on the purchase and added to the customer's balance in that same transaction, so a cancelled purchase gives no points. The receipt and the purchase history show the points earned.
-- The receipt is emailed automatically after paying, to the customer's email address, in the language picked in the menu (see [Languages](#languages)). The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
+- The receipt is emailed automatically after paying, to the customer's email address, in the language picked in the top bar (see [Languages](#languages)). The Send email button in the receipt window is a retry if that failed, and every purchase in My Account has the same button.
 - Tax is Quebec's two sales taxes, each worked out on the subtotal of the taxable items: the federal GST (5%) and the Quebec QST (9.975%), 14.975% together. The checkout, the receipt window, the receipt email and My Account show them on separate lines. Each product has a Taxable switch on its form (on by default). Products with it off get no GST or QST. The basket shows "No tax" under their name, and the receipt window, the receipt email and My Account show it next to the line. Each receipt line saves whether it was taxed, so changing the switch later doesn't change old receipts. The checkout page shows the rates next to GST and QST. Receipts show only the amounts, so an old receipt never shows a rate that changed after it. To change them, edit `GST_RATE` and `QST_RATE` in `models/checkout.py`, and the page and the receipts follow.
 - The customer is signed out right after paying, so the next person starts fresh. The session keeps the purchase number, which lets them still email that one receipt. The page reloads when they press Done, or after 60 seconds.
-- A barcode scanner types like a keyboard: the number very fast, then Enter. `auth/barcode_login.js` listens for that, so a card works even when the cursor isn't in the box. An admin's card goes to the admin page instead.
+- A barcode scanner types like a keyboard: the number very fast, then Enter. `auth/barcode_login.js` listens for that, so a card works even when the cursor isn't in the box. An admin's card goes to the dashboard instead.
 
 Payment is a simulation. Nothing charges a real card. [phase3-status.md](phase3-status.md) tracks what is left of Phase 3.
 
@@ -174,7 +181,7 @@ Every action tells the person what happened with a toast, a small box at the bot
 
 ## Languages
 
-The pages are written in English. The language picker at the top right of the menu offers 11 languages: English, French, Farsi, Greek, Italian, Dutch, Mandarin, Hakka, Arabic, Vietnamese and Hindi.
+The pages are written in English. The language picker in the top bar offers 11 languages: English, French, Farsi, Greek, Italian, Dutch, Mandarin, Hakka, Arabic, Vietnamese and Hindi.
 
 - `static/js/language.js` saves the choice in the `googtrans` cookie (like `/en/fr`) and reloads the page. The cookie has no expiry date, so closing the browser goes back to English.
 - Google Translate translates each page in the browser. Its script is only loaded when the language isn't English, so an English page loads nothing extra. Farsi and Arabic also turn the page right to left.
@@ -186,7 +193,7 @@ The pages are written in English. The language picker at the top right of the me
 
 ```mermaid
 flowchart TD
-    Signup["Sign up form"] --> Valid{"Details valid<br/>and not taken?"}
+    Signup["Sign up form<br/>with the card scanned"] --> Valid{"Details valid<br/>and not taken?"}
     Valid -->|no| Error["Show every problem,<br/>red LED + buzzer for 1 s"]
     Valid -->|yes| Save["Save the customer with a password hash<br/>and a membership number"]
     Save --> Success["Blue LED for 3 s"]
@@ -195,14 +202,17 @@ flowchart TD
     Password["Email + password<br/>on /signin"] --> SignedIn
     Card["Membership card<br/>at the checkout"] --> SignedIn
 
-    SignedIn --> Account["My Account: details,<br/>purchases, receipts"]
+    SignedIn --> Role{"Role?"}
+    Role -->|admin| Dashboard["Dashboard (/admin)"]
+    Role -->|customer| Checkout["Checkout (/)"]
+    Checkout --> Account["My Account: details,<br/>purchases, receipts"]
     Account --> Change["Change email"]
     Change --> Check{"Password right and<br/>new email free?"}
     Check -->|no| Keep["Show the problem,<br/>email stays the same"]
     Check -->|yes| Saved["Save the new email"]
 ```
 
-Only a scrambled version of each password (a hash) is saved. A membership number is either the barcode scanned at sign up or a new one like `VM12345678`.
+Only a scrambled version of each password (a hash) is saved. The membership number is the barcode on the customer's card. Sign up won't go through without one, and the app never makes up a number. An admin can give someone a new card number on the Customers page, and that box can't be left empty either.
 
 Who is signed in is stored in the session cookie as `id`, `name` and `role`. `is_admin()` in routes/guards.py checks the role in the database on every request, so a role change works without signing out and back in. Pages only admins can see have `@admin_page` above them, and API endpoints have `@admin_api`.
 
@@ -212,16 +222,24 @@ Changing an email asks for the password because anyone holding a card can sign i
 
 A product is the thing on the shelf, like "Milk 1 L". A unit is one physical item of it, with its own RFID tag. Stock isn't stored as a number. It is counted from the units still marked `in_stock`, so it can't drift away from what was received and sold.
 
-Each product can have a cost per unit, what the store pays for it. A sale saves that cost on each receipt line, so changing a cost later doesn't change the profit of old sales. The admin page has Today, This month and All time buttons, and for that period shows the sales before tax (GST and QST go to the government), the cost of the items sold, the net profit (the first minus the second, with the margin), the GST and QST collected, the number of orders and items, and the five products that made the most profit (each one's profit counts only its units with a cost, and says how many were left out). Units sold with no cost known are left out of the cost and the profit, and the page says how many there are. `profit_summary()` and `top_products()` in `models/checkout.py` work these out.
+Each product can have a cost per unit, what the store pays for it. A sale saves that cost on each receipt line, so changing a cost later doesn't change the profit of old sales. Units sold with no cost known are left out of the cost and the profit, and the pages that show profit say how many there are. The [dashboard and Reports](#the-dashboard-and-reports) show these numbers.
+
+On the product form, the UPC box comes first and has the cursor, so an admin can scan the item in their hand before typing anything. The scanner's Enter moves the cursor to the name instead of sending the form. When the cursor leaves the UPC box, `product_form.js` asks `/products/upc-check` whether another product already has that UPC, and if so shows a link to it under the box. The server checks again when the form is saved. A new product has a "Save and add another" button, which saves it and opens an empty form.
 
 ```mermaid
 flowchart LR
-    Add["Add a product"] --> Receive["Receive a delivery:<br/>scan or type the EPCs"]
+    Scan["Product form:<br/>scan the UPC first"] --> Taken{"UPC used by<br/>another product?"}
+    Taken -->|yes| Link["Show a link to<br/>that product"]
+    Taken -->|no| Add["Save the product"]
+    Add -->|"Save and add another"| Scan
+    Add --> Receive["Receive a delivery:<br/>scan or type the EPCs"]
     Receive --> Check{"Date and EPCs fine?"}
     Check -->|no| Fix["Show the problems,<br/>nothing is saved"]
     Fix --> Receive
     Check -->|yes| InStock["One unit per EPC,<br/>status in_stock"]
     InStock --> Sold["Paid at the checkout,<br/>status sold"]
+    Sold -->|"low or out of stock"| Attention["Stock Alert email +<br/>dashboard Needs attention"]
+    Attention -->|"Receive button"| Receive
 ```
 
 On the receive form, the Scan tags button asks the reader again and again through `/rfid/scan`. New tags go into the box, and tags already in the system are listed but not added. A delivery can't be dated in the future and can't go on a hidden product.
@@ -241,7 +259,37 @@ Two emails go to every account with the admin role. If there are no admins, they
 | Stock Alert | A sale takes a product down to its alert level or to 0. One email covers the whole basket | The product stays above its alert level, was already low and still has some left, or is hidden | `templates/email/stock_alert.html`, `.txt` |
 | Restocked | A delivery arrives for a product that was low or out of stock. It says how many came in, how many are now in stock, and whether the product is still low | The product was above its alert level before the delivery | `templates/email/restocked.html`, `.txt` |
 
-`stock_alerts()` in `models/checkout.py` picks the products for a Stock Alert, and `receive_stock()` in `routes/product_routes.py` decides on a Restocked email. `mail/send_email.py` fills in the templates during the web request, because they can't be filled in without one, then sends the email in a background thread. That way nobody waits for the email, and the sale or delivery is still saved if it fails. A failed email is not tried again, but the inventory page still shows the product as low or out.
+`stock_alerts()` in `models/checkout.py` picks the products for a Stock Alert, and `receive_stock()` in `routes/product_routes.py` decides on a Restocked email. `mail/send_email.py` fills in the templates during the web request, because they can't be filled in without one, then sends the email in a background thread. That way nobody waits for the email, and the sale or delivery is still saved if it fails. A failed email is not tried again, but the inventory page and the dashboard still show the product as low or out.
+
+## The dashboard and Reports
+
+Admins land on the dashboard (`/admin`) when they sign in. It is about today:
+
+- Sales, orders, average order and profit so far today. Under each one is how much it went up or down since yesterday at the same time of day, or "No sales yesterday to compare with".
+- Needs attention: one line per problem, most urgent first, each with a button that goes to the fix. The order is fridges, then out of stock products, products priced below their cost, low stock products, and products with no cost yet. When the list is empty it says everything is caught up.
+- A fridge shows up there when it is over its threshold (with whether the alert email went out), when its sensor hasn't sent anything for 15 seconds, or when there has been no reading at all. The 15 seconds match `static/js/fridges/common.js`. With `FRIDGES_ENABLED` on, the page reloads every 30 seconds so a new problem appears by itself. With it off, no fridge lines are shown.
+- The latest 6 orders, a bar for each of the last 7 days (today's is dark), and the 4 best sellers of those 7 days.
+
+Reports (`/reports`) has buttons for Today, This month, Last month and All time, with All time as the default. For the chosen period it shows:
+
+- Sales before tax (GST and QST go to the government), net profit with the margin and the cost of the items sold, the average order, and the tax owed split into GST and QST. Each number except tax is compared with the period before: today with yesterday at the same time, this month with last month up to the same day, and last month with the month before. All time has nothing to compare with.
+- A bar chart of sales per day for a month, or per month for all time. Today has no chart.
+- The 8 products that made the most profit, with the best seller's picture at the top. Each one's profit counts only its units with a cost.
+- Sales per category, with each category's share.
+
+```mermaid
+flowchart LR
+    Button["Period button<br/>?period=month"] --> Dates["period_dates()<br/>start, end, and the<br/>period before"]
+    Dates --> Now["profit_summary()<br/>for this period"]
+    Dates --> Before["profit_summary()<br/>for the period before"]
+    Now & Before --> Change["percent_change()<br/>up or down, in %"]
+    Dates --> Chart["sales_chart()"]
+    Dates --> Top["top_products()"]
+    Dates --> Cat["sales_by_category()"]
+    Now & Change & Chart & Top & Cat --> Page["admin/reports.html"]
+```
+
+`period_dates()` in `models/checkout.py` turns a period into a start and end date, plus the dates of the period to compare with. `profit_summary()`, `top_products()`, `sales_chart()`, `daily_sales()`, `sales_by_category()` and `recent_purchases()` in the same file run the queries. `products_below_cost()` and `products_without_cost()` in `models/product.py` find the pricing problems. Amounts are shown with the `money` template filter from `routes/formats.py`, like `$1,314.50` or `-$16.00`.
 
 ## A sensor reading, from the fridge to the screen
 
@@ -253,6 +301,7 @@ sequenceDiagram
     participant DB as store.db
     participant F as Flask
     participant JS as fridges/dashboard.js
+    participant AD as admin/home.html
 
     loop every 2 seconds
         ESP->>B: frig1/temperature "4.0"<br/>frig1/humidity "40.0"
@@ -270,6 +319,12 @@ sequenceDiagram
         F->>M: mqtt_controller.readings + alerts
         F->>DB: Fridge.get_all() + get_stats()
         F-->>JS: JSON (temperature, humidity, age, alert, stats)
+    end
+
+    loop every 30 seconds (FRIDGES_ENABLED on)
+        AD->>F: GET /admin (the page reloads itself)
+        F->>M: fridge_data() for each fridge
+        F-->>AD: Needs attention line for a fridge<br/>over its threshold or silent for 15 s
     end
 ```
 
@@ -318,7 +373,8 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/api/checkout/receipt-email` (POST) | after paying | routes/checkout_routes.py | Emails the receipt that was just paid |
 | `/api/receipts/<id>/email` (POST) | signed in, own receipts | routes/checkout_routes.py | Emails a past receipt from the purchase history |
 | `/api/scan-login` (POST) | everyone | routes/checkout_routes.py | Signs in with the barcode on a membership card |
-| `/admin?period=today\|month\|all` | admin | routes/admin_routes.py | Sales, cost, profit and tax for the period (all time if left out), the best products, and a card for each dashboard |
+| `/admin` | admin | routes/admin_routes.py | The dashboard: today against yesterday, what needs attention, latest orders and the last 7 days |
+| `/reports?period=today\|month\|last_month\|all` | admin | routes/admin_routes.py | Sales, profit, tax, a sales chart, the best products and sales per category for the period (all time if left out) |
 | `/signin`, `/signout` | everyone | routes/auth_routes.py | Checks email + password, stores `id`, `name`, `role` in the session cookie |
 | `/signup` | everyone | routes/customer_routes.py | Sign up form (auth/signup.js sends it to `/submit`) |
 | `/submit` (POST) | everyone | routes/customer_routes.py | Validates and saves a new customer, flashes the LEDs |
@@ -328,7 +384,7 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/api/customers/<id>/role` (POST) | admin | routes/customer_routes.py | Change someone's role (not your own) |
 | `/api/customers/<id>/membership` (POST) | admin | routes/customer_routes.py | Change someone's membership number |
 | `/inventory`, `/inventory.csv` | admin | routes/product_routes.py | Stock of every product, EPC search and the CSV download |
-| `/products`, `/products/new` | admin | routes/product_routes.py | List of products, and the form to add one |
+| `/products`, `/products/new` | admin | routes/product_routes.py | List of products, and the form to add one ("Save and add another" comes back to an empty form) |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |
 | `/products/upc-check` | admin | routes/product_routes.py | Says if another product already has a UPC, for the product form |
@@ -342,7 +398,7 @@ The readings never switch the fan by themselves. In normal use, a YES reply turn
 | `/api/fan` | admin | routes/fan_routes.py | The fan's state, ON or OFF (asked every 2 s) |
 | `/api/fan/off` (POST) | admin | routes/fan_routes.py | Turn the fan off |
 
-routes/\_\_init\_\_.py adds every blueprint to the app and handles the errors they share. A database error gives a 500, and an unplugged RFID reader gives a 503.
+routes/\_\_init\_\_.py adds every blueprint to the app, along with the template filters from routes/formats.py (`nice_date`, `nice_datetime` and `money`), and handles the errors they share. A database error gives a 500, and an unplugged RFID reader gives a 503.
 
 ## Database
 
@@ -362,8 +418,13 @@ The models run their SQL through small helpers in `models/database.py`:
 | `query_one()` | Gives back the first row, or `None` |
 | `execute()` | Saves an INSERT, UPDATE or DELETE and gives back how many rows changed |
 | `transaction()` | Runs several writes as one, for paying and receiving stock |
+| `now_text()` | The current local time as text in `DATE_FORMAT` (`2026-11-06 15:03:43`), for saving dates |
 
-Each of the first three opens a connection and closes it again. `get_stats()` in reading.py runs six queries in a row, so it opens one connection with `connect()` and uses it for all six.
+Dates are saved as text in that one format, so they sort and compare correctly with `<` and `>`. Each of the first three helpers opens a connection and closes it again. `get_stats()` in reading.py runs six queries in a row, so it opens one connection with `connect()` and uses it for all six.
+
+## When the app starts
+
+Before anything else, app.py calls `setup_reader()` in `hardware/rfid.py`. The Pi doesn't know the CF600's USB id, so after a reboot `RFID_PORT` (`/dev/ttyUSB0`) doesn't exist. If it is missing, `setup_reader()` runs `sudo modprobe usbserial vendor=0x0483 product=0x5750`, waits a second, and prints in green if the port showed up or in red if it didn't. When the port is already there it does nothing. Then app.py starts the MQTT controller and the inbox thread (if `FRIDGES_ENABLED` is on) and the website.
 
 ## When the app stops
 

@@ -200,10 +200,10 @@ A receipt has one line per product, with the quantity on it (`UNIQUE (purchaseID
 ### Customer accounts
 Signing up saves the customer with a hash of their password, never the password itself. `membershipNumber` is the barcode scanned at sign up. Emails are saved in lowercase, so `Ann@X.com` and `ann@x.com` count as the same address.
 
-A customer can change their own email on My Account by entering their password. The new address must not belong to anyone else. An admin can change someone's `role` or `membershipNumber` on the Customers page.
+A customer can change their own email on My Account by entering their password. The new address must not belong to anyone else. An admin can change someone's `role` or `membershipNumber` on the Customers page. A new membership number has to be scanned or typed, because the app doesn't generate them.
 
 ### Adding and editing a product
-The admin fills in the name, category, producer company, price, UPC (digits, up to 13), and an optional cost per unit, description and low stock level. The UPC is unique. The Taxable switch (on by default) says whether the checkout charges GST and QST on the product. An empty cost is saved as NULL, and that product's sales are left out of the profit until it is filled in.
+The admin fills in the UPC (digits, up to 13, usually scanned first), name, category, producer company, price, and an optional cost per unit, description and low stock level. The UPC is unique. The form checks it through `/products/upc-check` before saving and links to the product that already has it, and the save checks it again. The Taxable switch (on by default) says whether the checkout charges GST and QST on the product. An empty cost is saved as NULL, and that product's sales are left out of the profit until it is filled in.
 
 ### Product images
 The product form takes an optional JPG, PNG, WebP or GIF, up to 10 MB. `models/product_image.py` opens it with Pillow to prove it is really an image, turns it the right way up, shrinks it to 800 px at most, and saves it as a WebP with a random name in `static/uploads/products/`. The file is deleted when the image is replaced or removed, or when the product is deleted. A product that is only hidden keeps its image.
@@ -236,7 +236,9 @@ The `ProductStock` view has one row per active product, with `inStock`, `totalSo
 The stock emails go to the `email` of every Customer whose `role` is `admin`. Nothing extra is saved for them: the app works out whether to send one from the stock count and the sale or delivery quantity, so there are no new tables or columns. See [Stock emails](architecture.md#stock-emails) for the rules.
 
 ### Sales and profit
-The admin page adds up the sales for today, this month or all time, using `Purchase.purchaseDate`. Sales are `quantity × unitPrice` before tax, and the GST and QST collected come from the Purchase rows. The cost of each line is `PurchaseItem.unitCost`, or the product's `costPrice` now for older lines saved before costs were. Units with neither are left out of the cost and the profit, and the page says how many there are. `profit_summary()` and `top_products()` in `models/checkout.py` do this.
+The Reports page adds up the sales for today, this month, last month or all time, and the dashboard does the same for today and yesterday. Each period is a start and an end date compared with `Purchase.purchaseDate` (`purchaseDate >= start AND purchaseDate < end`), which works because dates are saved as text that sorts in time order. Sales are `quantity × unitPrice` before tax, and the GST and QST collected come from the Purchase rows. The cost of each line is `PurchaseItem.unitCost`, or the product's `costPrice` now for older lines saved before costs were. Units with neither are left out of the cost and the profit, and the page says how many there are. Sales per category join PurchaseItem to Product and Category, and the charts group `Purchase.subtotal` by day or by month. These queries are in `models/checkout.py`, starting with `profit_summary()`. See [The dashboard and Reports](architecture.md#the-dashboard-and-reports) for what each page shows.
+
+The dashboard also lists active products whose `price` is below their `costPrice`, and active products with no `costPrice` yet (`products_below_cost()` and `products_without_cost()` in `models/product.py`).
 
 ### Points
 A purchase earns 10 points for every complete $5 of the subtotal, before tax. So $12.99 earns 20 points, and $4.99 earns none. `pay()` in `models/checkout.py` saves the number as `Purchase.pointsEarned` and adds it to `Customer.totalPoints` in the same transaction as the sale. My Account shows the balance, where 100 points are worth $1 in rewards. Nothing spends the points yet.
@@ -245,7 +247,7 @@ A purchase earns 10 points for every complete $5 of the subtotal, before tax. So
 
 - Every connection runs `PRAGMA foreign_keys = ON` (in `models/database.py`). SQLite ignores foreign keys without it.
 - Yes/no columns (`isActive`, `isTaxable` and `emailSent`) are BOOLEAN. SQLite has no real true/false type, so it saves True as 1 and False as 0 and gives back 1 or 0. The code turns them back into True or False with `bool()`. Databases made before this still list the columns as INTEGER, which works the same.
-- The app passes the local date and time whenever it saves a row, because SQLite's defaults are in UTC. Only `Product.createdAt` has a default in the table, and the app doesn't rely on it.
+- The app passes the local date and time whenever it saves a row, because SQLite's defaults are in UTC. `now_text()` in `models/database.py` gives it as text like `2026-11-06 15:03:43` (`DATE_FORMAT`), so every date sorts and compares the same way. Only `Product.createdAt` has a default in the table, and the app doesn't rely on it.
 - A product that has deliveries or sales is never deleted. The app sets `isActive` to false (0) instead, so it is hidden from stock but old receipts still make sense. A product with no history is deleted.
 - An item must have the same `productID` as its reception. The app takes care of this when receiving, since both come from the same form.
 
