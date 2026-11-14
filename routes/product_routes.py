@@ -68,6 +68,14 @@ def inventory():
     )
 
 
+# Excel runs a cell that starts with = + - or @ as a formula. A ' in front makes it plain text
+def safe_cell(value):
+    text = str(value)
+    if text.startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
 # Download the inventory as a CSV spreadsheet
 @product_routes.route("/inventory.csv")
 @admin_page
@@ -76,7 +84,7 @@ def inventory_csv():
     writer = csv.writer(out)
     writer.writerow(["Product", "Category", "Price", "In stock", "Sold", "Low stock alert at", "Last received"])
     for row in inventory_rows():
-        writer.writerow([row["productName"], row["categoryName"], f"{row['price']:.2f}", row["inStock"],
+        writer.writerow([safe_cell(row["productName"]), safe_cell(row["categoryName"]), f"{row['price']:.2f}", row["inStock"],
                          row["totalSold"], row["lowStockThreshold"], row["lastReceived"] or ""])
 
     filename = f"inventory-{date.today().isoformat()}.csv"

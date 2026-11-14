@@ -1,7 +1,9 @@
+import math
 import time
 
 from flask import Blueprint, jsonify, render_template, request
 
+from config import MSP01_ENABLED, MSP01_FRIDGE_ID
 from controllers.mqtt_controller import mqtt_controller
 from models.fridge import Fridge
 from models.reading import get_history, get_stats, to_number
@@ -11,6 +13,10 @@ fridge_routes = Blueprint("fridge_routes", __name__)
 
 # How far back the history chart can go
 HISTORY_HOURS = (1, 24, 168)
+
+# The lowest and highest temperature limit an admin can set (°C)
+MIN_LIMIT = -30
+MAX_LIMIT = 30
 
 
 # All the fridges
@@ -30,6 +36,11 @@ def fridge_detail(fridge_id):
     return render_template("fridges/detail.html", fridge=fridge)
 
 
+# "MSP01" or "ESP32": what to check when the sensor stops sending
+def sensor_name(fridge_id):
+    return "MSP01" if MSP01_ENABLED and fridge_id == MSP01_FRIDGE_ID else "ESP32"
+
+
 # The live data for one fridge
 def fridge_data(fridge):
     data = mqtt_controller.readings.get(fridge.id, {})
@@ -38,6 +49,7 @@ def fridge_data(fridge):
         "id": fridge.id,
         "name": fridge.name,
         "threshold": fridge.threshold,
+        "sensor": sensor_name(fridge.id),
         "temperature": to_number(data.get("temperature")),
         "humidity": to_number(data.get("humidity")),
         # seconds since the last reading
@@ -82,6 +94,8 @@ def set_threshold(fridge_id):
         threshold = float(request.form.get("threshold", ""))
     except ValueError:
         return jsonify(error="Please enter a number."), 400
+    if not math.isfinite(threshold) or not MIN_LIMIT <= threshold <= MAX_LIMIT:
+        return jsonify(error=f"The limit must be between {MIN_LIMIT} and {MAX_LIMIT} °C."), 400
 
     if not Fridge(fridge_id).set_threshold(threshold):
         return jsonify(error=f"Fridge {fridge_id} not found."), 404

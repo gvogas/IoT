@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request
 
-from config import FRIDGES_ENABLED
+from config import FRIDGES_ENABLED, MSP01_ENABLED, MSP01_FRIDGE_ID
 from models.checkout import (PERIODS, daily_sales, period_dates, profit_summary, recent_purchases,
                              sales_by_category, sales_chart, top_products)
 from models.fridge import Fridge
@@ -29,7 +29,7 @@ def fridge_problems():
         elif data["age"] > OFFLINE_AFTER:
             ago = f"{data['age']} s" if data["age"] < 60 else f"{data['age'] // 60} min"
             problems.append({"id": fridge.id, "name": fridge.name, "hot": False,
-                             "text": f"The sensor stopped sending {ago} ago. Check the ESP32"})
+                             "text": f"The sensor stopped sending {ago} ago. Check the {data['sensor']}"})
         elif data["temperature"] is not None and data["temperature"] > fridge.threshold:
             alert = data["alert"]
             if alert is None:
@@ -83,12 +83,16 @@ def admin():
     week_total = round(sum(day["sales"] for day in days), 2)
     week_start = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d 00:00:00")
 
+    # The fridge the MSP01 is in, for the title of its cards
+    msp01_fridge = Fridge.get_by_id(MSP01_FRIDGE_ID) if MSP01_ENABLED else None
+
     return render_template("admin/home.html", greeting=greeting(), today_text=datetime.now().strftime("%A, %B %d"),
                            today=today, changes=changes, compare_label="yesterday",
                            fridges=fridge_problems(), out_of_stock=out_of_stock, low_stock=low_stock,
                            below_cost=products_below_cost(), no_cost=products_without_cost(),
                            recent=recent_purchases(6), days=days, best_day=best_day, week_total=week_total,
-                           week_top=top_products(week_start, None, 4), fridges_enabled=FRIDGES_ENABLED)
+                           week_top=top_products(week_start, None, 4), fridges_enabled=FRIDGES_ENABLED,
+                           msp01_enabled=MSP01_ENABLED, msp01_fridge=msp01_fridge)
 
 
 # The Reports page for the chosen period

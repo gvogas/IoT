@@ -5,7 +5,8 @@
 {% block head %}{% if fridges_enabled %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
 
 {% block content %}
-    {% set to_do = fridges|length + out_of_stock|length + below_cost|length + low_stock|length + no_cost|length %}
+    {# A too warm fridge already has the red banner, so the to-do list only has the other fridge problems #}
+    {% set to_do = fridges|rejectattr('hot')|list|length + out_of_stock|length + below_cost|length + low_stock|length + no_cost|length %}
     <div class="page-head">
         <div>
             <h1>{{ greeting }}, <span class="notranslate" translate="no">{{ session.name }}</span></h1>
@@ -83,6 +84,87 @@
         </div>
     </div>
 
+    {# The MSP01 sensor, which sits in a fridge. static/js/admin/room.js fills in the numbers every 5 seconds #}
+    {% if msp01_enabled %}
+    <section class="room-section mb-4" aria-labelledby="room-title">
+        <div class="room-head">
+            <h2 id="room-title">{{ msp01_fridge.name if msp01_fridge else 'MSP01' }}</h2>
+            <span id="room-status" class="fridge-status waiting"><span class="dot"></span><span class="status-text">Waiting</span></span>
+            <span class="room-meta">MSP01 sensor · Battery <b id="room-battery">--</b> % · Signal <b id="room-rssi">--</b> dBm · <span id="room-age">No reading yet</span></span>
+            {% if msp01_fridge %}<a class="small ms-auto" href="/fridges/{{ msp01_fridge.id }}">Limit and history <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+        </div>
+        <div id="room-message" role="status" hidden></div>
+
+        <div class="row row-cols-2 row-cols-xl-4 g-3 mb-3">
+            <div class="col">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-top">
+                            <span class="stat-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
+                            <span class="stat-label">Temperature</span>
+                        </div>
+                        <div class="stat-value"><span id="room-temp">--</span> <small>°C</small></div>
+                        <div class="stat-note" id="room-temp-range">24 h: --</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-top">
+                            <span class="stat-icon"><i class="bi bi-droplet" aria-hidden="true"></i></span>
+                            <span class="stat-label">Humidity</span>
+                        </div>
+                        <div class="stat-value"><span id="room-hum">--</span> <small>%</small></div>
+                        <div class="room-meter" aria-hidden="true"><div class="room-meter-fill" id="room-hum-bar"></div></div>
+                        <div class="stat-note" id="room-hum-range">24 h: --</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="stat-top">
+                            <span class="stat-icon warn"><i class="bi bi-brightness-high" id="room-light-icon" aria-hidden="true"></i></span>
+                            <span class="stat-label">Light</span>
+                        </div>
+                        <div class="stat-value"><span id="room-light">--</span> <small id="room-light-unit">lux</small></div>
+                        <div class="room-meter" aria-hidden="true"><div class="room-meter-fill light" id="room-light-bar"></div></div>
+                        <div class="stat-note" id="room-light-range">24 h: --</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card stat-card h-100" id="room-motion-card">
+                    <div class="card-body">
+                        <div class="stat-top">
+                            <span class="stat-icon" id="room-motion-icon"><i class="bi bi-person-walking" aria-hidden="true"></i></span>
+                            <span class="stat-label">Motion</span>
+                        </div>
+                        <div class="stat-value" id="room-motion" role="status">--</div>
+                        <div class="stat-note" id="room-last-motion">No motion yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# One bar per hour of today: how many times someone walked in front of the sensor #}
+        <div class="card" aria-labelledby="motion-title">
+            <div class="card-head">
+                <div>
+                    <h2 id="motion-title">Motion today</h2>
+                    <div class="big-number"><span id="room-visits">0</span> <small class="text-secondary fs-6 fw-normal">times someone moved</small></div>
+                </div>
+                <span class="text-secondary small">By hour</span>
+            </div>
+            <div class="card-body pt-0">
+                <div class="hour-chart" id="room-hours"></div>
+                <div class="hour-labels" aria-hidden="true"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>12 am</span></div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <div class="row g-3 mb-4">
         {# Everything that needs doing, the most urgent first. Each line has a button that goes straight to the fix #}
         <section class="col-lg-7">
@@ -93,8 +175,8 @@
                 </div>
                 {% if to_do %}
                 <ul class="todo-list">
-                    {% for fridge in fridges %}
-                    <li class="todo{{ ' urgent' if fridge.hot }}">
+                    {% for fridge in fridges if not fridge.hot %}
+                    <li class="todo">
                         <span class="todo-icon"><i class="bi bi-thermometer-high" aria-hidden="true"></i></span>
                         <span class="todo-text"><b>{{ fridge.name }}</b><small>{{ fridge.text }}</small></span>
                         <a class="btn btn-outline-secondary btn-sm" href="/fridges/{{ fridge.id }}">Check fridge</a>
@@ -180,7 +262,8 @@
                         {% for day in days %}
                         <div class="bar-day{{ ' today' if day.today }}">
                             <span class="bar-amount">{% if day.sales %}{{ '${:,.0f}'.format(day.sales) }}{% endif %}</span>
-                            <div class="bar-track">
+                            <span class="visually-hidden">{{ day.date }}: {{ day.sales|money }}</span>
+                            <div class="bar-track" aria-hidden="true">
                                 <div class="bar" style="height: {{ day.sales * 100 / best_day }}%" title="{{ day.date }}: {{ day.sales|money }}"></div>
                             </div>
                             <span class="bar-label">{{ 'Today' if day.today else day.label }}</span>
@@ -218,4 +301,10 @@
             </div>
         </section>
     </div>
+{% endblock %}
+
+{% block scripts %}
+    {% if msp01_enabled %}
+    <script src="{{ url_for('static', filename='js/admin/room.js') }}"></script>
+    {% endif %}
 {% endblock %}

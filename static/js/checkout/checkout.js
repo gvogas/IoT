@@ -88,12 +88,23 @@ function render() {
         const actions = document.createElement("td");
         actions.className = "text-end cell-actions";
         actions.dataset.label = "";
+        // With two or more of a product, a minus button takes off just one
+        if (line.qty > 1) {
+            const minus = document.createElement("button");
+            minus.type = "button";
+            minus.className = "btn btn-outline-secondary btn-sm btn-icon me-1";
+            minus.innerHTML = '<i class="bi bi-dash-lg" aria-hidden="true"></i>';
+            minus.title = "Remove one";
+            minus.setAttribute("aria-label", `Remove one ${line.name}`);
+            minus.addEventListener("click", () => removeOne(productID, line.name));
+            actions.appendChild(minus);
+        }
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "btn btn-outline-danger btn-sm btn-icon";
         remove.innerHTML = '<i class="bi bi-trash3" aria-hidden="true"></i>';
-        remove.title = "Remove";
-        remove.setAttribute("aria-label", `Remove ${line.name}`);
+        remove.title = line.qty > 1 ? "Remove all" : "Remove";
+        remove.setAttribute("aria-label", line.qty > 1 ? `Remove all ${line.name}` : `Remove ${line.name}`);
         remove.addEventListener("click", () => removeProduct(productID, line.name));
         actions.appendChild(remove);
         row.appendChild(actions);
@@ -189,6 +200,15 @@ function handleScan(data) {
     } else if (fresh.length) {
         notify(basketMessage, `Added: ${names(fresh)}`, "success");
     }
+}
+
+// Take one item of a product out of the basket
+function removeOne(productID, name) {
+    const item = items.find((i) => i.productID === productID);
+    removedTags.add(item.epc);
+    items = items.filter((i) => i !== item);
+    render();
+    showToast(`Removed one: ${name}`);
 }
 
 // Take every item of one product out of the basket

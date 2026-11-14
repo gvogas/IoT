@@ -1649,7 +1649,6 @@ body {
 .chip-count {
     font-size: 0.8em;
     font-weight: 600;
-    opacity: 0.75;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1657,6 +1656,8 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+    /* 24 px is the smallest comfortable tap target */
+    min-height: 24px;
     padding: 0;
     border: 0;
     background: none;
@@ -2318,4 +2319,180 @@ fieldset:disabled {
     .detail-stats div:nth-child(3) {
         border-left: 0;
     }
+}
+
+
+/* ---------- Store room sensor (MSP01) on the dashboard ---------- */
+.room-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    margin-bottom: 0.9rem;
+}
+
+.room-head h2 {
+    margin: 0;
+}
+
+.room-meta {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.stat-value small {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+/* A thin bar under a number, full at 100% */
+.room-meter {
+    height: 6px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--tint);
+}
+
+.room-meter-fill {
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--arctic-blue);
+    transition: width 0.4s ease-out;
+}
+
+.room-meter-fill.light {
+    background: var(--warning);
+}
+
+/* The motion card gets a green edge while someone is moving */
+#room-motion-card.moving {
+    border-color: var(--success);
+    box-shadow: 0 0 0 1px var(--success);
+}
+
+#room-motion-card.moving .stat-value {
+    color: var(--success);
+}
+
+/* 24 thin bars, one per hour. The hour we are in is dark */
+.hour-chart {
+    display: flex;
+    align-items: stretch;
+    gap: 3px;
+    height: 120px;
+}
+
+.hour-bar {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+    border-radius: 4px;
+    background: var(--tint);
+}
+
+.hour-fill {
+    width: 100%;
+    height: 0;
+    border-radius: 4px;
+    background: var(--arctic-blue);
+    transition: height 0.4s ease-out;
+}
+
+.hour-bar.now .hour-fill {
+    background: var(--arctic-navy);
+}
+
+.hour-bar.now {
+    outline: 1px solid var(--arctic-mist);
+}
+
+.hour-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+
+/* ---------- Audit fixes ---------- */
+
+/* "Skip to content": hidden until a keyboard user tabs to it */
+.skip-link {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2000;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: var(--arctic-navy);
+    color: #FFFFFF;
+    transform: translateY(-200%);
+}
+
+.skip-link:focus {
+    transform: none;
+}
+
+/* Small text on the navy membership card (the grey text-secondary was too faint there) */
+.member-card .member-note {
+    color: var(--arctic-mist);
+}
+
+/* Report bars: the amount appears when the bar is tapped, hovered or focused */
+.bar-amount.quiet {
+    visibility: hidden;
+}
+
+.bar-day:hover .bar-amount.quiet,
+.bar-day:focus .bar-amount.quiet {
+    visibility: visible;
+}
+
+.bar-day:focus-visible {
+    outline: 2px solid var(--arctic-blue);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* The fan state and its button on a fridge's page */
+.detail-fan {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Right-to-left languages: keep numbers with their units in the normal order ("7.9 °C", not "°C 7.9"),
+   and keep the gauges and charts drawn left to right */
+.temp-value,
+.stat-value,
+.stat-note,
+.hum-range,
+.detail-stats b,
+.limit-labels span,
+.trend-text,
+.last-reading,
+.tile-foot span,
+.room-meta,
+.bar-amount,
+.big-number,
+.num {
+    unicode-bidi: isolate;
+    direction: ltr;
+}
+
+.thermometer,
+.dial-box svg,
+.chart,
+.limit-bar,
+.limit-labels,
+.hour-chart,
+.bar-chart {
+    direction: ltr;
 }

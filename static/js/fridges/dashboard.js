@@ -3,7 +3,8 @@ const message = document.getElementById("message");
 const summary = document.getElementById("summary");
 const fanState = document.getElementById("fan-state");
 const fanMessage = document.getElementById("fan-message");
-const fanOff = document.getElementById("fan-off");
+const fanButton = document.getElementById("fan-button");
+const brokerMessage = document.getElementById("broker-message");
 const fanIcon = document.getElementById("fan-icon");
 
 const tiles = {};
@@ -15,44 +16,35 @@ function setFanState(state) {
     fanState.className = state === "ON" ? "ok" : "";
 
     fanIcon.classList.toggle("on", state === "ON");
+    showFanButton(fanButton, state);
     showSummary();
 }
 
-// Get the fan state from the server
+// Get the fan state, and whether the broker is reachable, from the server
 async function updateFan() {
-    if (fanOff.disabled) return;
+    if (fanButton.disabled) return;
     try {
         const response = await fetch("/api/fan", { cache: "no-store" });
         const result = await response.json();
-        if (fanOff.disabled) return;
+        if (fanButton.disabled) return;
         if (response.status === 403) {
             showSignedOut(message);
             setFanState("UNKNOWN");
             return;
         }
         setFanState(response.ok ? result.state : "UNKNOWN");
+        if (response.ok) showBroker(brokerMessage, result.broker);
+        setMessage(fanMessage, "");
     } catch (error) {
-        if (!fanOff.disabled) {
+        if (!fanButton.disabled) {
             setFanState("UNKNOWN");
             setMessage(fanMessage, "Cannot reach the server.");
         }
     }
 }
 
-fanOff.addEventListener("click", async () => {
-    fanOff.disabled = true;
-    try {
-        const response = await fetch("/api/fan/off", { method: "POST" });
-        const result = await response.json();
-        if (response.status === 403) showSignedOut(message);
-        setFanState(response.ok ? result.state : "UNKNOWN");
-        showToast(result.error || result.success, result.error ? "danger" : "success");
-    } catch (error) {
-        setFanState("UNKNOWN");
-        showToast("Unable to reach the server. Fan off is not confirmed.", "danger");
-    } finally {
-        fanOff.disabled = false;
-    }
+fanButton.addEventListener("click", async () => {
+    setFanState(await pressFanButton(fanButton));
 });
 
 // The line at the top of the page

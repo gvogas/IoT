@@ -13,6 +13,7 @@
             </div>
         </div>
         <div id="message" role="status" hidden></div>
+        <div id="broker-message" role="status" hidden></div>
 
         <div class="detail-grid">
             <section class="card detail-card">
@@ -92,7 +93,7 @@
                         <form id="threshold-form" class="threshold-form">
                             <div>
                                 <label class="form-label" for="threshold_input">New limit (°C)</label>
-                                <input class="form-control" type="number" step="0.5" id="threshold_input" name="threshold" required>
+                                <input class="form-control" type="number" step="0.5" min="-30" max="30" id="threshold_input" name="threshold" required>
                             </div>
                             <button class="btn btn-primary" type="submit">Save</button>
                         </form>
@@ -103,7 +104,10 @@
                     <div class="card-body">
                         <h2>Alerts</h2>
                         <p class="alert-info text-secondary">No alert sent.</p>
-                        <p class="mb-0">Shared fan: <b id="fan-state">UNKNOWN</b></p>
+                        <div class="detail-fan">
+                            <p class="mb-0">Shared fan: <b id="fan-state" role="status">UNKNOWN</b></p>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="fan-button" hidden>Turn fan on</button>
+                        </div>
                     </div>
                 </section>
             </div>

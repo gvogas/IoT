@@ -2,6 +2,8 @@ const page = document.getElementById("fridge");
 const fridgeId = page.dataset.id;
 const message = document.getElementById("message");
 const fanState = document.getElementById("fan-state");
+const fanButton = document.getElementById("fan-button");
+const brokerMessage = document.getElementById("broker-message");
 const form = document.getElementById("threshold-form");
 
 let latest = null;
@@ -111,17 +113,29 @@ async function update() {
     }
 }
 
-// Get the fan state from the server
+// Show the fan state and the button that changes it
+function setFanState(state) {
+    fanState.textContent = state;
+    fanState.className = state === "ON" ? "ok" : "";
+    showFanButton(fanButton, state);
+}
+
+// Get the fan state, and whether the broker is reachable, from the server
 async function updateFan() {
+    if (fanButton.disabled) return;
     try {
         const response = await fetch("/api/fan", { cache: "no-store" });
         const result = await response.json();
-        fanState.textContent = response.ok ? result.state : "UNKNOWN";
-        fanState.className = result.state === "ON" ? "ok" : "";
+        setFanState(response.ok ? result.state : "UNKNOWN");
+        if (response.ok) showBroker(brokerMessage, result.broker);
     } catch (error) {
-        fanState.textContent = "UNKNOWN";
+        setFanState("UNKNOWN");
     }
 }
+
+fanButton.addEventListener("click", async () => {
+    setFanState(await pressFanButton(fanButton));
+});
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();

@@ -17,6 +17,7 @@
 {% block head %}{% endblock %}
 </head>
 <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <div class="app">
     {# The menu down the left side. On phones and tablets it is hidden and slides in from the ☰ button (Bootstrap "offcanvas") #}
     <div class="sidebar-column">
@@ -105,7 +106,7 @@
         {% endfor %}
     </div>
 
-    <main class="{% block main_class %}{% endblock %}">
+    <main id="main" tabindex="-1" class="{% block main_class %}{% endblock %}">
 {% block content %}{% endblock %}
     </main>
     </div>

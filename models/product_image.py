@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 from io import BytesIO
@@ -7,6 +8,8 @@ from PIL import Image, ImageOps
 # Images are saved here, and Product.imagePath holds the path inside static/
 STATIC_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 UPLOAD_FOLDER = "uploads/products"
+
+log = logging.getLogger(__name__)
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_PIXELS = 40_000_000
@@ -61,4 +64,4 @@ def delete_image(path):
     except FileNotFoundError:
         pass
     except OSError as err:
-        print(f"Could not delete the image {path}: {err}")
+        log.error("Could not delete the image %s: %s", path, err)

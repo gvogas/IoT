@@ -90,9 +90,11 @@
             <div class="bar-chart{{ ' month-chart' if bars|length > 12 }}">
                 {% for bar in bars %}
                 {% set best = bar.sales > 0 and bar.sales == best_bar %}
-                <div class="bar-day{{ ' today' if best }}">
-                    <span class="bar-amount">{% if best %}{{ '${:,.0f}'.format(bar.sales) }}{% endif %}</span>
-                    <div class="bar-track">
+                {# Only the best bar shows its amount; the others show it when tapped or focused #}
+                <div class="bar-day{{ ' today' if best }}" tabindex="0">
+                    <span class="bar-amount{{ '' if best else ' quiet' }}" aria-hidden="true">{{ '${:,.0f}'.format(bar.sales) }}</span>
+                    <span class="visually-hidden">{{ bar.title }}: {{ bar.sales|money }}</span>
+                    <div class="bar-track" aria-hidden="true">
                         <div class="bar" style="height: {{ bar.sales * 100 / best_bar }}%" title="{{ bar.title }}: {{ bar.sales|money }}"></div>
                     </div>
                     <span class="bar-label">{{ bar.label }}</span>

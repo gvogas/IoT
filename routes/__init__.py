@@ -12,6 +12,7 @@ from routes.fan_routes import fan_routes
 from routes.formats import money, nice_date, nice_datetime
 from routes.fridge_routes import fridge_routes
 from routes.product_routes import product_routes
+from routes.room_routes import room_routes
 
 
 # API errors are sent as JSON
@@ -22,7 +23,7 @@ def is_api_request():
 # Add every page, filter and error handler to the app
 def register_routes(app):
     for blueprint in (admin_routes, auth_routes, checkout_routes, customer_routes,
-                      fan_routes, fridge_routes, product_routes):
+                      fan_routes, fridge_routes, product_routes, room_routes):
         app.register_blueprint(blueprint)
 
     app.add_template_filter(nice_date)

@@ -28,8 +28,10 @@ MQTT_BROKER = "192.168.0.100"
 
 MQTT_PORT = 1883
 
-# Send "ON" or "OFF" here to control the fan (a YES reply to an alert email sends "ON")
-FAN_COMMAND_TOPIC = "fan/command"
+# The broker's username and password (from mosquitto_passwd, see docs/fridges.md).
+# Leave both empty if the broker doesn't ask for a password
+MQTT_USERNAME = ""
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 # ---------- Email (fridge alerts go to ALERT_TO, stock alerts to the admins) ----------
 
@@ -49,10 +51,6 @@ ALERT_RESET_MARGIN = 1.0
 # Fan motor driver pins: enable, input, input2
 FAN_PINS = (22, 27, 17)
 
-LEDRED = 21
-LEDBLUE = 26
-BUZZER = 24
-
 
 # ---------- RFID reader (CF600) ----------
 
@@ -61,3 +59,20 @@ RFID_PORT = "/dev/ttyUSB0"
 
 # The CF600's serial baud rate
 RFID_BAUD = 115200
+
+
+# ---------- Fridge 3 sensor (Minew MSP01: temperature, humidity, light and motion over Bluetooth) ----------
+
+# False = don't listen for the MSP01 and hide its cards on the dashboard
+MSP01_ENABLED = False
+
+# The sensor's Bluetooth address, printed on its back (like "AC:23:3F:AB:7F:00").
+# Leave it empty to use the first MSP01 the Pi hears (its address is printed when the app starts)
+MSP01_ADDRESS = ""
+
+# The readings are published as msp01/temperature, msp01/humidity, msp01/light, msp01/motion, ...
+MSP01_TOPIC = "msp01"
+
+# The MSP01 sits in this fridge. Its temperature and humidity show up as this fridge on the
+# Fridges page, with a limit and alert emails like the others (tools/init_database.py adds it)
+MSP01_FRIDGE_ID = 3

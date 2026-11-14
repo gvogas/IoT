@@ -29,3 +29,8 @@ class Fan:
     # Stop the fan
     def off(self):
         GPIO.output(self.enable_pin, GPIO.LOW)
+
+
+# Release the GPIO pins. Call this when the program ends
+def cleanup():
+    GPIO.cleanup()

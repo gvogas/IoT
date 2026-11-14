@@ -1,9 +1,10 @@
 import sqlite3
+import threading
 
 from flask import Blueprint, jsonify, render_template, request, session, url_for
 
 from hardware.rfid import scan_once
-from mail.send_email import send_receipt_email, send_stock_alert
+from mail.send_email import receipt_email, send, send_receipt_email, send_stock_alert
 from models.checkout import (
     GST_PARTS, GST_PERCENT, POINTS_PER_STEP, POINTS_STEP, QST_PARTS, QST_PERCENT, basket_items, mark_receipt_emailed,
     pay, purchase_belongs_to, receipt, receipt_email_address, stock_alerts,
@@ -49,9 +50,11 @@ def pay_basket():
         return jsonify(error=str(err)), 409
     paid_receipt = receipt(purchase_id)
 
-    # Email the receipt straight away. If it fails, the Send email button on the receipt tries again
+    # Email the receipt in the background, so the customer doesn't wait for Gmail.
+    # If it fails, the Send email button on the receipt tries again
     address = receipt_email_address(purchase_id)
-    email_sent = bool(address) and email_and_record(purchase_id, address, paid_receipt)
+    if address:
+        email_in_background(purchase_id, address, paid_receipt)
 
     alerts = stock_alerts(purchase_id)
     if alerts:
@@ -63,16 +66,29 @@ def pay_basket():
     # So the customer can still email this receipt after being signed out
     session["last_purchase"] = purchase_id
     email_message = (
-        f"Receipt emailed to {address}." if email_sent
-        else "Receipt email could not be sent automatically. You can try again below."
+        f"Your receipt is on its way to {address}." if address
+        else "There is no email on this account, so no receipt was emailed."
     )
     return jsonify(
         success=f"Thank you, {name}! Paid ${total:.2f}.",
         purchaseID=purchase_id,
         receipt=paid_receipt,
-        emailSent=email_sent,
         emailMessage=email_message,
     )
+
+
+# Send the receipt in a thread. The email is made here first, because templates need the web request
+def email_in_background(purchase_id, address, paid_receipt):
+    subject, text, html = receipt_email(paid_receipt)
+
+    def send_and_record():
+        if send(address, subject, text, html):
+            try:
+                mark_receipt_emailed(purchase_id)
+            except sqlite3.Error:
+                pass   # the email went out, only the record failed
+
+    threading.Thread(target=send_and_record, daemon=True).start()
 
 
 # Gives back True if the email was sent

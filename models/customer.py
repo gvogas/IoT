@@ -15,6 +15,9 @@ MAX_ADDRESS = 255
 MAX_EMAIL = 255
 MIN_PASSWORD = 8
 MAX_MEMBERSHIP = 32
+
+# Sign-up says this when the email, phone or card is already used, without saying which
+TAKEN_MESSAGE = "This email, phone number or membership card is already used by an account. If it's yours, sign in instead."
 BARCODE_REGEX = r"^[A-Z0-9]+$"
 
 ROLES = ("customer", "admin")
@@ -121,6 +124,7 @@ class Customer:
     # Every problem with the form, empty if all is good
     def validate(self):
         errors = []
+        taken = False
 
         if not self.name:
             errors.append("Please enter your name.")
@@ -161,15 +165,19 @@ class Customer:
         elif not re.match(BARCODE_REGEX, self.barcode):
             errors.append("The barcode can only have letters and digits.")
         elif self.barcode_taken():
-            errors.append("This barcode is already registered to another customer.")
+            taken = True
 
         if len(self.password) < MIN_PASSWORD:
             errors.append(f"Password must be at least {MIN_PASSWORD} characters.")
 
         if email_ok and self.email_taken():
-            errors.append("This email is already registered.")
+            taken = True
         if phone_ok and self.phone_taken():
-            errors.append("This phone number is already registered.")
+            taken = True
+        # One message that doesn't say which one is taken, so the form can't be used
+        # to find out whose email, phone or card is in the store's records
+        if taken:
+            errors.append(TAKEN_MESSAGE)
 
         return errors
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import threading
@@ -22,11 +23,7 @@ _port = None
 _leftover = b""
 
 
-# Terminal colors so the RFID messages stand out from Flask's output
-RED = "\033[91m"
-YELLOW = "\033[93m"
-GREEN = "\033[92m"
-RESET = "\033[0m"
+log = logging.getLogger(__name__)
 
 
 # The Pi doesn't know the CF600's USB id, so after a reboot /dev/ttyUSB0 is missing
@@ -34,14 +31,14 @@ RESET = "\033[0m"
 def setup_reader():
     if os.path.exists(RFID_PORT):
         return
-    print(f"{YELLOW}{RFID_PORT} not found, loading the usbserial driver for the RFID reader...{RESET}")
+    log.warning("%s not found, loading the usbserial driver for the RFID reader...", RFID_PORT)
     subprocess.run(["sudo", "modprobe", "usbserial", "vendor=0x0483", "product=0x5750"])
     # Give Linux a moment to create the port
     time.sleep(1)
     if os.path.exists(RFID_PORT):
-        print(f"{GREEN}RFID reader ready on {RFID_PORT}{RESET}")
+        log.info("RFID reader ready on %s", RFID_PORT)
     else:
-        print(f"{RED}RFID reader still not found on {RFID_PORT}. Is it plugged in?{RESET}")
+        log.error("RFID reader still not found on %s. Is it plugged in?", RFID_PORT)
 
 
 # The reader is unplugged or not answering

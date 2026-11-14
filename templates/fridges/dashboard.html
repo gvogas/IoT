@@ -9,6 +9,7 @@
         </div>
     </div>
     <div id="message" role="status" hidden></div>
+    <div id="broker-message" role="status" hidden></div>
 
     {# JS fills this with one tile per fridge #}
     <div id="fridges" class="fridge-tiles"></div>
@@ -21,7 +22,7 @@
                 <p>Status: <b id="fan-state" role="status">UNKNOWN</b></p>
             </div>
             <div id="fan-message" role="status" hidden></div>
-            <button type="button" class="btn btn-outline-secondary" id="fan-off">Turn fan off</button>
+            <button type="button" class="btn btn-outline-secondary" id="fan-button" hidden>Turn fan on</button>
         </div>
     </section>
 

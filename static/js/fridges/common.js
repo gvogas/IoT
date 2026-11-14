@@ -54,7 +54,7 @@ function trendInfo(stats) {
 function fridgeSentence(fridge, fanState) {
     const status = fridgeStatus(fridge);
     if (status === "waiting") return "No reading from the sensor yet.";
-    if (status === "offline") return `The sensor stopped sending ${timeAgo(fridge.age)}. Check the ESP32.`;
+    if (status === "offline") return `The sensor stopped sending ${timeAgo(fridge.age)}. Check the ${fridge.sensor}.`;
 
     const stats = fridge.stats || {};
     const diff = Math.abs(fridge.temperature - fridge.threshold).toFixed(1);
@@ -100,4 +100,36 @@ function setTrend(element, stats) {
     element.querySelector(".trend-arrow").style.transform = `rotate(${trend.angle}deg)`;
     element.querySelector(".trend-arrow").style.visibility = trend.known ? "visible" : "hidden";
     element.querySelector(".trend-text").textContent = trend.text;
+}
+
+// The fan button says "Turn fan on" or "Turn fan off" to match the fan. Hidden when the state is unknown
+function showFanButton(button, state) {
+    button.hidden = state !== "ON" && state !== "OFF";
+    button.textContent = state === "ON" ? "Turn fan off" : "Turn fan on";
+    button.dataset.action = state === "ON" ? "off" : "on";
+}
+
+// Turn the fan on or off, whichever the button says. Gives back the new state
+async function pressFanButton(button) {
+    button.disabled = true;
+    try {
+        const response = await fetch(`/api/fan/${button.dataset.action}`, { method: "POST" });
+        const result = await response.json();
+        showToast(result.error || result.success, result.error ? "danger" : "success");
+        return response.ok ? result.state : "UNKNOWN";
+    } catch (error) {
+        showToast("Unable to reach the server. The fan change is not confirmed.", "danger");
+        return "UNKNOWN";
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// The warning shown when the app can't reach the MQTT broker
+const BROKER_DOWN = "Can't reach the MQTT broker, so no new readings are coming in. Check that Mosquitto is running and MQTT_BROKER in config.py.";
+
+// Show or hide the broker warning. Only changes the page when it changes, so screen readers don't repeat it
+function showBroker(element, connected) {
+    const text = connected ? "" : BROKER_DOWN;
+    if (element.textContent !== text) setMessage(element, text, "warning");
 }

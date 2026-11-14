@@ -1,5 +1,15 @@
 const form = document.getElementById("customer-form");
 const message = document.getElementById("message");
+const passwordInput = document.getElementById("password_input");
+const showPassword = document.getElementById("show_password");
+
+// Show or hide the password while typing it
+showPassword.addEventListener("click", () => {
+    const showing = passwordInput.type === "text";
+    passwordInput.type = showing ? "password" : "text";
+    showPassword.textContent = showing ? "Show" : "Hide";
+    showPassword.setAttribute("aria-pressed", String(!showing));
+});
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();

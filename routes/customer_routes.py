@@ -3,10 +3,9 @@ from datetime import date
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session
 
-from hardware.signals import send_error, send_success
 from models.checkout import purchase_history
 from models.customer import (
-    ROLES, Customer, check_membership_number, check_new_email, check_sign_in, customers_with_spending, get_customer,
+    ROLES, TAKEN_MESSAGE, Customer, check_membership_number, check_new_email, check_sign_in, customers_with_spending, get_customer,
     set_email, set_membership_number, set_role,
 )
 from routes.guards import admin_api, admin_page, is_signed_in, remember_sign_in
@@ -35,7 +34,6 @@ def submit():
     try:
         errors = customer.validate()
         if errors:
-            send_error()
             return jsonify(error="\n".join(errors)), 400
 
         membership_number = customer.save()
@@ -43,14 +41,11 @@ def submit():
 
     except sqlite3.IntegrityError:
         # Two people signing up with the same email at the same moment
-        send_error()
-        return jsonify(error="This email or phone number is already registered."), 400
+        return jsonify(error=TAKEN_MESSAGE), 400
 
     except sqlite3.Error as err:
-        send_error()
         return jsonify(error=f"Database error: {err}"), 400
 
-    send_success()
     flash(f"Welcome! Your membership number is {membership_number}.")
     return jsonify(success="Account created!", redirect="/"), 200
 

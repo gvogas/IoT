@@ -1,10 +1,10 @@
-# Phase 3 Status
+# Phase 3 status
 
 Checked against `Phase-3.pdf` on 2026-11-11, extras updated 2026-11-12. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
 **Progress:** 34 of 35 items done. The 1 open item is a bonus (responsive).
 
-## Product Management
+## Product management
 - [x] Register a product (name, category, price, UPC, EPC, producer)
 - [x] Edit a product
 - [x] Delete a product
@@ -36,7 +36,7 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] Receipt generated after payment (window with lines, GST, QST, total, date and points earned)
 - [x] Receipt emailed automatically after payment when the customer has an email address; Send email button remains available for retry and from purchase history
 
-## Customer Accounts
+## Customer accounts
 - [x] Create an account
 - [x] Name, email, membership number (scanned from the card), total points
 - [x] Sign in
@@ -47,7 +47,7 @@ Extra, not in the PDF: customers can change their own email on My Account (`/acc
 
 Extra, not in the PDF: the admin page (`/admin`) shows the sales before tax, cost, net profit and margin, GST and QST collected, and the best products by profit, for today, this month or all time.
 
-## Receipt Contents
+## Receipt contents
 - [x] Product list (name, quantity, price)
 - [x] Total amount
 - [x] Points earned
@@ -59,7 +59,7 @@ Extra, not in the PDF: the admin page (`/admin`) shows the sales before tax, cos
 
 ## Notifications and UI
 - [x] Toast notifications exist (`static/js/common.js`)
-- [x] Toast shown after every action. Server actions use `flash()` (product add, edit, delete, receive, clear, sign-up, email change). Button actions on the pages use `showToast()` in `common.js` (checkout remove, clear and pay, receipt email, fridge limit, fan off). Not toasts on purpose: form errors next to the field, and the reader status line, which repeats
+- [x] Toast shown after every action. Server actions use `flash()` (product add, edit, delete, receive, clear, sign-up, email change). Button actions on the pages use `showToast()` in `common.js` (checkout remove, clear and pay, receipt email, fridge limit, fan on/off). Not toasts on purpose: form errors next to the field, and the reader status line, which repeats
 - [x] Bilingual English/French interface (bonus). The language picker in the menu (`static/js/language.js`) has French and 9 more languages, translated by Google Translate. The receipt email is translated by hand in `mail/translations.py`. See [Languages](architecture.md#languages)
 - [ ] Responsive UI check on phone width (bonus). The viewport tag and some phone-width CSS rules exist (`components.css`), but no page has been checked at phone width
 

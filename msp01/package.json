@@ -1,0 +1,21 @@
+{
+  "name": "msp01-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hears the Minew MSP01 over Bluetooth with barnowl and publishes its readings to MQTT",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "scan": "node scan.js",
+    "privileges": "sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)"
+  },
+  "dependencies": {
+    "advlib": "1.3.12",
+    "advlib-ble": "1.4.2",
+    "advlib-ble-manufacturers": "1.15.2",
+    "advlib-ble-services": "1.8.5",
+    "barnowl": "1.3.4",
+    "barnowl-hci": "0.7.2",
+    "mqtt": "5.16.1"
+  }
+}

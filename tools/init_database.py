@@ -1,6 +1,6 @@
 import sqlite3
 
-from config import DB_PATH
+from config import DB_PATH, MSP01_ENABLED, MSP01_FRIDGE_ID
 
 # Create the tables, or update an older database
 def main():
@@ -38,6 +38,25 @@ def main():
             recordedAt DATETIME NOT NULL
         );''')
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_reading_fridge_time ON Reading(fridgeID, recordedAt)")
+
+    # MSP01 sensor (in Fridge 3) readings, saved once a minute. light is in lux
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS RoomReading (
+            readingID INTEGER PRIMARY KEY AUTOINCREMENT,
+            temperature FLOAT,
+            humidity FLOAT,
+            light INTEGER,
+            recordedAt DATETIME NOT NULL
+        );''')
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_roomreading_time ON RoomReading(recordedAt)")
+
+    # One row each time the MSP01 starts seeing someone move
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS MotionEvent (
+            motionID INTEGER PRIMARY KEY AUTOINCREMENT,
+            detectedAt DATETIME NOT NULL
+        );''')
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_motion_time ON MotionEvent(detectedAt)")
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Category (
@@ -193,8 +212,16 @@ def main():
     if cursor.fetchone()[0] == 0:
         cursor.execute('''
             INSERT INTO Fridge (fridgeName, temp_threshold)
-            VALUES ('Fridge 1', 50.0), ('Fridge 2', 50.0);
+            VALUES ('Fridge 1', 5.0), ('Fridge 2', 5.0);
         ''')
+
+    # The fridge the MSP01 sensor is in, if it isn't there yet
+    cursor.execute("SELECT COUNT(*) FROM Fridge WHERE fridgeID = ?", (MSP01_FRIDGE_ID,))
+    if MSP01_ENABLED and cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO Fridge (fridgeID, fridgeName, temp_threshold) VALUES (?, ?, 5.0)",
+            (MSP01_FRIDGE_ID, f"Fridge {MSP01_FRIDGE_ID}"),
+        )
     conn.commit()
     conn.close()
     print("SQLite db initialized successfully:", DB_PATH)

@@ -12,3 +12,9 @@ esp32/fridge/config.h
 
 # Product images uploaded on the website
 /static/uploads/
+
+# Node packages for msp01/, made by npm install
+node_modules/
+
+# Log files, made by app.py
+logs/

@@ -1,14 +1,16 @@
+import math
 from datetime import datetime, timedelta
 
 from models.database import DATE_FORMAT, connect, execute, now_text, query
 
 
-# "23.5" -> 23.5, or None if it isn't a number
+# "23.5" -> 23.5, or None if it isn't a number. "inf" and "nan" don't count as numbers
 def to_number(value):
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return None
+    return number if math.isfinite(number) else None
 
 
 # Save one reading with the current time

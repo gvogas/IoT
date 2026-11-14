@@ -20,11 +20,11 @@
                     <div class="stat-label mt-3">Loyalty points</div>
                     <div class="stat-value">{{ customer.totalPoints }}</div>
                     {# Every 100 points can be exchanged for $1 in rewards. #}
-                    <div class="small text-secondary mt-1">
+                    <div class="small member-note mt-1">
                         Reward value: ${{ '%d'|format(customer.totalPoints // 100) }}
                         ({{ customer.totalPoints % 100 }} points toward the next dollar)
                     </div>
-                    <div class="small text-secondary">Earn 10 points for every complete $5 spent.</div>
+                    <div class="small member-note">Earn 10 points for every complete $5 spent.</div>
                 </div>
             </div>
 

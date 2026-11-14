@@ -36,7 +36,12 @@ void setup_wifi() {
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(MQTT_CLIENT)) {
+#ifdef MQTT_USER
+    bool ok = client.connect(MQTT_CLIENT, MQTT_USER, MQTT_PASS);   // the broker asks for a password
+#else
+    bool ok = client.connect(MQTT_CLIENT);
+#endif
+    if (ok) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
