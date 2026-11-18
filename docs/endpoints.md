@@ -28,12 +28,14 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | URL | Who can open it | File | What it does |
 |---|---|---|---|
 | `/admin` | admin | routes/admin_routes.py | The dashboard: today against yesterday, what needs attention, latest orders and the last 7 days |
-| `/reports?period=today\|month\|last_month\|all` | admin | routes/admin_routes.py | Sales, profit, tax, a sales chart, the best products and sales per category for the period (all time if left out) |
+| `/reports?period=today\|month\|last_month\|all` | admin | routes/admin_routes.py | Sales, profit, tax, a sales chart, units sold per product (with the most and least sold), the best products and sales per category for the period (all time if left out) |
+| `/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` | admin | routes/admin_routes.py | The same report for any days, both included. Leave `to` out for a single day |
 
 ## Products and stock
 | URL | Who can open it | File | What it does |
 |---|---|---|---|
 | `/inventory`, `/inventory.csv` | admin | routes/product_routes.py | Stock of every product, EPC search and the CSV download |
+| `/api/inventory` | admin | routes/product_routes.py | Stock numbers of every product and the totals for the cards (asked every 5 s by the Inventory page) |
 | `/products/new` | admin | routes/product_routes.py | The form to add a product ("Save and add another" comes back to an empty form) |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |

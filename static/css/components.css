@@ -492,6 +492,61 @@ body {
     box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
 }
 
+/* The From and To boxes on the Reports page */
+.date-range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-range .form-control {
+    width: auto;
+}
+
+/* "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00" on the Reports page */
+.total-line {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+}
+
+.total-line b {
+    font-size: 1.15rem;
+}
+
+/* Most sold (green) and least sold (yellow) boxes on the Reports page */
+.sold-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    height: 100%;
+    padding: 1rem;
+    border-radius: 14px;
+}
+
+.sold-box.most {
+    background: var(--success-tint);
+}
+
+.sold-box.least {
+    background: var(--warning-tint);
+}
+
+.sold-box-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.sold-box small {
+    color: var(--muted);
+}
+
 /* Bar chart of the last 7 days. Today's bar is the dark one */
 .bar-chart {
     display: flex;

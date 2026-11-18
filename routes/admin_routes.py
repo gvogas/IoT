@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request
 
 from config import FRIDGES_ENABLED, MSP01_ENABLED, MSP01_FRIDGE_ID
-from models.checkout import (PERIODS, daily_sales, period_dates, profit_summary, recent_purchases,
-                             sales_by_category, sales_chart, top_products)
+from models.checkout import (PERIODS, chart_by_month, daily_sales, most_and_least_sold, period_dates, product_quantities,
+                             profit_summary, range_dates, recent_purchases, sales_by_category, sales_chart, top_products)
 from models.fridge import Fridge
 from models.product import inventory_rows, products_below_cost, products_without_cost
 from routes.fridge_routes import fridge_data
@@ -95,14 +95,43 @@ def admin():
                            msp01_enabled=MSP01_ENABLED, msp01_fridge=msp01_fridge)
 
 
-# The Reports page for the chosen period
+# A date like "Feb 1, 2026"
+def day_text(moment):
+    return f"{moment:%b} {moment.day}, {moment.year}"
+
+
+# The dates a period covers, like "Feb 1, 2026 to Feb 28, 2026". The end is not included, so the
+# last day is the second before it. No end means up to now
+def range_text(start, end):
+    if start is None:
+        return "All time"
+    first = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+    last = datetime.strptime(end, "%Y-%m-%d %H:%M:%S") - timedelta(seconds=1) if end else datetime.now()
+    if first.date() == last.date():
+        return day_text(first)
+    return f"{day_text(first)} to {day_text(last)}"
+
+
+# The Reports page for the chosen period, or for the days picked in the From and To boxes
 @admin_routes.route("/reports")
 @admin_page
 def reports():
-    period = request.args.get("period", "all")
-    if period not in PERIODS:
-        period = "all"
-    dates = period_dates(period)
+    day_from = request.args.get("from", "").strip()
+    day_to = request.args.get("to", "").strip()
+    date_error = None
+    dates = None
+    if day_from or day_to:
+        dates = range_dates(day_from, day_to)
+        if dates is None:
+            date_error = "That date is not valid. Pick the days again."
+
+    if dates:
+        period = "custom"
+    else:
+        period = request.args.get("period", "all")
+        if period not in PERIODS:
+            period = "all"
+        dates = period_dates(period)
     money = profit_summary(dates["start"], dates["end"])
 
     changes = {}
@@ -112,13 +141,21 @@ def reports():
             changes[name] = percent_change(money[name], before[name])
 
     # "or 1" stops a divide by zero when nothing was sold
-    bars = sales_chart(period, dates["start"])
+    bars = sales_chart(period, dates["start"], dates["end"])
     best_bar = max([bar["sales"] for bar in bars] or [0]) or 1
 
     categories = sales_by_category(dates["start"], dates["end"])
     category_total = sum(category["sales"] for category in categories) or 1
 
+    quantities = product_quantities(dates["start"], dates["end"])
+    most_sold, least_sold = most_and_least_sold(quantities)
+
     return render_template("admin/reports.html", periods=PERIODS, period=period, money=money,
                            changes=changes, compare_label=dates["compare_label"],
-                           bars=bars, best_bar=best_bar, top=top_products(dates["start"], dates["end"], 8),
-                           categories=categories, category_total=category_total)
+                           bars=bars, best_bar=best_bar, by_month=chart_by_month(period, dates["start"], dates["end"]),
+                           top=top_products(dates["start"], dates["end"], 8),
+                           categories=categories, category_total=category_total,
+                           quantities=quantities, most_sold=most_sold, least_sold=least_sold,
+                           range_text=range_text(dates["start"], dates["end"]),
+                           day_from=dates.get("from", ""), day_to=dates.get("to", ""), date_error=date_error,
+                           product_categories=sorted({row["categoryName"] for row in quantities}, key=str.lower))

@@ -5,7 +5,7 @@
     <div class="page-head">
         <div>
             <h1>Inventory</h1>
-            <p>Stock in hand, counted from the RFID tags still on the shelf.</p>
+            <p>Stock in hand, counted from the RFID tags still on the shelf. Updates by itself after each sale. <span class="small text-secondary" id="live-status" aria-live="polite"></span></p>
         </div>
         <div class="page-actions">
             <a class="btn btn-outline-secondary" href="/inventory.csv"><i class="bi bi-download" aria-hidden="true"></i> Download CSV</a>
@@ -21,7 +21,7 @@
                         <span class="stat-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
                         <span class="stat-label">Units in stock</span>
                     </div>
-                    <div class="stat-value">{{ units }}</div>
+                    <div class="stat-value" id="units">{{ units }}</div>
                 </div>
             </div>
         </div>
@@ -32,7 +32,7 @@
                         <span class="stat-icon good"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
                         <span class="stat-label">Stock value</span>
                     </div>
-                    <div class="stat-value">${{ '%.2f'|format(value) }}</div>
+                    <div class="stat-value" id="value">${{ '%.2f'|format(value) }}</div>
                     <div class="stat-note">In stock × selling price</div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                         <span class="stat-icon warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
                         <span class="stat-label">Low stock</span>
                     </div>
-                    <div class="stat-value{{ ' alert-value' if low > 0 }}">{{ low }}</div>
+                    <div class="stat-value{{ ' alert-value' if low > 0 }}" id="low">{{ low }}</div>
                 </div>
             </div>
         </div>
@@ -55,7 +55,7 @@
                         <span class="stat-icon bad"><i class="bi bi-x-octagon" aria-hidden="true"></i></span>
                         <span class="stat-label">Out of stock</span>
                     </div>
-                    <div class="stat-value{{ ' alert-value' if out > 0 }}">{{ out }}</div>
+                    <div class="stat-value{{ ' alert-value' if out > 0 }}" id="out">{{ out }}</div>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
                         <span class="stat-icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
                         <span class="stat-label">Last delivery</span>
                     </div>
-                    <div class="stat-value small-value">{{ last or 'None yet' }}</div>
+                    <div class="stat-value small-value" id="last">{{ last or 'None yet' }}</div>
                 </div>
             </div>
         </div>
@@ -97,7 +97,7 @@
                 {% endif %}
                 <div class="search-field">
                     <i class="bi bi-search" aria-hidden="true"></i>
-                    <input type="search" class="form-control search-box" placeholder="Search by name or category" aria-label="Search products" data-search>
+                    <input type="search" class="form-control search-box" placeholder="Search by ID, name or category" aria-label="Search products" data-search>
                 </div>
             </div>
         </div>
@@ -105,6 +105,7 @@
             <table class="table table-hover align-middle mb-0 stock-table">
                 <thead>
                     <tr>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">ID <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
                         <th data-sort="text"><button type="button" class="sort-button">Product <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
                         <th data-sort="text"><button type="button" class="sort-button">Category <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
                         <th class="text-end" data-sort="number"><button type="button" class="sort-button">Price <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
@@ -122,7 +123,8 @@
                 {% else %}
                 {% set status = 'out' if row.inStock == 0 else ('low' if row.lowStock else 'ok') %}
                 {% endif %}
-                    <tr data-search-row data-search="{{ (row.productName ~ ' ' ~ row.categoryName)|lower }}" data-status="{{ status }}" data-category="{{ row.categoryName }}">
+                    <tr data-search-row data-search="{{ (row.productID ~ ' ' ~ row.productName ~ ' ' ~ row.categoryName)|lower }}" data-status="{{ status }}" data-category="{{ row.categoryName }}" data-product-id="{{ row.productID }}">
+                        <td class="text-end num" data-label="ID">{{ row.productID }}</td>
                         <td data-label="Product">
                             <div class="product-cell">
                                 {% if row.imagePath %}
@@ -137,17 +139,17 @@
                         <td class="text-end" data-label="Price">${{ '%.2f'|format(row.price) }}</td>
                         <td class="text-end" data-label="In stock" data-sort-value="{{ row.inStock }}">
                             <div class="stock-cell">
-                                <b>{{ row.inStock }}</b> <span class="small text-secondary">alert at {{ row.lowStockThreshold }}</span>
+                                <b data-in-stock>{{ row.inStock }}</b> <span class="small text-secondary">alert at {{ row.lowStockThreshold }}</span>
                                 {# The alert level is at the middle of the bar, so past the middle means enough #}
                                 {% set full = [row.lowStockThreshold * 2, 1]|max %}
                                 {% if status != 'hidden' %}
-                                <div class="stock-meter {{ status }}" aria-hidden="true"><div style="width: {{ [row.inStock * 100 / full, 100]|min }}%"></div></div>
+                                <div class="stock-meter {{ status }}" aria-hidden="true" data-meter data-full="{{ full }}"><div style="width: {{ [row.inStock * 100 / full, 100]|min }}%"></div></div>
                                 {% endif %}
                             </div>
                         </td>
-                        <td class="text-end" data-label="Sold">{{ row.totalSold }}</td>
-                        <td data-label="Last received">{{ row.lastReceived or "Never" }}</td>
-                        <td data-label="Status" data-sort-value="{{ {'out': 0, 'low': 1, 'ok': 2, 'hidden': 3}[status] }}">
+                        <td class="text-end" data-label="Sold" data-sold>{{ row.totalSold }}</td>
+                        <td data-label="Last received" data-last-received>{{ row.lastReceived or "Never" }}</td>
+                        <td data-label="Status" data-status-cell data-sort-value="{{ {'out': 0, 'low': 1, 'ok': 2, 'hidden': 3}[status] }}">
                             {% if status == 'hidden' %}
                             <span class="badge text-bg-secondary">Hidden</span>
                             {% elif status == 'out' %}
@@ -227,4 +229,5 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/products/inventory.js') }}"></script>
 {% endblock %}

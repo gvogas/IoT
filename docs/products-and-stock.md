@@ -70,6 +70,8 @@ The inventory page (`/inventory`) lists what needs ordering first: out of stock,
 
 Hidden products come last, with a grey Hidden badge, their own filter button, and an Edit button in place of Receive. They are left out of the numbers at the top, the low and out of stock counts, the dashboard and the CSV. `hidden_inventory_rows()` in `models/product.py` finds them, because the `ProductStock` view only has active products.
 
+Each row shows the product ID, name, category, price, units in stock, units sold, the last delivery date and a status badge. The page keeps itself up to date: `static/js/products/inventory.js` asks `/api/inventory` for the numbers every 5 seconds and changes the cards, the stock column, the badges and the filter counts, so a sale at the checkout shows up without reloading. A product added after the page was opened only appears after a reload.
+
 The page can also find any unit by EPC, including sold ones, and download the stock as a CSV (`/inventory.csv`). A product or category name that starts with `=`, `+`, `-` or `@` gets a `'` in front in the CSV, so Excel shows it as text instead of running it as a formula (`safe_cell()` in `routes/product_routes.py`). The Stock value at the top is the units in stock times the selling price.
 
 ## Stock emails

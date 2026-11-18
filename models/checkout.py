@@ -229,6 +229,29 @@ def period_dates(period):
             "before_end": as_text(before_end), "compare_label": label}
 
 
+# Start and end of a date range picked on the Reports page, like "2026-02-01" to "2026-02-28".
+# Both days are included. Leave day_to empty for a single day. Gives back None if a date is not valid
+def range_dates(day_from, day_to):
+    try:
+        first = datetime.strptime(day_from or day_to, "%Y-%m-%d")
+        last = datetime.strptime(day_to or day_from, "%Y-%m-%d")
+    except ValueError:
+        return None
+    if first > last:
+        first, last = last, first
+
+    # The end is midnight after the last day, so the whole last day counts
+    end = last + timedelta(days=1)
+    day_count = (end - first).days
+    # Compared with the same number of days just before
+    before_start = first - timedelta(days=day_count)
+    label = "the day before" if day_count == 1 else f"the {day_count} days before"
+
+    return {"start": first.strftime(DATE_FORMAT), "end": end.strftime(DATE_FORMAT),
+            "before_start": before_start.strftime(DATE_FORMAT), "before_end": first.strftime(DATE_FORMAT),
+            "compare_label": label, "from": first.strftime("%Y-%m-%d"), "to": last.strftime("%Y-%m-%d")}
+
+
 # Sales before tax, cost and profit. Units with no cost are counted in `missing`
 def profit_summary(start=None, end=None):
     dates = (start or FIRST_DATE, end or LAST_DATE)
@@ -248,7 +271,8 @@ def profit_summary(start=None, end=None):
     purchases = query_one("""
         SELECT COUNT(*) AS orders,
                ROUND(COALESCE(SUM(gstAmount), 0), 2) AS gst,
-               ROUND(COALESCE(SUM(qstAmount), 0), 2) AS qst
+               ROUND(COALESCE(SUM(qstAmount), 0), 2) AS qst,
+               ROUND(COALESCE(SUM(total), 0), 2) AS total
         FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ?
     """, dates)
 
@@ -289,36 +313,90 @@ def top_products(start=None, end=None, limit=5):
     return [dict(row) for row in rows]
 
 
-# Reports chart bars: one per day for a month, one per month for all time
-def sales_chart(period, start=None):
+# How many units of each product were sold in the period, most first.
+# Products still for sale that sold nothing are in the list too, with 0
+def product_quantities(start=None, end=None):
+    rows = query("""
+        SELECT p.productID, p.productName, p.imagePath, c.categoryName,
+               COALESCE(s.units, 0) AS units, COALESCE(s.sales, 0) AS sales
+        FROM Product p
+        JOIN Category c ON c.categoryID = p.categoryID
+        LEFT JOIN (SELECT pi.productID, SUM(pi.quantity) AS units, ROUND(SUM(pi.quantity * pi.unitPrice), 2) AS sales
+                   FROM PurchaseItem pi
+                   JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
+                   WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ?
+                   GROUP BY pi.productID) s ON s.productID = p.productID
+        WHERE p.isActive = 1 OR s.units > 0
+        ORDER BY units DESC, p.productName COLLATE NOCASE
+    """, (start or FIRST_DATE, end or LAST_DATE))
+    return [dict(row) for row in rows]
+
+
+# The most sold and least sold products from product_quantities(). Ties are all kept, so each one is a list.
+# Gives back ([], []) when nothing was sold
+def most_and_least_sold(products):
+    if not products or products[0]["units"] == 0:
+        return [], []
+    most = max(product["units"] for product in products)
+    least = min(product["units"] for product in products)
+    most_sold = [product for product in products if product["units"] == most]
+    least_sold = [product for product in products if product["units"] == least]
+    return most_sold, least_sold
+
+
+# Does the Reports chart have one bar per month? Yes for all time and for ranges longer than 62 days
+def chart_by_month(period, start=None, end=None):
+    if period == "custom":
+        day_count = (datetime.strptime(end[:10], "%Y-%m-%d") - datetime.strptime(start[:10], "%Y-%m-%d")).days
+        return day_count > 62
+    return period == "all"
+
+
+# Reports chart bars: one per day for a month or a short date range, one per month for all time or a long range.
+# end is the day after the last one (like in period_dates). Today or a single day has no chart
+def sales_chart(period, start=None, end=None):
     if period == "today":
         return []
 
-    group = "%Y-%m" if period == "all" else "%Y-%m-%d"
+    if period == "custom":
+        first_day = datetime.strptime(start[:10], "%Y-%m-%d")
+        day_count = (datetime.strptime(end[:10], "%Y-%m-%d") - first_day).days
+        if day_count == 1:
+            return []
+    by_month = chart_by_month(period, start, end)
+
+    group = "%Y-%m" if by_month else "%Y-%m-%d"
     rows = query(f"""
         SELECT strftime('{group}', purchaseDate) AS slot, ROUND(SUM(subtotal), 2) AS sales
-        FROM Purchase WHERE purchaseDate >= ?
+        FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ?
         GROUP BY slot
-    """, (start or FIRST_DATE,))
+    """, (start or FIRST_DATE, end or LAST_DATE))
     sales_by_slot = {row["slot"]: row["sales"] for row in rows}
 
     bars = []
-    if period == "all":
-        first_sale = query_one("SELECT MIN(purchaseDate) AS first FROM Purchase")["first"]
-        if first_sale is None:
-            return []
-        month = datetime.strptime(first_sale[:7], "%Y-%m")
-        this_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        while month <= this_month:
+    if by_month:
+        if period == "all":
+            first_sale = query_one("SELECT MIN(purchaseDate) AS first FROM Purchase")["first"]
+            if first_sale is None:
+                return []
+            month = datetime.strptime(first_sale[:7], "%Y-%m")
+            last_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            month = datetime.strptime(start[:7], "%Y-%m")
+            last_day = datetime.strptime(end[:10], "%Y-%m-%d") - timedelta(days=1)
+            last_month = last_day.replace(day=1)
+        while month <= last_month:
             bars.append({"label": month.strftime("%b"), "title": month.strftime("%B %Y"),
                          "sales": sales_by_slot.get(month.strftime("%Y-%m"), 0)})
             # The 28th plus 4 days is always in the next month
             month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
     else:
-        # Every day of the month. Only the 1st and every 5th day get a label, so they fit
-        first_day = datetime.strptime(start[:10], "%Y-%m-%d")
-        days_in_month = calendar.monthrange(first_day.year, first_day.month)[1]
-        for number in range(days_in_month):
+        if period != "custom":
+            # Every day of the month
+            first_day = datetime.strptime(start[:10], "%Y-%m-%d")
+            day_count = calendar.monthrange(first_day.year, first_day.month)[1]
+        # Only the 1st and every 5th day get a label, so they fit
+        for number in range(day_count):
             day = first_day + timedelta(days=number)
             bars.append({"label": str(day.day) if day.day == 1 or day.day % 5 == 0 else "",
                          "title": day.strftime("%b %d"), "sales": sales_by_slot.get(day.strftime("%Y-%m-%d"), 0)})

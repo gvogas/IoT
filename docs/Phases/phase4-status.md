@@ -2,7 +2,7 @@
 
 Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-**Progress:** 16 of 41 items done. The biggest gaps are the Customer Activity report, date-range filters on the Sales report, and the customer-side reports (period filter, item search, price history).
+**Progress:** 23 of 42 items done. The biggest gaps are the Customer Activity report and the customer-side reports (period filter, item search, price history).
 
 ## 1. System Integration
 - [x] Phase 2 (product tracking and inventory) working. See `phase3-status.md`
@@ -10,23 +10,24 @@ Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by r
 - [ ] Full run-through of one demo workflow (receive stock, checkout, receipt, reports, MSP01) on the Pi, with the hardware plugged in
 
 ## 2.1 Inventory Report (Admin)
+- [x] Product name and product ID (ID column, also in the CSV and the search box)
 - [x] Available quantity for each product (`/inventory`, In stock column)
 - [x] Last restocked date (Last received column)
 - [x] Colour-coded levels (red = out, yellow = low, green = ok badges)
 - [x] Low stock alert, customizable (per product, `lowStockThreshold`, plus the admin emails). The PDF says per category; ours is per product, which is finer. Mention this in the demo
-- [ ] Real-time updates after a purchase. The page only changes when you reload it. Add a `setInterval` that fetches the stock numbers, like `fridges/dashboard.js` does
+- [ ] Real-time updates after a purchase. Built: `static/js/products/inventory.js` asks `/api/inventory` every 5 s and updates the cards, stock, badges and filter counts. The API is tested; still to check in a browser with a real checkout
 
 ## 2.2 Sales Report (Admin)
-`/reports` has fixed periods only: Today, This month, Last month, All time.
+`/reports` has Today, This month, Last month, All time, plus From and To date boxes (`?from=&to=`).
 - [x] Sales chart per day (a month) or per month (all time)
 - [x] Sales by category (table with share bars)
-- [ ] Pick a specific day (date input)
-- [ ] Pick a date range (from and to date inputs instead of, or as well as, the fixed buttons)
-- [ ] Sold quantity for every product in the period. The Best products table only shows the top 8, sorted by profit
-- [ ] Most sold items by quantity (ties shown together, like "2 items: Smart Plug, Smart Camera")
-- [ ] Least sold items in the period (include products that sold 0?)
-- [ ] Total sales for the chosen day or range shown with the dates, like "Total Sales (Feb 1 to Feb 28): $2,540.00". The Sales card has the number but not a custom range
-- [ ] Category filter (show only one category's products)
+- [x] Pick a specific day (From only, To empty)
+- [x] Pick a date range (From and To boxes, as well as the fixed buttons)
+- [x] Sold quantity for every product in the period (Sold per product table, products with 0 included)
+- [x] Most sold items by quantity (ties shown together, like "2 items: Smart Plug, Smart Camera")
+- [x] Least sold items in the period (products that sold 0 count)
+- [x] Total sales for the chosen day or range shown with the dates, like "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00 before tax" (with tax too)
+- [ ] Category filter (show only one category's products). The Sold per product table has one; the cards, chart and Best products don't filter by category yet
 
 ## 2.3 Customer Activity Report (Admin)
 Nothing for this yet. `/customers` lists customers and their spending, but has no date filter.
@@ -83,7 +84,7 @@ From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, 
 
 ## Suggested order
 1. Commit the MSP01 work
-2. Sales report: date inputs (day or range), quantity per product, most and least sold, category filter
+2. ~~Sales report: date inputs (day or range), quantity per product, most and least sold~~ (done). Category filter for the whole page still open
 3. Customer Activity report (new page or a tab on `/reports`)
 4. My Account: period filter with total spent, item search with price history chart
 5. Live inventory updates

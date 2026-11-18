@@ -68,6 +68,37 @@ def inventory():
     )
 
 
+# "out", "low", "ok" or "hidden", for the Status column and the stock filter
+def stock_status(row):
+    if not row["isActive"]:
+        return "hidden"
+    if row["inStock"] == 0:
+        return "out"
+    if row["lowStock"]:
+        return "low"
+    return "ok"
+
+
+# The stock numbers of every product. static/js/products/inventory.js asks for them every few seconds,
+# so the Inventory page changes by itself after a sale or a delivery
+@product_routes.route("/api/inventory")
+@admin_api
+def inventory_api():
+    rows = inventory_rows()
+    products = []
+    for row in rows + hidden_inventory_rows():
+        products.append({"productID": row["productID"], "inStock": row["inStock"], "totalSold": row["totalSold"],
+                         "lastReceived": row["lastReceived"], "status": stock_status(row)})
+    return jsonify(
+        products=products,
+        units=sum(row["inStock"] for row in rows),
+        value=round(sum(row["inStock"] * row["price"] for row in rows), 2),
+        low=sum(1 for row in rows if row["lowStock"] and row["inStock"] > 0),
+        out=sum(1 for row in rows if row["inStock"] == 0),
+        last=max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
+    )
+
+
 # Excel runs a cell that starts with = + - or @ as a formula. A ' in front makes it plain text
 def safe_cell(value):
     text = str(value)
@@ -82,9 +113,9 @@ def safe_cell(value):
 def inventory_csv():
     out = io.StringIO()
     writer = csv.writer(out)
-    writer.writerow(["Product", "Category", "Price", "In stock", "Sold", "Low stock alert at", "Last received"])
+    writer.writerow(["Product ID", "Product", "Category", "Price", "In stock", "Sold", "Low stock alert at", "Last received"])
     for row in inventory_rows():
-        writer.writerow([safe_cell(row["productName"]), safe_cell(row["categoryName"]), f"{row['price']:.2f}", row["inStock"],
+        writer.writerow([row["productID"], safe_cell(row["productName"]), safe_cell(row["categoryName"]), f"{row['price']:.2f}", row["inStock"],
                          row["totalSold"], row["lowStockThreshold"], row["lastReceived"] or ""])
 
     filename = f"inventory-{date.today().isoformat()}.csv"

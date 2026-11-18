@@ -5,7 +5,7 @@
     <div class="page-head">
         <div>
             <h1>Reports</h1>
-            <p>Sales and profit for {{ periods[period]|lower }}{% if compare_label %}, compared with {{ compare_label }}{% endif %}.</p>
+            <p>Sales and profit for {{ range_text if period == 'custom' else periods[period]|lower }}{% if compare_label %}, compared with {{ compare_label }}{% endif %}.</p>
         </div>
         {# The buttons reload the page with ?period= in the address #}
         <div class="segmented" role="group" aria-label="Time period">
@@ -13,6 +13,24 @@
             <a class="segmented-item{{ ' active' if key == period }}" href="/reports?period={{ key }}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>
             {% endfor %}
         </div>
+    </div>
+
+    {# Pick any days. The page reloads with ?from=...&to=... in the address. An empty To means one day #}
+    <form class="date-range mb-3" method="get" action="/reports">
+        <label for="from">From</label>
+        <input type="date" class="form-control" id="from" name="from" value="{{ day_from }}" required>
+        <label for="to">To</label>
+        <input type="date" class="form-control" id="to" name="to" value="{{ day_to }}">
+        <button type="submit" class="btn btn-primary">Show</button>
+        {% if period == 'custom' %}<a class="btn btn-link" href="/reports">Clear</a>{% endif %}
+        <span class="small text-secondary">Leave To empty for a single day.</span>
+    </form>
+    {% if date_error %}<div class="alert alert-danger py-2 px-3">{{ date_error }}</div>{% endif %}
+
+    {# Total sales for the chosen days, with the dates #}
+    <div class="total-line mb-3">
+        <i class="bi bi-receipt" aria-hidden="true"></i>
+        <span>Total sales ({{ range_text }}): <b class="num">{{ money.sales|money }}</b> before tax · <span class="num">{{ money.total|money }}</span> with tax</span>
     </div>
 
     {# The four numbers. Under each one: how much it went up or down since the period before #}
@@ -83,7 +101,7 @@
     {% if bars %}
     <section class="card mb-4" aria-labelledby="chart-title">
         <div class="card-head">
-            <h2 id="chart-title">{{ 'Sales per month' if period == 'all' else 'Sales per day' }}</h2>
+            <h2 id="chart-title">{{ 'Sales per month' if by_month else 'Sales per day' }}</h2>
             <span class="text-secondary small">Before tax</span>
         </div>
         <div class="card-body pt-0">
@@ -104,6 +122,77 @@
         </div>
     </section>
     {% endif %}
+
+    {# Every product with how many were sold, so the most and least sold are easy to see #}
+    <section class="card mb-4" aria-labelledby="quantity-title">
+        <div class="card-head">
+            <h2 id="quantity-title">Sold per product</h2>
+            <span class="text-secondary small" data-count aria-live="polite"></span>
+        </div>
+        {% if most_sold %}
+        <div class="row g-3 px-3 pb-3">
+            <div class="col-md-6">
+                <div class="sold-box most">
+                    <span class="sold-box-title"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i> Most sold</span>
+                    <b>{% if most_sold|length > 1 %}{{ most_sold|length }} items: {% endif %}{{ most_sold|map(attribute='productName')|join(', ') }}</b>
+                    <small>{{ most_sold[0].units }} sold{{ ' each' if most_sold|length > 1 }}</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="sold-box least">
+                    <span class="sold-box-title"><i class="bi bi-arrow-down-circle" aria-hidden="true"></i> Least sold</span>
+                    <b>{% if least_sold|length > 1 %}{{ least_sold|length }} items: {% endif %}{{ least_sold|map(attribute='productName')|join(', ') }}</b>
+                    <small>{{ least_sold[0].units }} sold{{ ' each' if least_sold|length > 1 }}</small>
+                </div>
+            </div>
+        </div>
+        {% elif quantities %}
+        <div class="card-body pt-0"><p class="text-secondary mb-0">Nothing sold in this period.</p></div>
+        {% endif %}
+        {% if quantities %}
+        <div class="table-tools">
+            <div class="table-tools-end">
+                {% if product_categories|length > 1 %}
+                <select class="form-select category-filter" aria-label="Filter by category" data-category-filter>
+                    <option value="">All categories</option>
+                    {% for category in product_categories %}<option>{{ category }}</option>{% endfor %}
+                </select>
+                {% endif %}
+                <div class="search-field">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" class="form-control search-box" placeholder="Search by ID, name or category" aria-label="Search products" data-search>
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 stock-table">
+                <thead>
+                    <tr>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">ID <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Product <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th data-sort="text"><button type="button" class="sort-button">Category <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Sold <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                        <th class="text-end" data-sort="number"><button type="button" class="sort-button">Sales <i class="bi bi-chevron-expand" aria-hidden="true"></i></button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in quantities %}
+                    <tr data-search-row data-search="{{ (product.productID ~ ' ' ~ product.productName ~ ' ' ~ product.categoryName)|lower }}" data-category="{{ product.categoryName }}">
+                        <td class="text-end num" data-label="ID">{{ product.productID }}</td>
+                        <td data-label="Product"><a class="row-link" href="/products/{{ product.productID }}">{{ product.productName }}</a></td>
+                        <td data-label="Category">{{ product.categoryName }}</td>
+                        <td class="text-end num" data-label="Sold">{% if product.units == 0 %}<span class="text-secondary">0</span>{% else %}<b>{{ product.units }}</b>{% endif %}</td>
+                        <td class="text-end num" data-label="Sales">{{ product.sales|money }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary text-center py-4 mb-0" hidden data-empty>No products match your search.</p>
+        {% else %}
+        <div class="card-body pt-0"><p class="text-secondary mb-0">No products yet.</p></div>
+        {% endif %}
+    </section>
 
     <div class="row g-3">
         <section class="col-lg-7">
@@ -206,4 +295,8 @@
             </div>
         </section>
     </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
 {% endblock %}
