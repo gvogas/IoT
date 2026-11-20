@@ -87,14 +87,41 @@
             <div class="card">
                 <div class="card-body pb-3">
                     <h2>Purchase history</h2>
+                    
                     <div class="table-tools mb-0">
-                        <input type="search" class="form-control search-box" placeholder="Search by product or date" aria-label="Search purchases" data-search>
-                        <span class="text-secondary small ms-md-auto" data-count aria-live="polite"></span>
+                    <!-- Search purchases by product name or date -->
+                    <input type="search"
+                           class="form-control search-box"
+                           placeholder="Search by product or date"
+                           aria-label="Search purchases"
+                           data-search>
+
+                    <!-- Filter receipts by purchase date -->
+                    <div>
+                        <label for="date-from" class="form-label">From</label>
+                        <input type="date"
+                               id="date-from"
+                               class="form-control"
+                               data-date-from>
                     </div>
+
+                    <div>
+                        <label for="date-to" class="form-label">To</label>
+                        <input type="date"
+                               id="date-to"
+                               class="form-control"
+                               data-date-to>
+                    </div>
+
+                    <span class="text-secondary small ms-md-auto"
+                          data-count
+                          aria-live="polite"></span>
+                    </div>
+
                 </div>
 
                 {% for purchase in purchases %}
-                <details class="purchase" data-search-row {% if loop.first %}open{% endif %}
+                <details class="purchase" data-search-date="{{ purchase.purchaseDate.strftime('%Y-%m-%d') }}" {% if loop.first %}open{% endif %}
                          data-search="{{ (purchase.lines|map(attribute='productName')|join(' ') ~ ' ' ~ purchase.purchaseDate|nice_datetime ~ ' #' ~ purchase.purchaseID)|lower }}">
                     <summary>
                         <div>
@@ -158,6 +185,6 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+    <!--<script src="{{ url_for('static', filename='js/table_filter.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/customers/account.js') }}"></script>
 {% endblock %}
