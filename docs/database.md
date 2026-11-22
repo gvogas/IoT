@@ -6,7 +6,7 @@ Everything is in one SQLite file, `store.db` (the path is `DB_PATH` in `config.p
 
 ## One EPC per item
 
-A Product is defined once, with its name, price, UPC barcode. Every can or box on the shelf has its own RFID tag, and each tag's EPC is one row in ProductItem. So if we have 24 Cokes, there is 1 Coke product and 24 Coke items.
+A Product is defined once, with its name, price and UPC barcode. Every can or box on the shelf has its own RFID tag, and each tag's EPC is one row in ProductItem. So if we have 24 Cokes, there is 1 Coke product and 24 Coke items.
 
 At checkout the RFID reader picks up every tag in the basket at once. Three Cokes give three EPCs, which means a quantity of 3. Once an item is paid for it is marked `sold`, so the same tag can't go through checkout twice.
 
@@ -233,10 +233,10 @@ The "Clear all EPCs" button on a product's page is there for testing, so the sam
 ### Stock and low stock
 The `ProductStock` view has one row per active product, with `inStock`, `totalSold`, `lowStockThreshold`, `lastReceived` and `lowStock`. `lowStock` is 1 when `inStock` is at or below the product's threshold, so the dashboard can show which products need to be reordered.
 
-The stock emails go to the `email` of every Customer whose `role` is `admin`. Nothing extra is saved for them: the app works out whether to send one from the stock count and the sale or delivery quantity, so there are no new tables or columns. See [Stock emails](products-and-stock.md#stock-emails) for the rules.
+The stock emails go to the `email` of every Customer whose `role` is `admin`. The app works out whether to send one from the stock count and the sale or delivery quantity, so nothing extra is saved for them. See [Stock emails](products-and-stock.md#stock-emails) for the rules.
 
 ### Sales and profit
-The Reports page adds up the sales for today, this month, last month or all time, and the dashboard does the same for today's profit against yesterday. Each period is a start and an end date compared with `Purchase.purchaseDate` (`purchaseDate >= start AND purchaseDate < end`), which works because dates are saved as text that sorts in time order. Sales are `quantity × unitPrice` before tax, and the GST and QST collected come from the Purchase rows. The cost of each line is `PurchaseItem.unitCost`, or the product's `costPrice` now for older lines saved before costs were. Units with neither are left out of the cost and the profit, and the page says how many there are. Sales per category join PurchaseItem to Product and Category, and the charts group `Purchase.subtotal` by day or by month. These queries are in `models/report.py`, starting with `profit_summary()`. See [The dashboard and Reports](reports.md) for what each page shows.
+The Reports page adds up the sales for today, this month, last month or all time, and the dashboard does the same for today's profit against yesterday. Each period is a start and an end date compared with `Purchase.purchaseDate` (`purchaseDate >= start AND purchaseDate < end`), which works because dates are saved as text that sorts in time order. Sales are `quantity × unitPrice` before tax, and the GST and QST collected come from the Purchase rows. The cost of each line is `PurchaseItem.unitCost`. For older lines saved before that column existed, it is the product's `costPrice` now. Units with neither are left out of the cost and the profit, and the page says how many there are. Sales per category join PurchaseItem to Product and Category, and the charts group `Purchase.subtotal` by day or by month. These queries are in `models/report.py`, starting with `profit_summary()`. See [The dashboard and Reports](reports.md) for what each page shows.
 
 ### Points
 A purchase earns 10 points for every complete $5 of the subtotal, before tax. So $12.99 earns 20 points, and $4.99 earns none. `pay()` in `models/checkout.py` saves the number as `Purchase.pointsEarned` and adds it to `Customer.totalPoints` in the same transaction as the sale. My Account shows the balance, where 100 points are worth $1 in rewards. Nothing spends the points yet.

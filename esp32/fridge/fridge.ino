@@ -1,8 +1,10 @@
 /*********
 https://www.electronicshub.org/esp32-dht11-tutorial/
   Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
+  Complete project details at https://randomnerdtutorials.com
 *********/
+
+// One ESP32 per fridge. Set FRIDGE_NUMBER in config.h to 1 or 2 before uploading.
 
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -10,8 +12,13 @@ https://www.electronicshub.org/esp32-dht11-tutorial/
 #include "DHT11Sensor.h"
 
 // Don't change the topics: the Pi listens for "frig1/..." and "frig2/..."
-DHT11Sensor fridge1(FRIDGE1_PIN, "Fridge 1", "frig1/temperature", "frig1/humidity");
-DHT11Sensor fridge2(FRIDGE2_PIN, "Fridge 2", "frig2/temperature", "frig2/humidity");
+#if FRIDGE_NUMBER == 1
+DHT11Sensor fridge(SENSOR_PIN, "Fridge 1", "frig1/temperature", "frig1/humidity");
+const char* clientName = "ESP32-Fridge1";
+#else
+DHT11Sensor fridge(SENSOR_PIN, "Fridge 2", "frig2/temperature", "frig2/humidity");
+const char* clientName = "ESP32-Fridge2";
+#endif
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -36,11 +43,14 @@ void setup_wifi() {
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-#ifdef MQTT_USER
-    bool ok = client.connect(MQTT_CLIENT, MQTT_USER, MQTT_PASS);   // the broker asks for a password
-#else
-    bool ok = client.connect(MQTT_CLIENT);
-#endif
+
+    bool ok;
+    if (strlen(MQTT_USER) > 0) {
+      ok = client.connect(clientName, MQTT_USER, MQTT_PASSWORD);   // the broker asks for a password
+    } else {
+      ok = client.connect(clientName);
+    }
+
     if (ok) {
       Serial.println("connected");
     } else {
@@ -54,8 +64,7 @@ void reconnect() {
 
 void setup() {
   Serial.begin(115200);
-  fridge1.begin();
-  fridge2.begin();
+  fridge.begin();
 
   setup_wifi();
   client.setServer(MQTT_BROKER, MQTT_PORT);
@@ -67,10 +76,9 @@ void loop() {
   }
   client.loop();
 
-  fridge1.readAndPublish(client);
-  fridge2.readAndPublish(client);
+  fridge.readAndPublish(client);
 
   // "I'm alive" message. The app doesn't use it, but mosquitto_sub -t vanier shows the ESP32 is sending
-  client.publish("vanier", "I am ESP32");
+  client.publish("vanier", clientName);
   delay(2000);
 }

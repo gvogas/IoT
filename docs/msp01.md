@@ -240,7 +240,7 @@ Admins only. Fridge 3's page calls it every 2 seconds.
 
 ## Light and motion cards
 
-On Fridge 3's page (`/fridges/3`), under the history chart, in the "MSP01 sensor" section. The temperature and humidity are in the gauges at the top of the same page:
+The cards are on Fridge 3's page (`/fridges/3`), under the history chart, in the "MSP01 sensor" section. The temperature and humidity are in the gauges at the top of the same page:
 
 | Widget | Shows |
 |---|---|

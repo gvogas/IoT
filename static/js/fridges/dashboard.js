@@ -90,6 +90,16 @@ function showTile(fridge) {
     label.style.left = percent(fridge.threshold);
     tile.querySelector(".scale-top").textContent = `${top} °C`;
 
+    // A limit near one end of the bar would sit on top of the "0 °C" or top label.
+    // Then that end label is hidden and the limit label lines up with the edge instead
+    const limitPercent = (fridge.threshold / top) * 100;
+    const nearStart = limitPercent < 25;
+    const nearEnd = limitPercent > 75;
+    tile.querySelector(".scale-zero").style.visibility = nearStart ? "hidden" : "visible";
+    tile.querySelector(".scale-top").style.visibility = nearEnd ? "hidden" : "visible";
+    label.classList.toggle("near-start", nearStart);
+    label.classList.toggle("near-end", nearEnd);
+
     tile.querySelector(".tile-sentence").textContent = fridgeSentence(fridge, fanState.textContent);
     tile.querySelector(".hum").textContent = fridge.humidity === null ? "--" : Math.round(fridge.humidity);
     tile.querySelector(".last-reading").textContent = fridge.age === null ? "No reading yet" : `Last reading ${timeAgo(fridge.age)}`;
@@ -127,6 +137,15 @@ async function update() {
 }
 
 // "All fridges, last 24 hours": one line per fridge, made once. Colours come from static/js/charts.js
+
+// Each fridge gets its own colour and line style (solid, dashed, dotted),
+// so two fridges at the same temperature can still be told apart
+const FRIDGE_LINES = [
+    { colour: BLUE, dash: [] },
+    { colour: WARNING, dash: [8, 4] },
+    { colour: NAVY, dash: [2, 3] },
+    { colour: SUCCESS, dash: [12, 4, 2, 4] }
+];
 const fridgesChart = new Chart(document.getElementById("fridges-chart"), {
     type: "line",
     data: { datasets: [] },
@@ -136,7 +155,8 @@ const fridgesChart = new Chart(document.getElementById("fridges-chart"), {
         // The tooltip shows every fridge at the time closest to the mouse
         interaction: { mode: "nearest", axis: "x", intersect: false },
         plugins: {
-            legend: { position: "bottom", labels: { boxWidth: 12 } },
+            // The legend shows each line's style too. Click a fridge in it to hide or show its line
+            legend: { position: "bottom", labels: { boxWidth: 30, boxHeight: 0, useBorderRadius: false } },
             tooltip: {
                 callbacks: {
                     title: (items) => timeLabel(new Date(items[0].parsed.x), 24),
@@ -147,7 +167,8 @@ const fridgesChart = new Chart(document.getElementById("fridges-chart"), {
         scales: {
             // Time in milliseconds, shown as "14:05"
             x: { type: "linear", ticks: { maxTicksLimit: 6, callback: (value) => timeLabel(new Date(value), 24) } },
-            y: { suggestedMin: 0, ticks: { callback: (value) => `${value} °C` } }
+            // Zoomed in on the temperatures, with 1 °C of room above and below, so close lines are spread out
+            y: { grace: 1, ticks: { callback: (value) => `${value} °C` } }
         }
     }
 });
@@ -163,9 +184,10 @@ async function updateFridgesChart() {
             const response = await fetch(`/api/fridges/${fridge.id}/history?hours=24`, { cache: "no-store" });
             if (!response.ok) return;
             const rows = await response.json();
-            const colour = SLICE_COLOURS[i % SLICE_COLOURS.length];
+            const line = FRIDGE_LINES[i % FRIDGE_LINES.length];
             datasets.push({ label: fridge.name, data: chartPoints(rows, "temperature"),
-                            borderColor: colour, backgroundColor: colour, borderWidth: 2 });
+                            borderColor: line.colour, backgroundColor: line.colour,
+                            borderDash: line.dash, borderWidth: 2.5 });
         }
     } catch (error) {
         return;   // Keep showing the old chart if the server can't be reached

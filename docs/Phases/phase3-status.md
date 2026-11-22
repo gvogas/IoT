@@ -2,7 +2,7 @@
 
 Checked against `Phase-3.pdf` on 2026-11-11, extras updated 2026-11-12. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-**Progress:** 34 of 35 items done. The 1 open item is a bonus (responsive).
+Progress: 34 of 35 items done. The 1 open item is a bonus (responsive).
 
 ## Product management
 - [x] Register a product (name, category, price, UPC, EPC, producer)
@@ -34,7 +34,7 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] Membership card step
 - [x] Points added to the customer's account (10 points for every complete $5 spent before tax; balance updated in the sale transaction)
 - [x] Receipt generated after payment (window with lines, GST, QST, total, date and points earned)
-- [x] Receipt emailed automatically after payment when the customer has an email address; Send email button remains available for retry and from purchase history
+- [x] Receipt emailed automatically after payment when the customer has an email address; the Send email button is still there to retry, and in the purchase history
 
 ## Customer accounts
 - [x] Create an account

@@ -2,7 +2,7 @@
 
 Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-**Progress:** 23 of 42 items done. The biggest gaps are the Customer Activity report and the customer-side reports (period filter, item search, price history).
+23 of 42 items are done. The biggest gaps are the Customer Activity report and the customer-side reports (period filter, item search, price history).
 
 ## 1. System Integration
 - [x] Phase 2 (product tracking and inventory) working. See `phase3-status.md`
@@ -81,12 +81,3 @@ From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, 
 - [ ] Demo script: inventory, purchase, live sync, admin reports, customer reports, extras
 - [ ] Be ready to explain design decisions, technologies and the database (`architecture.md`, `database.md`)
 
-## Suggested order
-1. ~~Commit the MSP01 work~~ (done)
-2. ~~Sales report: date inputs (day or range), quantity per product, most and least sold~~ (done). Category filter for the whole page still open
-3. Customer Activity report (new page or a tab on `/reports`)
-4. My Account: period filter with total spent, item search with price history chart
-5. Live inventory updates
-6. Report export (CSV or Print)
-7. Dark mode, phone width check
-8. Demo run-through on the Pi

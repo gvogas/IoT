@@ -1,23 +1,34 @@
 // All the ESP32 settings are here. If you need to change one, change it in this file.
+// There is one ESP32 per fridge. Both run this same code, only FRIDGE_NUMBER (and the login) changes.
 
-// ---------- WiFi ----------
+// -------------------------
+// Which fridge this ESP32 is in (1 or 2)
+// -------------------------
+
+#define FRIDGE_NUMBER  1
+
+// -------------------------
+// WiFi
+// -------------------------
 
 #define WIFI_SSID      "your-wifi"
-#define WIFI_PASSWORD  "your-wifi-password"
+#define WIFI_PASSWORD  "your-password"
 
-
-// ---------- MQTT broker (same IP as MQTT_BROKER in config.py) ----------
+// -------------------------
+// MQTT broker (the Raspberry Pi). Use the same IP as MQTT_BROKER in config.py on the Pi
+// -------------------------
 
 #define MQTT_BROKER    "192.168.0.100"
+
 #define MQTT_PORT      1883
-#define MQTT_CLIENT    "ESP32-Fridges"
-// The broker's username and password (the same as in the broker's password file).
-// Delete these two lines if the broker doesn't ask for a password
-#define MQTT_USER      "esp32"
-#define MQTT_PASS      "your-mqtt-password"
 
+// This ESP32's broker login (the same as in the broker's password file). Each ESP32 can have its own
+// Leave MQTT_USER empty if the broker has no passwords yet
+#define MQTT_USER      ""
+#define MQTT_PASSWORD  "your-password"
 
-// ---------- DHT11 sensor pins ----------
+// -------------------------
+// DHT11 sensor pin
+// -------------------------
 
-#define FRIDGE1_PIN    27
-#define FRIDGE2_PIN    26
+#define SENSOR_PIN     27

@@ -4,8 +4,8 @@ The store has three monitored fridges:
 
 | Fridge | Sensor | How it sends readings |
 |---|---|---|
-| Fridge 1 | DHT11 on the ESP32 | WiFi → MQTT (`frig1/temperature`, `frig1/humidity`) |
-| Fridge 2 | DHT11 on the ESP32 | WiFi → MQTT (`frig2/temperature`, `frig2/humidity`) |
+| Fridge 1 | DHT11 on its own ESP32 (`FRIDGE_NUMBER 1`) | WiFi → MQTT (`frig1/temperature`, `frig1/humidity`) |
+| Fridge 2 | DHT11 on its own ESP32 (`FRIDGE_NUMBER 2`) | WiFi → MQTT (`frig2/temperature`, `frig2/humidity`) |
 | Fridge 3 | Minew MSP01 | Bluetooth → `msp01/index.js` → MQTT. See [msp01.md](msp01.md) |
 
 Each fridge has a temperature threshold (limit). When a fridge gets warmer than its limit, an alert email goes out, and a YES reply turns the fan on. All three fridges share one fan.
@@ -13,6 +13,8 @@ Each fridge has a temperature threshold (limit). When a fridge gets warmer than 
 The list of fridges comes from the `Fridge` table. When the app starts, `MqttController.load_fridges()` reads it and listens to `frigN/temperature` and `frigN/humidity` for each one (the MSP01's fridge listens to `msp01/...` instead). To add a fridge, add a row to the table and have its sensor publish to its own `frigN` topics.
 
 A limit can be set from −30 to 30 °C on the fridge's page. A new database starts every fridge at 5 °C.
+
+Both ESP32s run the same sketch, `esp32/fridge/fridge.ino`. The only difference is `FRIDGE_NUMBER` in `esp32/fridge/config.h`: it picks the topics (`frig1/...` or `frig2/...`) and the MQTT client name (`ESP32-Fridge1` or `ESP32-Fridge2`). The names must be different, because the broker disconnects one of two clients with the same name. The DHT11's data pin is on `SENSOR_PIN` (GPIO 27).
 
 ## Contents
 1. [The parts](#the-parts)
@@ -26,8 +28,10 @@ A limit can be set from −30 to 30 °C on the fridge's page. A new database sta
 
 ```mermaid
 flowchart TD
-    subgraph ESP32["ESP32 (esp32/fridge/fridge.ino)"]
+    subgraph ESP1["ESP32, FRIDGE_NUMBER 1"]
         DHT1["DHT11 Fridge 1"]
+    end
+    subgraph ESP2["ESP32, FRIDGE_NUMBER 2"]
         DHT2["DHT11 Fridge 2"]
     end
 
@@ -98,6 +102,12 @@ sequenceDiagram
 Everything in `on_message()` is inside a `try`. If one message causes an error (bad bytes, a database that is busy), it is written to the log and the next message is handled as normal, so MQTT never stops.
 
 `age` is the number of seconds since the last reading came in. If a sensor stops sending, that number keeps going up, and the page shows the fridge as offline after 15 seconds.
+
+The charts are drawn with Chart.js, using the shared settings in `static/js/charts.js`:
+
+- Each fridge tile has a bar from 0 °C to the top of the scale, with the limit marked. When the limit is near either end of the bar, the end label ("0 °C" or the top) is hidden so the "limit" label doesn't sit on top of it.
+- The chart of all fridges over the last 24 hours (`static/js/fridges/dashboard.js`) has one line per fridge, each with its own colour and line style (solid, dashed, dotted), so fridges at the same temperature can still be told apart. The axis zooms in on the readings. Click a fridge in the legend to hide its line.
+- The history chart on a fridge's page (`static/js/fridges/detail.js`) shows temperature, humidity and the dashed limit line for 1 h, 24 h or 7 days. The area above the limit is red, and it is painted before the lines so the humidity line stays visible on top of it.
 
 ### 3. The admin dashboard shows it too
 
@@ -188,7 +198,7 @@ Without a password, any device on the WiFi can send fake readings. Do this once 
 
 ```
 sudo mosquitto_passwd -c /etc/mosquitto/passwd pi        # the app and msp01/index.js
-sudo mosquitto_passwd /etc/mosquitto/passwd esp32        # the ESP32
+sudo mosquitto_passwd /etc/mosquitto/passwd esp32        # both ESP32s
 ```
 
 Then make `/etc/mosquitto/conf.d/store.conf`:
@@ -200,7 +210,7 @@ password_file /etc/mosquitto/passwd
 acl_file /etc/mosquitto/acl
 ```
 
-And `/etc/mosquitto/acl`, so the ESP32 can only send its own readings:
+And `/etc/mosquitto/acl`, so the ESP32s can only send fridge readings:
 
 ```
 user pi
@@ -211,6 +221,6 @@ topic write frig1/#
 topic write frig2/#
 ```
 
-Run `sudo systemctl restart mosquitto`. Then put the logins in `MQTT_USERNAME` / `MQTT_PASSWORD` in `config.py`, and in `MQTT_USER` / `MQTT_PASS` in `esp32/fridge/config.h`, and upload the sketch again.
+Run `sudo systemctl restart mosquitto`. Then put the logins in `MQTT_USERNAME` / `MQTT_PASSWORD` in `config.py`, and in `MQTT_USER` / `MQTT_PASSWORD` in `esp32/fridge/config.h`, and upload the sketch to both ESP32s again.
 
 If the app can't reach the broker, the website still starts, and the Fridges page shows a warning until the broker is back.

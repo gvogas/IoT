@@ -207,6 +207,8 @@ const historyChart = new Chart(document.getElementById("history-chart"), {
         // The tooltip shows the readings closest to the mouse, left to right
         interaction: { mode: "nearest", axis: "x", intersect: false },
         plugins: {
+            // Paint the red "above the limit" area first, so the humidity line shows on top of it
+            filler: { drawTime: "beforeDatasetsDraw" },
             // The legend is under the chart in the page, with the "Above the limit" colour too
             legend: { display: false },
             tooltip: {

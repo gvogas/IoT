@@ -10,7 +10,7 @@ Their dashboard shows today's profit and every fridge's temperature, and the Rep
 They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
 The language picker in the top bar shows the pages in 11 languages, and the receipt email follows it.
 
-For the fridges, an ESP32 with 2 DHT11 sensors sends the temperature and humidity over MQTT,
+For Fridges 1 and 2, each fridge has its own ESP32 with a DHT11 sensor that sends the temperature and humidity over MQTT,
 and the website shows them live.
 
 There is one fan, with a separate driver in hardware/fan.py.
@@ -19,8 +19,8 @@ Admins can turn it off from the fridge dashboard. Sensor readings never switch i
 
 Fridge 3 has a Minew MSP01 sensor instead, which measures the temperature, humidity and light, and sees movement.
 It talks Bluetooth, so the Pi hears it with reelyActive's [barnowl](https://github.com/reelyactive/barnowl) (msp01/index.js)
-and passes the readings to MQTT. Fridge 3 works like the other fridges (limit, alert emails, history), and the
-Fridge 3's page also has cards for the MSP01's light and motion readings.
+and passes the readings to MQTT. Fridge 3 works like the other fridges (limit, alert emails, history), and its
+page also has cards for the MSP01's light and motion readings.
 
 For a map of how all the parts fit together, see [docs/architecture.md](docs/architecture.md).
 
@@ -35,7 +35,7 @@ models/             talks to the database (database.py has query, query_one, exe
 controllers/        MqttController receives readings; FanController controls the shared fan
 hardware/           talks to the fan, the RFID reader and the MSP01 listener (fan.py, rfid.py, msp01.py)
 mail/               sends the alerts and receipts, and reads the YES/NO replies. translations.py has the receipt email in each language
-tools/              database setup and customer role management
+tools/              database setup, fake sensors and customer role management
 templates/          the HTML pages and the emails, one folder per area
 static/uploads/     product images uploaded on the website (not in git, back it up along with store.db)
 static/css/         theme.css has every colour, components.css has the layout
@@ -61,7 +61,7 @@ cp config.example.py config.py
 cp esp32/fridge/config.example.h esp32/fridge/config.h
 ```
 
-**Already set up and pulling new code?** Compare your `config.py` with `config.example.py` and copy over any settings you don't have yet (like the `MSP01_*` and `MQTT_USERNAME` / `MQTT_PASSWORD` lines). The app stops with an `ImportError` until they are there. Then run `python -m tools.init_database` to add any new tables, and `pip install -r requirements.txt`.
+If you already set up the project and are pulling new code, compare your `config.py` with `config.example.py` and copy over any settings you don't have yet (like the `MSP01_*` and `MQTT_USERNAME` / `MQTT_PASSWORD` lines). The app stops with an `ImportError` until they are there. Then run `python -m tools.init_database` to add any new tables, and `pip install -r requirements.txt`.
 
 Then fill in your own values:
 
@@ -77,9 +77,11 @@ Then fill in your own values:
 | config.py | `MSP01_FRIDGE_ID` | The fridge the MSP01 is in (3). `python -m tools.init_database` adds that fridge |
 | config.py | `MSP01_ADDRESS` | The MSP01's Bluetooth address, like `C3:00:00:45:5D:A6`. Empty uses the first one heard, and prints its address |
 | config.py | `RFID_PORT` | USB serial port of the RFID reader, like `/dev/ttyUSB0` |
+| config.h | `FRIDGE_NUMBER` | Which fridge this ESP32 is in, `1` or `2`. Upload once with `1` to the first ESP32, then with `2` to the second |
+| config.h | `SENSOR_PIN` | The GPIO the DHT11's data pin is on (27) |
 | config.h | `WIFI_SSID`, `WIFI_PASSWORD` | WiFi the ESP32 joins |
 | config.h | `MQTT_BROKER` | Same IP as `MQTT_BROKER` in config.py |
-| config.h | `MQTT_USER`, `MQTT_PASS` | The ESP32's broker login. Delete both lines if the broker has no password |
+| config.h | `MQTT_USER`, `MQTT_PASSWORD` | The ESP32's broker login. Leave `MQTT_USER` empty (`""`) if the broker has no password |
 
 The email settings can also come from the `ALERT_EMAIL`, `ALERT_EMAIL_PASSWORD` and `ALERT_TO` environment variables.
 
@@ -128,6 +130,7 @@ Everything the app reports (sensor problems, emails sent, YES replies, errors) g
 
 ```
 python -m tools.set_role          make a customer an admin (or a normal customer again)
+python -m tools.fake_sensors      pretend to be the ESP32s and the MSP01, to test without the hardware
 ```
 
 To make the first admin, sign up on the website (it needs a membership card barcode, scanned or typed), then run `python -m tools.set_role` and give yourself the admin role. Stock emails go to the email on every admin account.

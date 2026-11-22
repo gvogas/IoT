@@ -1,6 +1,6 @@
 # Checkout
 
-The checkout is the home page (`/`), and anyone can scan items on it. Paying needs someone signed in, which usually means scanning a membership card. Payment is a simulation. Nothing charges a real card.
+The checkout is the home page (`/`), and anyone can scan items on it. Paying needs someone signed in, which usually means scanning a membership card. Payment is only simulated, so no real card is charged.
 
 For how the RFID reader itself works, see [rfid-reader.md](rfid-reader.md).
 

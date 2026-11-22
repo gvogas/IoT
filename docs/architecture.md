@@ -164,7 +164,7 @@ flowchart TD
     mail_send -->|"receipt words"| translations["mail/translations.py"]
 ```
 
-`config.py` holds the settings every file uses. `tools/` has `init_database` (creates `store.db`), `set_role` (makes an admin) and `fake_sensors` (pretends to be the ESP32 and the MSP01).
+`config.py` holds the settings every file uses. `tools/` has `init_database` (creates `store.db`), `set_role` (makes an admin) and `fake_sensors` (pretends to be the ESP32s and the MSP01).
 
 ## Notifications
 
