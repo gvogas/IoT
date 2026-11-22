@@ -23,11 +23,12 @@ This page is the overview. Each part of the app has its own doc:
 2. [The big picture](#the-big-picture)
 3. [Folders and who calls whom](#folders-and-who-calls-whom)
 4. [Notifications](#notifications)
-5. [Languages](#languages)
-6. [Database helpers](#database-helpers)
-7. [When the app starts](#when-the-app-starts)
-8. [When the app stops](#when-the-app-stops)
-9. [Logs](#logs)
+5. [Charts](#charts)
+6. [Languages](#languages)
+7. [Database helpers](#database-helpers)
+8. [When the app starts](#when-the-app-starts)
+9. [When the app stops](#when-the-app-stops)
+10. [Logs](#logs)
 
 ## What each person can do
 
@@ -35,7 +36,7 @@ This page is the overview. Each part of the app has its own doc:
 |---|---|
 | Anyone | Scan items at the checkout, sign up, sign in |
 | Signed-in customer | Pay, see their purchase history, email a past receipt, change their email |
-| Admin | Everything above, plus the dashboard and Reports (sales, profit, tax), manage products, stock and customers, and watch the fridges |
+| Admin | Everything above, plus the dashboard (today's profit and the fridge temperatures) and Reports (sales, profit, tax), manage products, stock and customers, and watch the fridges |
 
 Everyone who signs up starts as a customer. To make the first admin, run `python -m tools.set_role`.
 
@@ -73,7 +74,7 @@ flowchart TD
 
     subgraph Pi["python app.py (on the Pi)"]
         Flask["Flask website<br/>routes/"]
-        Models["models/<br/>customers, products, stock, checkout"]
+        Models["models/<br/>customers, products, stock, checkout, reports"]
         HW["hardware/rfid.py"]
         Send["mail/send_email.py"]
     end
@@ -140,7 +141,7 @@ More in [fridges.md](fridges.md) and [msp01.md](msp01.md).
 flowchart TD
     app["app.py"] --> routes["routes/<br/>admin, auth, checkout, customer,<br/>fan, fridge, product, room"]
     routes --> templates["templates/ + static/"]
-    routes --> models["models/<br/>customer, fridge, reading, product,<br/>product_image, reception, unit, checkout, room"]
+    routes --> models["models/<br/>customer, fridge, reading, product,<br/>product_image, reception, unit, checkout, report, room"]
     routes --> hardware["hardware/rfid.py"]
     routes --> mail_send["mail/send_email.py"]
     routes -->|"live readings, fan"| controllers["controllers/"]
@@ -174,6 +175,21 @@ Every action tells the person what happened with a toast, a small box at the bot
 - Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "2 items in range could not be recognised.") stay in the basket, because they can repeat on every read and would pile up.
 
 Emails are notifications too: receipts ([checkout.md](checkout.md)), stock emails ([products-and-stock.md](products-and-stock.md#stock-emails)) and fridge alerts ([fridges.md](fridges.md#when-a-fridge-gets-too-warm)).
+
+## Charts
+
+Every chart is drawn with [Chart.js](https://www.chartjs.org/), loaded from jsDelivr like Bootstrap (so the Pi needs internet for the charts). A page with a chart loads Chart.js, then `static/js/charts.js`, then its own chart code. `charts.js` holds what every chart shares: the colours from `theme.css`, the page's font, and `dollars()` for money labels.
+
+| Chart | Page | Drawn by | Data from |
+|---|---|---|---|
+| Motion today (per hour) | `/fridges/3` (the MSP01's fridge) | `static/js/fridges/room.js` | `/api/room`, every 2 seconds |
+| Sales per day or month | `/reports` | `static/js/admin/reports_charts.js` | `salesBars` in the page, from `sales_chart()` |
+| Sales by category (doughnut) | `/reports` | `static/js/admin/reports_charts.js` | `categories` in the page, from `sales_by_category()` |
+| Temperature and humidity history | `/fridges/<id>` | `static/js/fridges/detail.js` | `/api/fridges/<id>/history`, every minute |
+| Last 24 hours, time in range (doughnut) | `/fridges/<id>` | `static/js/fridges/detail.js` | `stats.inRange` from `/api/fridges/<id>`, every 2 seconds |
+| All fridges, last 24 hours | `/fridges` | `static/js/fridges/dashboard.js` | `/api/fridges/<id>/history?hours=24` for each fridge, every minute |
+
+The numbers for a chart made once are put in the page with Jinja's `tojson`, like `const salesBars = {{ bars|tojson }};`. A chart that keeps changing is made once, and then its data is replaced and `chart.update()` is called. Under the fridge history chart, the average, lowest, highest and share of readings over the limit are worked out in the browser from the same readings, for the time range picked (1 h, 24 h or 7 days). Text drawn inside a chart is not translated by the language picker.
 
 ## Languages
 

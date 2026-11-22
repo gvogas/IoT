@@ -23,24 +23,13 @@ function setFanState(state) {
 // Get the fan state, and whether the broker is reachable, from the server
 async function updateFan() {
     if (fanButton.disabled) return;
-    try {
-        const response = await fetch("/api/fan", { cache: "no-store" });
-        const result = await response.json();
-        if (fanButton.disabled) return;
-        if (response.status === 403) {
-            showSignedOut(message);
-            setFanState("UNKNOWN");
-            return;
-        }
-        setFanState(response.ok ? result.state : "UNKNOWN");
-        if (response.ok) showBroker(brokerMessage, result.broker);
-        setMessage(fanMessage, "");
-    } catch (error) {
-        if (!fanButton.disabled) {
-            setFanState("UNKNOWN");
-            setMessage(fanMessage, "Cannot reach the server.");
-        }
-    }
+    const fan = await fetchFan();
+    // The button was pressed while we waited, so this answer is old
+    if (fanButton.disabled) return;
+    setFanState(fan.state);
+    if (fan.signedOut) showSignedOut(message);
+    if (fan.broker !== null) showBroker(brokerMessage, fan.broker);
+    setMessage(fanMessage, fan.offline ? "Cannot reach the server." : "");
 }
 
 fanButton.addEventListener("click", async () => {
@@ -137,7 +126,60 @@ async function update() {
     }
 }
 
-update();
+// "All fridges, last 24 hours": one line per fridge, made once. Colours come from static/js/charts.js
+const fridgesChart = new Chart(document.getElementById("fridges-chart"), {
+    type: "line",
+    data: { datasets: [] },
+    options: {
+        // animation, parsing and no dots, from FAST_LINE_CHART in static/js/fridges/common.js
+        ...FAST_LINE_CHART,
+        // The tooltip shows every fridge at the time closest to the mouse
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 12 } },
+            tooltip: {
+                callbacks: {
+                    title: (items) => timeLabel(new Date(items[0].parsed.x), 24),
+                    label: (item) => ` ${item.dataset.label}: ${item.parsed.y.toFixed(1)} °C`
+                }
+            }
+        },
+        scales: {
+            // Time in milliseconds, shown as "14:05"
+            x: { type: "linear", ticks: { maxTicksLimit: 6, callback: (value) => timeLabel(new Date(value), 24) } },
+            y: { suggestedMin: 0, ticks: { callback: (value) => `${value} °C` } }
+        }
+    }
+});
+
+// Get the last 24 hours of every fridge and draw them
+async function updateFridgesChart() {
+    if (!latestFridges.length) return;
+    // By ID, so each fridge keeps its colour
+    const fridges = [...latestFridges].sort((a, b) => a.id - b.id);
+    const datasets = [];
+    try {
+        for (const [i, fridge] of fridges.entries()) {
+            const response = await fetch(`/api/fridges/${fridge.id}/history?hours=24`, { cache: "no-store" });
+            if (!response.ok) return;
+            const rows = await response.json();
+            const colour = SLICE_COLOURS[i % SLICE_COLOURS.length];
+            datasets.push({ label: fridge.name, data: chartPoints(rows, "temperature"),
+                            borderColor: colour, backgroundColor: colour, borderWidth: 2 });
+        }
+    } catch (error) {
+        return;   // Keep showing the old chart if the server can't be reached
+    }
+
+    const end = Date.now();
+    fridgesChart.data.datasets = datasets;
+    fridgesChart.options.scales.x.min = end - 24 * 3600 * 1000;
+    fridgesChart.options.scales.x.max = end;
+    fridgesChart.update();
+}
+
+update().then(updateFridgesChart);
 updateFan();
 setInterval(updateFan, 2000);
 setInterval(update, 2000);
+setInterval(updateFridgesChart, 60000); // a reading is saved once a minute

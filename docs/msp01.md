@@ -6,8 +6,8 @@ The Minew MSP01 is a small Bluetooth Low Energy (BLE) sensor. It sits in Fridge 
 |---|---|---|
 | Temperature | °C | Admin dashboard, Fridge 3 page |
 | Humidity | % | Admin dashboard, Fridge 3 page |
-| Light | lux | Admin dashboard |
-| Motion (PIR) | yes / no | Admin dashboard |
+| Light | lux | Fridge 3 page |
+| Motion (PIR) | yes / no | Fridge 3 page |
 
 It also reports its battery level and how strong its signal is (RSSI).
 
@@ -21,7 +21,7 @@ The MSP01 doesn't connect to WiFi. It keeps broadcasting short Bluetooth packets
 5. [MQTT topics](#mqtt-topics)
 6. [Database](#database)
 7. [API](#api)
-8. [Dashboard widgets](#dashboard-widgets)
+8. [Light and motion cards](#light-and-motion-cards)
 9. [Fridge 3](#fridge-3)
 10. [Testing without the sensor](#testing-without-the-sensor)
 11. [Troubleshooting](#troubleshooting)
@@ -44,7 +44,7 @@ flowchart TD
     end
 
     subgraph Browser["Browser"]
-        Cards["Dashboard cards<br/>static/js/admin/room.js"]
+        Cards["Fridge 3 page cards<br/>static/js/fridges/room.js"]
     end
 
     MSP01 -->|"Bluetooth"| Node
@@ -54,14 +54,14 @@ flowchart TD
     MQTT -->|"live values"| API
     MQTT -->|"temperature + humidity"| Fridge3
     DB -->|"24 h min/max,<br/>motion per hour"| API
-    API -->|"every 5 s"| Cards
+    API -->|"every 2 s"| Cards
 ```
 
 1. The sensor broadcasts packets. Each one holds one kind of reading (temperature and humidity, light, motion, or battery).
 2. `msp01/index.js` (Node.js) uses reelyActive's [barnowl](https://github.com/reelyactive/barnowl) to listen on the Pi's Bluetooth (`hci0`). barnowl gives each packet to us as a *raddec*: who sent it, how strong the signal was, and the packet itself. [advlib](https://github.com/reelyactive/advlib) then turns the packet into named values like `temperature` and `relativeHumidity`.
 3. The Node program publishes each value to its own MQTT topic, like `msp01/temperature` → `22.0`.
 4. In the Flask app, `MqttController` (`controllers/mqtt_controller.py`) subscribes to `msp01/#`. It keeps the newest values in memory and saves a reading to the database once a minute.
-5. On the dashboard, `static/js/admin/room.js` calls `/api/room` every 5 seconds and updates the cards.
+5. On Fridge 3's page, `static/js/fridges/room.js` calls `/api/room` every 2 seconds and updates the light and motion cards.
 
 The listener is in Node.js because barnowl and advlib are JavaScript packages, and they already know how to read Minew packets, so we don't have to decode raw bytes ourselves. Python starts and stops the Node program for us (`hardware/msp01.py`), so you still run the project with `python app.py` alone.
 
@@ -76,8 +76,8 @@ The listener is in Node.js because barnowl and advlib are JavaScript packages, a
 | `controllers/mqtt_controller.py` | Receives the `msp01/...` messages, keeps the live values, saves readings and motion |
 | `models/room.py` | Saves readings and motion, and works out the 24 hour min/max and motion per hour |
 | `routes/room_routes.py` | `GET /api/room`, the live values and stats as JSON (admins only) |
-| `templates/admin/home.html` | The MSP01 cards on the admin dashboard |
-| `static/js/admin/room.js` | Fills in the cards every 5 seconds |
+| `templates/fridges/detail.html` | The MSP01 light and motion cards, on the page of fridge `MSP01_FRIDGE_ID` |
+| `static/js/fridges/room.js` | Fills in the cards every 2 seconds |
 | `tools/init_database.py` | Creates the `RoomReading` and `MotionEvent` tables, and adds Fridge 3 |
 | `tools/fake_sensors.py` | Sends fake MSP01 readings so you can test without the sensor |
 
@@ -124,7 +124,7 @@ The strongest signal (closest to 0) is usually the sensor closest to the Pi. The
 MSP01_ENABLED = True
 MSP01_ADDRESS = "C3:00:00:45:5D:A6"
 ```
-`MQTT_BROKER` must point to the broker. The MSP01 starts MQTT on its own, so the dashboard cards work even with `FRIDGES_ENABLED = False`. Turn `FRIDGES_ENABLED` on too if you want the Fridge 3 warnings on the dashboard and the YES reply to alert emails (see [Fridge 3](#fridge-3)).
+`MQTT_BROKER` must point to the broker. The MSP01 starts MQTT on its own, so its cards work even with `FRIDGES_ENABLED = False`. Turn `FRIDGES_ENABLED` on too if you want the Fridge 3 warnings on the dashboard and the YES reply to alert emails (see [Fridge 3](#fridge-3)).
 
 ### 5. Create the tables and run
 ```
@@ -145,7 +145,7 @@ MSP01: connected, hearing c30000455da6 (signal -58 dBm)
 ### `config.py`
 | Setting | Default | Meaning |
 |---|---|---|
-| `MSP01_ENABLED` | `False` | `True` to start listening, add Fridge 3 and show the cards on the dashboard |
+| `MSP01_ENABLED` | `False` | `True` to start listening, add Fridge 3 and show the light and motion cards on its page |
 | `MSP01_ADDRESS` | `""` | The sensor's Bluetooth address. Empty means "use the first MSP01 heard" (its address is printed so you can copy it) |
 | `MSP01_TOPIC` | `"msp01"` | The first part of every MQTT topic |
 | `MSP01_FRIDGE_ID` | `3` | The fridge the sensor sits in |
@@ -156,8 +156,8 @@ MSP01: connected, hearing c30000455da6 (signal -58 dBm)
 | `SAVE_EVERY` | 60 s | `controllers/mqtt_controller.py` | How often a reading is saved to `RoomReading` |
 | `MOTION_HOLD` | 30 s | `controllers/mqtt_controller.py` | Motion this close together counts as one visit. The card shows "Motion now" for this long |
 | `LOST_AFTER` | 30 s | `msp01/index.js` | Silence before the terminal prints "lost" |
-| `ROOM_OFFLINE_AFTER` | 60 s | `static/js/admin/room.js` | Silence before the dashboard cards say "Offline" |
-| `LIGHT_FULL` | 1000 lux | `static/js/admin/room.js` | Light level that fills the light bar |
+| `ROOM_OFFLINE_AFTER` | 60 s | `static/js/fridges/room.js` | Silence before the cards say "Offline" |
+| `LIGHT_FULL` | 1000 lux | `static/js/fridges/room.js` | Light level that fills the light bar |
 
 ## MQTT topics
 
@@ -204,7 +204,7 @@ Battery and signal strength are kept in memory only and never saved.
 ## API
 
 ### `GET /api/room`
-Admins only. The dashboard calls it every 5 seconds.
+Admins only. Fridge 3's page calls it every 2 seconds.
 
 ```json
 {
@@ -238,15 +238,13 @@ Admins only. The dashboard calls it every 5 seconds.
 | `stats.motionByHour` | Visits in each hour today, 24 numbers starting at midnight |
 | `stats.lastMotionAge` | Seconds since the last visit, even if it was before today |
 
-## Dashboard widgets
+## Light and motion cards
 
-On `/admin`, under the Fridge 3 heading:
+On Fridge 3's page (`/fridges/3`), under the history chart, in the "MSP01 sensor" section. The temperature and humidity are in the gauges at the top of the same page:
 
 | Widget | Shows |
 |---|---|
 | Status bar | Live / Waiting / Offline, battery, signal, time since the last reading |
-| Temperature | Current °C and the 24 hour range |
-| Humidity | Current %, a bar, and the 24 hour range |
 | Light | Current lux with Dark (under 50) / Dim (under 300) / Bright, a bar, and the 24 hour range |
 | Motion | "Motion now" (the card lights up) or "No motion", and the time since the last motion |
 | Visits today | Number of visits since midnight, with one bar per hour. The current hour is darker |
@@ -271,7 +269,7 @@ Any message from the MSP01 (light, motion or battery too) counts as a sign of li
 2. Start the app: `python app.py`.
 3. In another terminal: `python3 -m tools.fake_sensors`.
 
-`msp01/index.js` still starts with the app. If the Pi has no Bluetooth it stops with an error, but the fake readings still reach the dashboard through MQTT.
+`msp01/index.js` still starts with the app. If the Pi has no Bluetooth it stops with an error, but the fake readings still reach the app through MQTT.
 
 ## Troubleshooting
 

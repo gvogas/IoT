@@ -1,310 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 
-{# With the fridges on, reload every 30 seconds so a new fridge alert shows up without pressing refresh #}
-{% block head %}{% if fridges_enabled %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
+{# Reload every 30 seconds so today's profit stays up to date. The fridge cards update every 2 seconds by themselves #}
+{% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
 
 {% block content %}
-    {# A too warm fridge already has the red banner, so the to-do list only has the other fridge problems #}
-    {% set to_do = fridges|rejectattr('hot')|list|length + out_of_stock|length + below_cost|length + low_stock|length + no_cost|length %}
     <div class="page-head">
         <div>
             <h1>{{ greeting }}, <span class="notranslate" translate="no">{{ session.name }}</span></h1>
-            <p>{{ today_text }} · {% if to_do %}{{ to_do }} {{ 'thing needs' if to_do == 1 else 'things need' }} your attention{% else %}nothing needs your attention{% endif %}</p>
-        </div>
-        <div class="page-actions">
-            <a class="btn btn-outline-secondary" href="/reports"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Reports</a>
-            <a class="btn btn-primary" href="/products/new"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add product</a>
+            <p>{{ today_text }}</p>
         </div>
     </div>
 
-    {# A too warm fridge is the most urgent thing, so it gets a red bar above everything else #}
-    {% for fridge in fridges %}
-    {% if fridge.hot %}
-    <div class="fridge-banner" role="alert">
-        <i class="bi bi-thermometer-high" aria-hidden="true"></i>
-        <div class="flex-grow-1">
-            <b>{{ fridge.name }} is too warm: {{ '%.1f'|format(fridge.temperature) }} °C</b>
-            <div>The limit is {{ '%.1f'|format(fridge.threshold) }} °C. {{ fridge.alert_text }}.{% if fridge.alert_failed %} Check the email settings.{% endif %}</div>
-        </div>
-        <a class="btn btn-danger btn-sm" href="/fridges/{{ fridge.id }}">Check fridge</a>
-    </div>
-    {% endif %}
-    {% endfor %}
-
-    {# Today so far. Under each number: how much it went up or down since yesterday at the same time #}
-    <div class="row row-cols-2 row-cols-xl-4 g-3 mb-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
+        {# Today's profit. Click it to see today on the Reports page #}
         <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
-                        <span class="stat-label">Sales today</span>
-                    </div>
-                    <div class="stat-value">{{ today.sales|money }}</div>
-                    {% with change=changes.sales %}{% include "admin/change.html" %}{% endwith %}
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
-                        <span class="stat-label">Orders today</span>
-                    </div>
-                    <div class="stat-value">{{ today.orders }}</div>
-                    {% with change=changes.orders %}{% include "admin/change.html" %}{% endwith %}
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-basket" aria-hidden="true"></i></span>
-                        <span class="stat-label">Average order</span>
-                    </div>
-                    <div class="stat-value">{{ today.average|money }}</div>
-                    {% with change=changes.average %}{% include "admin/change.html" %}{% endwith %}
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card stat-card h-100">
+            <a class="card stat-card dash-card h-100" href="/reports?period=today">
                 <div class="card-body">
                     <div class="stat-top">
                         <span class="stat-icon good"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
                         <span class="stat-label">Profit today</span>
                     </div>
-                    <div class="stat-value{{ ' alert-value' if today.profit < 0 }}">{{ today.profit|money }}</div>
-                    {% with change=changes.profit %}{% include "admin/change.html" %}{% endwith %}
+                    <div class="stat-value{{ ' alert-value' if profit.profit < 0 }}">{{ profit.profit|money }}</div>
+                    {% with change=change, compare_label="yesterday" %}{% include "admin/change.html" %}{% endwith %}
+                    <div class="stat-note">{{ profit.sales|money }} in sales · {{ profit.orders }} {{ 'order' if profit.orders == 1 else 'orders' }}</div>
+                    <span class="dash-link">Open today's report <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    {# The MSP01 sensor, which sits in a fridge. static/js/admin/room.js fills in the numbers every 5 seconds #}
-    {% if msp01_enabled %}
-    <section class="room-section mb-4" aria-labelledby="room-title">
-        <div class="room-head">
-            <h2 id="room-title">{{ msp01_fridge.name if msp01_fridge else 'MSP01' }}</h2>
-            <span id="room-status" class="fridge-status waiting"><span class="dot"></span><span class="status-text">Waiting</span></span>
-            <span class="room-meta">MSP01 sensor · Battery <b id="room-battery">--</b> % · Signal <b id="room-rssi">--</b> dBm · <span id="room-age">No reading yet</span></span>
-            {% if msp01_fridge %}<a class="small ms-auto" href="/fridges/{{ msp01_fridge.id }}">Limit and history <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
-        </div>
-        <div id="room-message" role="status" hidden></div>
-
-        <div class="row row-cols-2 row-cols-xl-4 g-3 mb-3">
-            <div class="col">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-top">
-                            <span class="stat-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
-                            <span class="stat-label">Temperature</span>
-                        </div>
-                        <div class="stat-value"><span id="room-temp">--</span> <small>°C</small></div>
-                        <div class="stat-note" id="room-temp-range">24 h: --</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-top">
-                            <span class="stat-icon"><i class="bi bi-droplet" aria-hidden="true"></i></span>
-                            <span class="stat-label">Humidity</span>
-                        </div>
-                        <div class="stat-value"><span id="room-hum">--</span> <small>%</small></div>
-                        <div class="room-meter" aria-hidden="true"><div class="room-meter-fill" id="room-hum-bar"></div></div>
-                        <div class="stat-note" id="room-hum-range">24 h: --</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card stat-card h-100">
-                    <div class="card-body">
-                        <div class="stat-top">
-                            <span class="stat-icon warn"><i class="bi bi-brightness-high" id="room-light-icon" aria-hidden="true"></i></span>
-                            <span class="stat-label">Light</span>
-                        </div>
-                        <div class="stat-value"><span id="room-light">--</span> <small id="room-light-unit">lux</small></div>
-                        <div class="room-meter" aria-hidden="true"><div class="room-meter-fill light" id="room-light-bar"></div></div>
-                        <div class="stat-note" id="room-light-range">24 h: --</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card stat-card h-100" id="room-motion-card">
-                    <div class="card-body">
-                        <div class="stat-top">
-                            <span class="stat-icon" id="room-motion-icon"><i class="bi bi-person-walking" aria-hidden="true"></i></span>
-                            <span class="stat-label">Motion</span>
-                        </div>
-                        <div class="stat-value" id="room-motion" role="status">--</div>
-                        <div class="stat-note" id="room-last-motion">No motion yet</div>
-                    </div>
-                </div>
-            </div>
+            </a>
         </div>
 
-        {# One bar per hour of today: how many times someone walked in front of the sensor #}
-        <div class="card" aria-labelledby="motion-title">
-            <div class="card-head">
-                <div>
-                    <h2 id="motion-title">Motion today</h2>
-                    <div class="big-number"><span id="room-visits">0</span> <small class="text-secondary fs-6 fw-normal">times someone moved</small></div>
+        {# One card per fridge. static/js/admin/home.js changes the numbers every 2 seconds. Click one to open the fridge #}
+        {% for fridge in fridges %}
+        <div class="col">
+            <a class="card stat-card dash-card h-100{{ ' hot' if fridge.status == 'hot' }}" href="/fridges/{{ fridge.id }}" data-fridge-id="{{ fridge.id }}">
+                <div class="card-body">
+                    <div class="stat-top">
+                        <span class="stat-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
+                        <span class="stat-label">{{ fridge.name }}</span>
+                        <span class="fridge-status {{ fridge.status }} ms-auto"><span class="dot"></span><span class="status-text">{{ status_text[fridge.status] }}</span></span>
+                    </div>
+                    <div class="stat-value"><span class="temp">{{ '%.1f'|format(fridge.temperature) if fridge.temperature is not none else '--' }}</span> <small>°C</small></div>
+                    <div class="stat-note">Limit {{ '%.1f'|format(fridge.threshold) }} °C · Humidity <span class="hum">{{ fridge.humidity|round|int if fridge.humidity is not none else '--' }}</span> %</div>
+                    <div class="stat-note last-reading">{{ 'No reading yet' if fridge.age is none else 'Last reading ' ~ fridge.age ~ ' s ago' }}</div>
                 </div>
-                <span class="text-secondary small">By hour</span>
-            </div>
-            <div class="card-body pt-0">
-                <div class="hour-chart" id="room-hours"></div>
-                <div class="hour-labels" aria-hidden="true"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>12 am</span></div>
-            </div>
+            </a>
         </div>
-    </section>
-    {% endif %}
-
-    <div class="row g-3 mb-4">
-        {# Everything that needs doing, the most urgent first. Each line has a button that goes straight to the fix #}
-        <section class="col-lg-7">
-            <div class="card h-100" aria-labelledby="todo-title">
-                <div class="card-head">
-                    <h2 id="todo-title">Needs attention {% if to_do %}<span class="count">{{ to_do }}</span>{% endif %}</h2>
-                    <a class="small" href="/inventory">Open inventory</a>
-                </div>
-                {% if to_do %}
-                <ul class="todo-list">
-                    {% for fridge in fridges if not fridge.hot %}
-                    <li class="todo">
-                        <span class="todo-icon"><i class="bi bi-thermometer-high" aria-hidden="true"></i></span>
-                        <span class="todo-text"><b>{{ fridge.name }}</b><small>{{ fridge.text }}</small></span>
-                        <a class="btn btn-outline-secondary btn-sm" href="/fridges/{{ fridge.id }}">Check fridge</a>
-                    </li>
-                    {% endfor %}
-                    {% for row in out_of_stock %}
-                    <li class="todo urgent">
-                        <span class="todo-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
-                        <span class="todo-text"><b>{{ row.productName }}</b><small>Out of stock</small></span>
-                        <a class="btn btn-outline-secondary btn-sm" href="/products/{{ row.productID }}#receive">Receive</a>
-                    </li>
-                    {% endfor %}
-                    {% for product in below_cost %}
-                    <li class="todo urgent">
-                        <span class="todo-icon"><i class="bi bi-graph-down-arrow" aria-hidden="true"></i></span>
-                        <span class="todo-text"><b>{{ product.productName }}</b><small>Sells for {{ product.price|money }} but costs {{ product.costPrice|money }}</small></span>
-                        <a class="btn btn-outline-secondary btn-sm" href="/products/{{ product.productID }}/edit">Fix price</a>
-                    </li>
-                    {% endfor %}
-                    {% for row in low_stock %}
-                    <li class="todo">
-                        <span class="todo-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
-                        <span class="todo-text"><b>{{ row.productName }}</b><small>Only {{ row.inStock }} left (alert at {{ row.lowStockThreshold }})</small></span>
-                        <a class="btn btn-outline-secondary btn-sm" href="/products/{{ row.productID }}#receive">Receive</a>
-                    </li>
-                    {% endfor %}
-                    {% for product in no_cost %}
-                    <li class="todo">
-                        <span class="todo-icon"><i class="bi bi-tag" aria-hidden="true"></i></span>
-                        <span class="todo-text"><b>{{ product.productName }}</b><small>No cost yet, so its profit is left out</small></span>
-                        <a class="btn btn-outline-secondary btn-sm" href="/products/{{ product.productID }}/edit">Add cost</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="card-body pt-0 all-good">
-                    <i class="bi bi-check-circle" aria-hidden="true"></i>
-                    <p class="mb-0">All caught up. Fridges are fine, everything is in stock and every price covers its cost.</p>
-                </div>
-                {% endif %}
-            </div>
-        </section>
-
-        <section class="col-lg-5">
-            <div class="card h-100" aria-labelledby="recent-title">
-                <div class="card-head">
-                    <h2 id="recent-title">Latest orders</h2>
-                </div>
-                <div class="card-body pt-0">
-                    {% for order in recent %}
-                    <div class="order-row">
-                        <span class="avatar" aria-hidden="true">{{ (order.customerName or 'G')[:1]|upper }}</span>
-                        <span class="order-text">
-                            <b class="notranslate" translate="no">{{ order.customerName or 'Guest' }}</b>
-                            <small>#{{ order.purchaseID }} · {{ order.purchaseDate|nice_datetime }}</small>
-                        </span>
-                        <span class="order-end num">
-                            <b>{{ order.total|money }}</b>
-                            <small>{{ order.units }} {{ 'item' if order.units == 1 else 'items' }}</small>
-                        </span>
-                    </div>
-                    {% else %}
-                    <p class="text-secondary mb-0">No orders yet.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-    </div>
-
-    <div class="row g-3">
-        {# The last 7 days. Each bar's height is its sales as a percent of the best day. Today's bar is dark #}
-        <section class="col-lg-8">
-            <div class="card h-100" aria-labelledby="week-title">
-                <div class="card-head">
-                    <div>
-                        <h2 id="week-title">Last 7 days</h2>
-                        <div class="big-number">{{ week_total|money }}</div>
-                    </div>
-                    <span class="text-secondary small">Sales before tax</span>
-                </div>
-                <div class="card-body pt-0">
-                    <div class="bar-chart">
-                        {% for day in days %}
-                        <div class="bar-day{{ ' today' if day.today }}">
-                            <span class="bar-amount">{% if day.sales %}{{ '${:,.0f}'.format(day.sales) }}{% endif %}</span>
-                            <span class="visually-hidden">{{ day.date }}: {{ day.sales|money }}</span>
-                            <div class="bar-track" aria-hidden="true">
-                                <div class="bar" style="height: {{ day.sales * 100 / best_day }}%" title="{{ day.date }}: {{ day.sales|money }}"></div>
-                            </div>
-                            <span class="bar-label">{{ 'Today' if day.today else day.label }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="col-lg-4">
-            <div class="card h-100" aria-labelledby="week-top-title">
-                <div class="card-head">
-                    <h2 id="week-top-title">Best sellers this week</h2>
-                </div>
-                <div class="card-body pt-0">
-                    {% for product in week_top %}
-                    <a class="seller-row" href="/products/{{ product.productID }}">
-                        <span class="seller-rank">{{ loop.index }}</span>
-                        {% if product.imagePath %}
-                        <img class="product-image sm" src="{{ url_for('static', filename=product.imagePath) }}" alt="" loading="lazy">
-                        {% else %}
-                        <span class="product-image sm no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
-                        {% endif %}
-                        <span class="order-text">
-                            <b>{{ product.productName }}</b>
-                            <small>{{ product.units }} sold</small>
-                        </span>
-                        <span class="order-end num"><b>{{ product.sales|money }}</b></span>
-                    </a>
-                    {% else %}
-                    <p class="text-secondary mb-0">Nothing sold this week yet.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
+        {% endfor %}
     </div>
 {% endblock %}
 
 {% block scripts %}
-    {% if msp01_enabled %}
-    <script src="{{ url_for('static', filename='js/admin/room.js') }}"></script>
+    {% if fridges %}
+    <script src="{{ url_for('static', filename='js/fridges/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin/home.js') }}"></script>
     {% endif %}
 {% endblock %}

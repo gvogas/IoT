@@ -14,7 +14,7 @@ def seconds_since(when):
     return round(time.time() - when) if when else None
 
 
-# The MSP01 sensor (in Fridge 3). The dashboard asks for this every 5 seconds
+# The MSP01 sensor (in Fridge 3). The dashboard asks for this every 2 seconds
 @room_routes.route("/api/room")
 @admin_api
 def api_room():

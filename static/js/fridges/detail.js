@@ -48,6 +48,36 @@ function showDial(humidity) {
     $(".hum-needle").setAttribute("y2", (105 - 58 * Math.sin(angle)).toFixed(1));
 }
 
+// The "Last 24 hours" doughnut: green for the time under the limit, red for the time over it.
+// Grey when there are no saved readings yet. Colours come from static/js/charts.js
+const rangeChart = new Chart(document.getElementById("range-chart"), {
+    type: "doughnut",
+    data: {
+        labels: ["Under the limit", "Over the limit"],
+        datasets: [{ data: [0, 0], backgroundColor: [SUCCESS, DANGER], borderColor: "#fff", borderWidth: 2 }]
+    },
+    options: {
+        cutout: "70%",
+        plugins: {
+            legend: { position: "right", labels: { boxWidth: 12 } },
+            tooltip: { callbacks: { label: (item) => ` ${item.label}: ${item.raw}%` } }
+        }
+    }
+});
+
+// inRange is the percent of the last 24 hours' readings that were under the limit, or null
+function showRangeChart(inRange) {
+    const numbers = inRange === null ? [0, 0] : [inRange, 100 - inRange];
+    const bars = rangeChart.data.datasets[0];
+    // Only redraw when the numbers change, so the doughnut doesn't flicker every 2 seconds
+    if (bars.data[0] === numbers[0] && bars.data[1] === numbers[1]) return;
+    bars.data = numbers;
+    rangeChart.update();
+    $(".range-text").textContent = inRange === null
+        ? "No saved readings yet."
+        : `${inRange}% of the readings were under the limit.`;
+}
+
 // Put the newest data on the page
 function showFridge(fridge) {
     const status = fridgeStatus(fridge);
@@ -75,6 +105,7 @@ function showFridge(fridge) {
     $(".stat-min").textContent = stats.minTemp === null ? "--" : `${oneDecimal(stats.minTemp)} °C`;
     $(".stat-max").textContent = stats.maxTemp === null ? "--" : `${oneDecimal(stats.maxTemp)} °C`;
     $(".stat-range").textContent = stats.inRange === null ? "--" : `${stats.inRange}%`;
+    showRangeChart(stats.inRange);
     $(".stat-over").textContent = stats.overTodayMinutes ? duration(stats.overTodayMinutes) : "none";
     $(".stat-over").className = `stat-over ${stats.overTodayMinutes ? "hot" : "ok"}`;
 
@@ -123,14 +154,11 @@ function setFanState(state) {
 // Get the fan state, and whether the broker is reachable, from the server
 async function updateFan() {
     if (fanButton.disabled) return;
-    try {
-        const response = await fetch("/api/fan", { cache: "no-store" });
-        const result = await response.json();
-        setFanState(response.ok ? result.state : "UNKNOWN");
-        if (response.ok) showBroker(brokerMessage, result.broker);
-    } catch (error) {
-        setFanState("UNKNOWN");
-    }
+    const fan = await fetchFan();
+    // The button was pressed while we waited, so this answer is old
+    if (fanButton.disabled) return;
+    setFanState(fan.state);
+    if (fan.broker !== null) showBroker(brokerMessage, fan.broker);
 }
 
 fanButton.addEventListener("click", async () => {
@@ -153,79 +181,93 @@ form.addEventListener("submit", async (event) => {
     }
 });
 
-// History chart
-const CHART_W = 1000, CHART_H = 240;
+// History chart, drawn with Chart.js. Colours come from static/js/charts.js
 
-// "2026-11-06 15:03:43" -> Date
-function parseTime(text) {
-    return new Date(text.replace(" ", "T"));
-}
-
-// Line through the readings, with a break where the sensor was offline
-function linePath(points, x, y) {
-    let d = "", last = null;
-    for (const point of points) {
-        const jump = last === null || point.t - last > 5 * 60 * 1000;
-        d += `${jump ? "M" : "L"}${x(point.t).toFixed(1)} ${y(point.v).toFixed(1)} `;
-        last = point.t;
-    }
-    return d;
-}
-
-// Red boxes where the fridge was over the limit
-function shadePath(points, limit, x) {
-    let d = "", start = null, previous = null;
-    for (const point of points) {
-        if (point.v > limit && start === null) start = point.t;
-        if (point.v <= limit && start !== null) {
-            d += `M${x(start).toFixed(1)} 0 H${x(previous).toFixed(1)} V${CHART_H} H${x(start).toFixed(1)} Z `;
-            start = null;
+// Made once. drawChart() puts new readings in it
+const historyChart = new Chart(document.getElementById("history-chart"), {
+    type: "line",
+    data: {
+        datasets: [
+            {
+                label: "Temperature",
+                data: [],
+                borderColor: BLUE,
+                borderWidth: 2.5,
+                yAxisID: "temp",
+                // Red under the line wherever it is above the limit. drawChart() sets the limit
+                fill: { target: { value: 0 }, above: DANGER_TINT, below: "transparent" }
+            },
+            { label: "Humidity", data: [], borderColor: MIST, borderWidth: 1.5, yAxisID: "hum" },
+            { label: "Limit", data: [], borderColor: DANGER, borderWidth: 1.5, borderDash: [6, 4], yAxisID: "temp" }
+        ]
+    },
+    options: {
+        // animation, parsing and no dots, from FAST_LINE_CHART in static/js/fridges/common.js
+        ...FAST_LINE_CHART,
+        // The tooltip shows the readings closest to the mouse, left to right
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        plugins: {
+            // The legend is under the chart in the page, with the "Above the limit" colour too
+            legend: { display: false },
+            tooltip: {
+                // The limit line is the same everywhere, so it is not in the tooltip
+                filter: (item) => item.dataset.label !== "Limit",
+                callbacks: {
+                    title: (items) => timeLabel(new Date(items[0].parsed.x), historyHours),
+                    label: (item) => item.dataset.label === "Humidity"
+                        ? ` Humidity: ${Math.round(item.parsed.y)} %`
+                        : ` Temperature: ${item.parsed.y.toFixed(1)} °C`
+                }
+            }
+        },
+        scales: {
+            // Time in milliseconds, shown as "14:05" (or "Mon 14:05" for a week)
+            x: { type: "linear", ticks: { maxTicksLimit: 6, callback: (value) => timeLabel(new Date(value), historyHours) } },
+            temp: { position: "left", suggestedMin: 0, ticks: { callback: (value) => `${value} °C` } },
+            hum: { position: "right", min: 0, max: 100, grid: { display: false }, ticks: { callback: (value) => `${value} %` } }
         }
-        previous = point.t;
     }
-    if (start !== null) d += `M${x(start).toFixed(1)} 0 H${x(previous).toFixed(1)} V${CHART_H} H${x(start).toFixed(1)} Z`;
-    return d;
+});
+
+// Average, lowest, highest and the share over the limit, for the time range on the chart.
+// Uses every reading, not the averaged chart points, so the highest isn't averaged away
+function showSummary(rows, limit) {
+    const temps = rows.map((row) => row.temperature).filter((t) => t !== null);
+    if (!temps.length) {
+        page.querySelectorAll(".history-summary b").forEach((b) => { b.textContent = "--"; });
+        return;
+    }
+    const average = temps.reduce((sum, t) => sum + t, 0) / temps.length;
+    const overPercent = Math.round(temps.filter((t) => t > limit).length * 100 / temps.length);
+
+    $(".sum-average").textContent = `${oneDecimal(average)} °C`;
+    $(".sum-low").textContent = `${oneDecimal(Math.min(...temps))} °C`;
+    $(".sum-high").textContent = `${oneDecimal(Math.max(...temps))} °C`;
+    $(".sum-over").textContent = `${overPercent}%`;
+    $(".sum-over").className = `sum-over ${overPercent > 0 ? "hot" : "ok"}`;
 }
 
-// Time for the chart, with the day for a week
-function timeLabel(date) {
-    const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    if (historyHours <= 24) return time;
-    return date.toLocaleDateString([], { weekday: "short" }) + " " + time;
-}
-
-// Draw the history chart
+// Put the readings in the chart. rows come from /api/fridges/<id>/history.
 function drawChart(rows) {
     const empty = rows.length === 0;
     $(".history-empty").hidden = !empty;
-    $(".chart").style.opacity = empty ? 0.4 : 1;
+    $(".history-chart").style.opacity = empty ? 0.4 : 1;
 
     const end = Date.now(), start = end - historyHours * 3600 * 1000;
-    const temps = rows.filter((r) => r.temperature !== null).map((r) => ({ t: parseTime(r.time).getTime(), v: r.temperature }));
-    const hums = rows.filter((r) => r.humidity !== null).map((r) => ({ t: parseTime(r.time).getTime(), v: r.humidity }));
     const limit = latest ? latest.threshold : 0;
-    const top = scaleTop(limit, ...temps.map((p) => p.v));
+    const [temperature, humidity, limitLine] = historyChart.data.datasets;
 
-    const x = (t) => ((t - start) / (end - start)) * CHART_W;
-    const yTemp = (v) => CHART_H - (Math.min(Math.max(v, 0), top) / top) * CHART_H;
-    const yHum = (v) => CHART_H - (v / 100) * CHART_H;
+    temperature.data = chartPoints(rows, "temperature");
+    temperature.fill.target.value = limit;
+    humidity.data = chartPoints(rows, "humidity");
+    limitLine.data = [{ x: start, y: limit }, { x: end, y: limit }];
 
-    $(".chart-temp").setAttribute("d", linePath(temps, x, yTemp));
-    $(".chart-hum").setAttribute("d", linePath(hums, x, yHum));
-    $(".chart-shade").setAttribute("d", shadePath(temps, limit, x));
-    $(".chart-limit").setAttribute("y1", yTemp(limit));
-    $(".chart-limit").setAttribute("y2", yTemp(limit));
-
-    $(".chart-y").replaceChildren(...[4, 3, 2, 1, 0].map((i) => {
-        const span = document.createElement("span");
-        span.textContent = `${Math.round(top * i / 4)}${i === 4 ? " °C" : ""}`;
-        return span;
-    }));
-    $(".chart-x").replaceChildren(...[0, 1, 2, 3, 4].map((i) => {
-        const span = document.createElement("span");
-        span.textContent = i === 4 ? "now" : timeLabel(new Date(start + (end - start) * i / 4));
-        return span;
-    }));
+    // Always show the whole time range, even before the first reading. Leave room above the limit
+    historyChart.options.scales.x.min = start;
+    historyChart.options.scales.x.max = end;
+    historyChart.options.scales.temp.suggestedMax = scaleTop(limit, ...temperature.data.map((point) => point.y));
+    historyChart.update();
+    showSummary(rows, limit);
 }
 
 // Get the saved readings for the chart

@@ -55,17 +55,16 @@ The search box filters receipts by product name or date, but does not summarize 
 ## 4. Extras (optional)
 - [x] Notifications: toasts, low stock and restocked emails, receipt email, fridge temperature alert emails
 - [x] Exportable report: inventory CSV (`/inventory.csv`)
-- [x] Dashboard widgets on `/admin` (today's numbers, last 7 days, stock problems, fridges, MSP01)
+- [x] Dashboard on `/admin`: today's profit (click it for today's report) and a live temperature card for each fridge
 - [ ] Light and dark mode. No dark theme in `theme.css` yet
 - [ ] Export the Sales or Customer Activity report (CSV, or a Print button with `window.print()` for PDF)
 - [ ] Responsive check on phone width (carried over from Phase 3)
 
 ## 5. MSP01 BLE Sensor
-Not committed yet (`hardware/msp01.py`, `msp01/`, `models/room.py`, `routes/room_routes.py`, `static/js/admin/room.js` are new files).
 - [x] Read the MSP01 over Bluetooth with reelyActive barnowl/advlib and publish to MQTT (`msp01/index.js`)
-- [x] Temperature, humidity, light and motion widgets on `/admin`, updated every 5 seconds
+- [x] Light and motion cards and a motion-per-hour chart on Fridge 3's page (`/fridges/3`), updated every 2 seconds. Its temperature and humidity are on the same page and on the `/admin` fridge cards
 - [x] Readings saved (`RoomReading`, `MotionEvent`) with 24 h min/max and motion per hour
-- [ ] Commit the MSP01 work and add the setup steps (`npm install`, `npm run privileges`) to the README if they are not there yet
+- [x] MSP01 work committed, and the setup steps (`npm install`, `npm run privileges`) are in the README
 
 ## 5b. Audit fixes (13 November 2026)
 From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, U1, U6, U8, U12.
@@ -76,14 +75,14 @@ From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, 
 - [x] Broker login settings for the app, ESP32 and MSP01 bridge (Mosquitto setup in [fridges.md](fridges.md#putting-a-password-on-the-broker))
 - [x] Pinned `requirements.txt`; logging to `logs/app.log`
 - [x] Interface: fan on/off button, readable reward text, right-to-left numbers, skip link, show password, remove one item, report bar amounts
-- [ ] Still open from the audit: S1 (debug mode), S2 (card number opens admin), S4 (CSRF), S5 (password guesses), R4, R5, and the rest
+
 
 ## 6. Final Demo
 - [ ] Demo script: inventory, purchase, live sync, admin reports, customer reports, extras
 - [ ] Be ready to explain design decisions, technologies and the database (`architecture.md`, `database.md`)
 
 ## Suggested order
-1. Commit the MSP01 work
+1. ~~Commit the MSP01 work~~ (done)
 2. ~~Sales report: date inputs (day or range), quantity per product, most and least sold~~ (done). Category filter for the whole page still open
 3. Customer Activity report (new page or a tab on `/reports`)
 4. My Account: period filter with total spent, item search with price history chart

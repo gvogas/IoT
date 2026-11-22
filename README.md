@@ -6,7 +6,7 @@ Customers scan their items with an RFID reader, sign in with a membership card a
 Each purchase earns loyalty points, and the receipt is emailed to them automatically.
 They can see their purchases and points, and email a receipt again, from My Account.
 Admins manage products, stock and customers on the website.
-Their dashboard shows today's sales against yesterday and lists what needs attention, and the Reports page has the sales, profit and tax for any period.
+Their dashboard shows today's profit and every fridge's temperature, and the Reports page has the sales, profit and tax for any period.
 They get an email when a sale leaves a product low or out of stock, and when a delivery restocks it.
 The language picker in the top bar shows the pages in 11 languages, and the receipt email follows it.
 
@@ -20,7 +20,7 @@ Admins can turn it off from the fridge dashboard. Sensor readings never switch i
 Fridge 3 has a Minew MSP01 sensor instead, which measures the temperature, humidity and light, and sees movement.
 It talks Bluetooth, so the Pi hears it with reelyActive's [barnowl](https://github.com/reelyactive/barnowl) (msp01/index.js)
 and passes the readings to MQTT. Fridge 3 works like the other fridges (limit, alert emails, history), and the
-admin dashboard has cards for all of the MSP01's readings.
+Fridge 3's page also has cards for the MSP01's light and motion readings.
 
 For a map of how all the parts fit together, see [docs/architecture.md](docs/architecture.md).
 
@@ -73,7 +73,7 @@ Then fill in your own values:
 | config.py | `ALERT_EMAIL_PASSWORD` | Gmail app password for that account (not the normal password) |
 | config.py | `ALERT_TO` | Email address that gets the fridge alerts. Stock emails go to the admin accounts, and only use this if there are no admins |
 | config.py | `FRIDGES_ENABLED` | `False` to run without the broker, ESP32 and sensors |
-| config.py | `MSP01_ENABLED` | `True` to listen for the MSP01 sensor, add it as a fridge and show its cards on the dashboard |
+| config.py | `MSP01_ENABLED` | `True` to listen for the MSP01 sensor, add it as a fridge and show its light and motion cards on that fridge's page |
 | config.py | `MSP01_FRIDGE_ID` | The fridge the MSP01 is in (3). `python -m tools.init_database` adds that fridge |
 | config.py | `MSP01_ADDRESS` | The MSP01's Bluetooth address, like `C3:00:00:45:5D:A6`. Empty uses the first one heard, and prints its address |
 | config.py | `RFID_PORT` | USB serial port of the RFID reader, like `/dev/ttyUSB0` |

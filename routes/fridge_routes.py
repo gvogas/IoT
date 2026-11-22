@@ -33,7 +33,9 @@ def fridge_detail(fridge_id):
     fridge = Fridge.get_by_id(fridge_id)
     if fridge is None:
         return render_template("error.html", title="Fridge not found", text=f"Fridge {fridge_id} not found."), 404
-    return render_template("fridges/detail.html", fridge=fridge)
+    # The fridge with the MSP01 sensor also gets its light and motion cards
+    has_msp01 = MSP01_ENABLED and fridge_id == MSP01_FRIDGE_ID
+    return render_template("fridges/detail.html", fridge=fridge, has_msp01=has_msp01)
 
 
 # "MSP01" or "ESP32": what to check when the sensor stops sending

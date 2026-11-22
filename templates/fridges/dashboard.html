@@ -14,6 +14,19 @@
     {# JS fills this with one tile per fridge #}
     <div id="fridges" class="fridge-tiles"></div>
 
+    {# Every fridge's temperature on one chart, to compare them. Drawn by static/js/fridges/dashboard.js with Chart.js #}
+    <section class="card mb-3" aria-labelledby="fridges-chart-title">
+        <div class="card-body">
+            <div class="history-head">
+                <h2 id="fridges-chart-title">All fridges, last 24 hours</h2>
+                <span class="text-secondary small">Temperature</span>
+            </div>
+            <div class="fridges-chart">
+                <canvas id="fridges-chart" role="img" aria-label="Temperature of every fridge for the last 24 hours"></canvas>
+            </div>
+        </div>
+    </section>
+
     <section class="card fan-card" aria-labelledby="shared-fan-title">
         <div class="card-body">
             <span id="fan-icon" class="fan-icon"><i class="bi bi-fan" aria-hidden="true"></i></span>
@@ -58,6 +71,8 @@
 {% endblock %}
 
 {% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/fridges/common.js') }}"></script>
     <script src="{{ url_for('static', filename='js/fridges/dashboard.js') }}"></script>
 {% endblock %}

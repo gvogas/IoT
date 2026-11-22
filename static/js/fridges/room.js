@@ -1,4 +1,5 @@
-// The MSP01 sensor cards (the sensor is in Fridge 3) on the dashboard. Asks /api/room every 5 seconds
+// The MSP01 sensor's light and motion cards, on the page of the fridge it is in (Fridge 3). Asks /api/room every 2 seconds.
+// The fridge page already shows its temperature and humidity
 
 // Seconds with no message before the sensor counts as offline
 const ROOM_OFFLINE_AFTER = 60;
@@ -7,7 +8,6 @@ const ROOM_OFFLINE_AFTER = 60;
 const LIGHT_FULL = 1000;
 
 const roomMessage = document.getElementById("room-message");
-const hoursDiv = document.getElementById("room-hours");
 
 function byId(id) {
     return document.getElementById(id);
@@ -18,11 +18,6 @@ function roomTimeAgo(seconds) {
     if (seconds < 60) return `${seconds} s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
     return `${Math.floor(seconds / 3600)} h ago`;
-}
-
-// One decimal, or "--" if there is no value
-function roomDecimal(value) {
-    return value === null ? "--" : value.toFixed(1);
 }
 
 // "24 h: 19.5 to 23.1 °C", or "24 h: --" before the first saved reading
@@ -38,15 +33,41 @@ function lightWord(lux) {
     return "Bright";
 }
 
-// Make the 24 bars of the hour chart once
-function makeHourBars() {
-    for (let hour = 0; hour < 24; hour++) {
-        const bar = document.createElement("div");
-        bar.className = "hour-bar";
-        bar.innerHTML = '<div class="hour-fill"></div>';
-        hoursDiv.appendChild(bar);
-    }
+// "12 am", "1 am" ... "11 pm"
+function hourName(hour) {
+    const suffix = hour < 12 ? "am" : "pm";
+    return `${hour % 12 === 0 ? 12 : hour % 12} ${suffix}`;
 }
+
+// The "Motion today" chart: one bar per hour, made once with Chart.js and filled in by showMotion().
+// Colours come from static/js/charts.js
+const hourChart = new Chart(document.getElementById("room-hours"), {
+    type: "bar",
+    data: {
+        // Only every 6th hour has a label under it, so they fit
+        labels: Array.from({ length: 24 }, (_, hour) => (hour % 6 === 0 ? hourName(hour) : "")),
+        datasets: [{ label: "Motion", data: new Array(24).fill(0), backgroundColor: BLUE, borderRadius: 3 }]
+    },
+    options: {
+        // No animation, because the numbers are filled in again every 2 seconds
+        animation: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    // "2 pm to 3 pm" and "3 times"
+                    title: (items) => `${hourName(items[0].dataIndex)} to ${hourName((items[0].dataIndex + 1) % 24)}`,
+                    label: (item) => `${item.raw} ${item.raw === 1 ? "time" : "times"}`
+                }
+            }
+        },
+        scales: {
+            x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 0 } },
+            // Whole numbers only: someone can't move 1.5 times
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+    }
+});
 
 // Waiting, Live or Offline, with its coloured dot
 function showRoomStatus(age) {
@@ -91,15 +112,12 @@ function showMotion(room, stats) {
 
     byId("room-visits").textContent = stats.motionToday;
 
-    // Each bar's height is its count as a percent of the busiest hour. "|| 1" stops a divide by zero
-    const busiest = Math.max(...stats.motionByHour) || 1;
+    // New numbers for the chart. The hour we are in is dark
     const thisHour = new Date().getHours();
-    hoursDiv.querySelectorAll(".hour-bar").forEach((bar, hour) => {
-        const count = stats.motionByHour[hour];
-        bar.classList.toggle("now", hour === thisHour);
-        bar.title = `${hour}:00 to ${hour}:59: ${count} ${count === 1 ? "time" : "times"}`;
-        bar.querySelector(".hour-fill").style.height = `${count * 100 / busiest}%`;
-    });
+    const bars = hourChart.data.datasets[0];
+    bars.data = stats.motionByHour;
+    bars.backgroundColor = stats.motionByHour.map((count, hour) => (hour === thisHour ? NAVY : BLUE));
+    hourChart.update();
 }
 
 // Get the newest readings and show them
@@ -118,13 +136,6 @@ async function updateRoom() {
         byId("room-battery").textContent = room.battery === null ? "--" : Math.round(room.battery);
         byId("room-rssi").textContent = room.rssi === null ? "--" : Math.round(room.rssi);
 
-        byId("room-temp").textContent = roomDecimal(room.temperature);
-        byId("room-temp-range").textContent = rangeText(stats.minTemp, stats.maxTemp, "°C", 1);
-
-        byId("room-hum").textContent = room.humidity === null ? "--" : Math.round(room.humidity);
-        byId("room-hum-bar").style.width = `${room.humidity === null ? 0 : Math.min(room.humidity, 100)}%`;
-        byId("room-hum-range").textContent = rangeText(stats.minHum, stats.maxHum, "%", 0);
-
         showLight(room, stats);
         showMotion(room, stats);
     } catch (error) {
@@ -132,6 +143,5 @@ async function updateRoom() {
     }
 }
 
-makeHourBars();
 updateRoom();
-setInterval(updateRoom, 5000);
+setInterval(updateRoom, 2000);

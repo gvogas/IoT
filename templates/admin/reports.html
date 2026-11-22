@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Reports{% endblock %}
 
+{# Reload every 30 seconds so new sales show up without pressing refresh #}
+{% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
+
 {% block content %}
     <div class="page-head">
         <div>
@@ -97,7 +100,8 @@
     <div class="mb-4"></div>
     {% endif %}
 
-    {# One bar per day (a month) or per month (all time). The best one is dark and shows its amount. Hover a bar for its amount #}
+    {# One bar per day (a month) or per month (all time), drawn by static/js/admin/reports_charts.js with Chart.js.
+       The list inside the canvas is for screen readers #}
     {% if bars %}
     <section class="card mb-4" aria-labelledby="chart-title">
         <div class="card-head">
@@ -105,19 +109,14 @@
             <span class="text-secondary small">Before tax</span>
         </div>
         <div class="card-body pt-0">
-            <div class="bar-chart{{ ' month-chart' if bars|length > 12 }}">
-                {% for bar in bars %}
-                {% set best = bar.sales > 0 and bar.sales == best_bar %}
-                {# Only the best bar shows its amount; the others show it when tapped or focused #}
-                <div class="bar-day{{ ' today' if best }}" tabindex="0">
-                    <span class="bar-amount{{ '' if best else ' quiet' }}" aria-hidden="true">{{ '${:,.0f}'.format(bar.sales) }}</span>
-                    <span class="visually-hidden">{{ bar.title }}: {{ bar.sales|money }}</span>
-                    <div class="bar-track" aria-hidden="true">
-                        <div class="bar" style="height: {{ bar.sales * 100 / best_bar }}%" title="{{ bar.title }}: {{ bar.sales|money }}"></div>
-                    </div>
-                    <span class="bar-label">{{ bar.label }}</span>
-                </div>
-                {% endfor %}
+            <div class="sales-chart">
+                <canvas id="sales-chart" role="img" aria-label="{{ 'Sales per month' if by_month else 'Sales per day' }}">
+                    <ul>
+                        {% for bar in bars %}
+                        <li>{{ bar.title }}: {{ bar.sales|money }}</li>
+                        {% endfor %}
+                    </ul>
+                </canvas>
             </div>
         </div>
     </section>
@@ -269,6 +268,10 @@
                     <h2 id="category-title">By category</h2>
                 </div>
                 {% if categories %}
+                {# Drawn by static/js/admin/reports_charts.js. The table under it has the same numbers #}
+                <div class="category-chart">
+                    <canvas id="category-chart" role="img" aria-label="Sales by category"></canvas>
+                </div>
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
                         <thead>
@@ -278,10 +281,7 @@
                             {% for category in categories %}
                             {% set share = category.sales * 100 / category_total %}
                             <tr>
-                                <td>
-                                    {{ category.categoryName }}
-                                    <div class="share-track" aria-hidden="true"><div style="width: {{ share }}%"></div></div>
-                                </td>
+                                <td>{{ category.categoryName }}</td>
                                 <td class="text-end num">{{ category.sales|money }}<div class="small text-secondary">{{ category.units }} sold</div></td>
                                 <td class="text-end num">{{ '%.0f'|format(share) }}%</td>
                             </tr>
@@ -299,4 +299,12 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
+    {# The numbers for the charts, like [{"label": "5", "title": "Nov 05", "sales": 120.5}, ...] #}
+    <script>
+        const salesBars = {{ bars|tojson }};
+        const categories = {{ categories|tojson }};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin/reports_charts.js') }}"></script>
 {% endblock %}

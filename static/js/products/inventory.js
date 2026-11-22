@@ -1,4 +1,4 @@
-// Keeps the Inventory page up to date. Every 5 seconds it asks /api/inventory for the stock numbers
+// Keeps the Inventory page up to date. Every 2 seconds it asks /api/inventory for the stock numbers
 // and changes the cards and the table, so a sale at the checkout shows up without reloading
 
 const liveStatus = document.getElementById("live-status");
@@ -84,4 +84,4 @@ async function updateInventory() {
     }
 }
 
-setInterval(updateInventory, 5000);
+setInterval(updateInventory, 2000);

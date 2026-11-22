@@ -15,6 +15,19 @@ MAX_THRESHOLD = 100000
 UPC_REGEX = r"^[0-9]+$"
 
 
+# A money amount typed in the form, like "2.5" -> Decimal("2.50"). Gives back (amount, error).
+# name and example are only for the error message, like "price" and "2.50"
+def read_money(text, name, example):
+    try:
+        amount = Decimal(text.strip()).quantize(Decimal("0.01"))
+        # Inside the try, because comparing "NaN" with a number raises InvalidOperation
+        if amount < 0 or amount > MAX_PRICE:
+            return None, f"{name.capitalize()} must be between 0 and {MAX_PRICE}."
+    except (InvalidOperation, ValueError):
+        return None, f"Please enter the {name} as a number, like {example}."
+    return amount, None
+
+
 # Gives back (product, errors). Pass product_id when editing, so its own UPC doesn't count as taken
 def read_product_form(form, product_id=None):
     errors = {}
@@ -37,26 +50,17 @@ def read_product_form(form, product_id=None):
     elif len(producer) > MAX_PRODUCER:
         errors["producer"] = f"Producer company must be {MAX_PRODUCER} characters or less."
 
-    price = None
-    try:
-        price = Decimal(form.get("price", "").strip()).quantize(Decimal("0.01"))
-        if price < 0 or price > MAX_PRICE:
-            errors["price"] = "Price must be between 0 and 99999999.99."
-            price = None
-    except (InvalidOperation, ValueError):
-        errors["price"] = "Please enter the price as a number, like 2.50."
+    price, error = read_money(form.get("price", ""), "price", "2.50")
+    if error:
+        errors["price"] = error
 
     # Optional. Sales of a product with no cost don't count in the profit
     cost = None
     raw_cost = form.get("costPrice", "").strip()
     if raw_cost:
-        try:
-            cost = Decimal(raw_cost).quantize(Decimal("0.01"))
-            if cost < 0 or cost > MAX_PRICE:
-                errors["costPrice"] = "Cost must be between 0 and 99999999.99."
-                cost = None
-        except (InvalidOperation, ValueError):
-            errors["costPrice"] = "Please enter the cost as a number, like 1.20."
+        cost, error = read_money(raw_cost, "cost", "1.20")
+        if error:
+            errors["costPrice"] = error
 
     upc = form.get("upc", "").strip()
     upc_ok = False
@@ -225,21 +229,3 @@ def product_stock(product_id):
         SELECT COALESCE(SUM(status = 'in_stock'), 0) AS inStock, COALESCE(SUM(status = 'sold'), 0) AS totalSold
         FROM ProductItem WHERE productID = ?
     """, (product_id,))
-
-
-# Active products with no cost yet
-def products_without_cost():
-    return query("""
-        SELECT productID, productName FROM Product
-        WHERE costPrice IS NULL AND isActive = 1
-        ORDER BY productName COLLATE NOCASE
-    """)
-
-
-# Active products that sell for less than they cost
-def products_below_cost():
-    return query("""
-        SELECT productID, productName, price, costPrice FROM Product
-        WHERE costPrice IS NOT NULL AND price < costPrice AND isActive = 1
-        ORDER BY productName COLLATE NOCASE
-    """)

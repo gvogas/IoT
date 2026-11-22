@@ -1,6 +1,6 @@
 # Dashboard and reports
 
-Two admin pages show how the store is doing: the dashboard (`/admin`) for today, and Reports (`/reports`) for a longer period. The queries behind them are explained in [database.md](database.md#sales-and-profit).
+Two admin pages show how the store is doing: the dashboard (`/admin`) with today's profit and the fridge temperatures, and Reports (`/reports`) for any period. The queries behind them are explained in [database.md](database.md#sales-and-profit).
 
 ## Contents
 1. [The dashboard](#the-dashboard)
@@ -10,29 +10,18 @@ Two admin pages show how the store is doing: the dashboard (`/admin`) for today,
 
 ## The dashboard
 
-Admins land on the dashboard when they sign in. It is about today:
+Admins land on the dashboard when they sign in. It has only two things, as cards in one row:
 
-| Part | Shows |
+| Card | Shows |
 |---|---|
-| Today's numbers | Sales, orders, average order and profit so far today. Under each one is how much it went up or down since yesterday at the same time of day, or "No sales yesterday to compare with" |
-| Needs attention | One line per problem, most urgent first, each with a button that goes to the fix. When the list is empty it says everything is caught up |
-| Latest orders | The latest 6 orders |
-| Last 7 days | A bar for each day (today's is dark) with its amount, and the 4 best sellers of those 7 days |
-| Fridge 3 (MSP01) | Temperature, humidity, light and motion cards. See [msp01.md](msp01.md#dashboard-widgets) |
+| Profit today | Profit so far today, how much it went up or down since yesterday at the same time of day, and today's sales and orders. Clicking it opens Reports for today (`/reports?period=today`) |
+| One card per fridge | Temperature, status (OK, Too warm, Offline or Waiting), limit, humidity and the time since the last reading. A fridge over its limit gets a red border. Clicking a card opens that fridge |
 
-### Needs attention order
-
-1. Fridges with a problem
-2. Out of stock products
-3. Products priced below their cost
-4. Low stock products
-5. Products with no cost yet
-
-A fridge that is over its threshold gets a red banner at the top of the page (with whether the alert email went out), and is not repeated in the list. A fridge shows up in the list when its sensor hasn't sent anything for 15 seconds, or when there has been no reading at all. The 15 seconds match `static/js/fridges/common.js`. With `FRIDGES_ENABLED` on, the page reloads every 30 seconds so a new problem appears by itself. With it off, no fridge lines are shown.
+The fridge cards change every 2 seconds by themselves (`static/js/admin/home.js` asks `/api/fridges`). The page reloads every 30 seconds so the profit stays up to date. A sensor counts as offline after 15 seconds with no reading, the same as on the fridge pages. The MSP01's light and motion cards are on Fridge 3's page (see [msp01.md](msp01.md#light-and-motion-cards)).
 
 ## Reports
 
-Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included). Leave To empty to see a single day. For the chosen period it shows:
+Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included). Leave To empty to see a single day. The page reloads every 30 seconds, so a new sale shows up by itself. For the chosen period it shows:
 
 | Part | Shows |
 |---|---|
@@ -45,7 +34,7 @@ Reports has buttons for Today, This month, Last month and All time, with All tim
 | Sold per product | Every product with the units sold and the sales, most sold first. Products still for sale that sold nothing are listed with 0. It has search, a category filter and sortable columns |
 | Most and least sold | Above that table. Ties are all shown, like "2 items: Smart Plug, Smart Camera, 5 sold each". The least sold counts products that sold 0 |
 | Best products | The 8 products that made the most profit, with the best seller's picture at the top. Each one's profit counts only its units with a cost |
-| By category | Sales per category, with each category's share |
+| By category | A doughnut chart of the sales per category, and a table with each category's sales and share |
 
 Each number except tax is compared with the period before:
 
@@ -77,17 +66,16 @@ flowchart TD
 
 | Function | File | What it does |
 |---|---|---|
-| `period_dates()` | `models/checkout.py` | Turns a period into a start and end date, plus the dates of the period to compare with |
-| `range_dates()` | `models/checkout.py` | The same for the From and To boxes. Gives back None for a bad date |
+| `period_dates()` | `models/report.py` | Turns a period into a start and end date, plus the dates of the period to compare with |
+| `range_dates()` | `models/report.py` | The same for the From and To boxes. Gives back None for a bad date |
 | `range_text()` | `routes/admin_routes.py` | The dates for the total sales line, like "Feb 1, 2026 to Feb 28, 2026" |
-| `product_quantities()` | `models/checkout.py` | Units sold and sales for every product in the period, including 0 |
-| `most_and_least_sold()` | `models/checkout.py` | The most and least sold products, with ties |
-| `chart_by_month()` | `models/checkout.py` | Whether the chart has a bar per month or per day |
-| `profit_summary()` | `models/checkout.py` | Sales, cost, profit, margin, tax and orders for a period |
-| `top_products()` | `models/checkout.py` | Best products by profit |
-| `sales_chart()`, `daily_sales()` | `models/checkout.py` | The bars of the charts |
-| `sales_by_category()` | `models/checkout.py` | Sales per category |
-| `recent_purchases()` | `models/checkout.py` | Latest orders for the dashboard |
-| `products_below_cost()`, `products_without_cost()` | `models/product.py` | The pricing problems for Needs attention |
+| `product_quantities()` | `models/report.py` | Units sold and sales for every product in the period, including 0 |
+| `most_and_least_sold()` | `models/report.py` | The most and least sold products, with ties |
+| `chart_by_month()` | `models/report.py` | Whether the chart has a bar per month or per day |
+| `profit_summary()` | `models/report.py` | Sales, cost, profit, margin, tax and orders for a period |
+| `top_products()` | `models/report.py` | Best products by profit |
+| `sales_chart()` | `models/report.py` | The bars of the sales chart |
+| Drawing the charts | `static/js/admin/reports_charts.js` | Draws the sales chart and the category doughnut with Chart.js. See [Charts](architecture.md#charts) |
+| `sales_by_category()` | `models/report.py` | Sales per category |
 | `percent_change()` | `routes/admin_routes.py` | Up or down, in % |
 | `money` filter | `routes/formats.py` | Shows amounts like `$1,314.50` or `-$16.00` |

@@ -78,6 +78,66 @@ function fridgeSentence(fridge, fanState) {
     return parts.join(" ");
 }
 
+// For the history charts: a gap longer than this means the sensor was offline, so the line stops there (milliseconds)
+const GAP = 5 * 60 * 1000;
+
+// "2026-11-06 15:03:43" -> Date
+function parseTime(text) {
+    return new Date(text.replace(" ", "T"));
+}
+
+// A time on a chart, like "14:05". With more than 24 hours on the chart, the day too, like "Mon 14:05"
+function timeLabel(date, hours) {
+    const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (hours <= 24) return time;
+    return date.toLocaleDateString([], { weekday: "short" }) + " " + time;
+}
+
+// Most points drawn on one chart line. A day has 1440 readings and a week 10080, which makes the chart
+// slow on the Pi. This is still more points than the chart is wide, so the line looks the same
+const MAX_POINTS = 400;
+
+// The points of one chart line from /api/fridges/<id>/history rows, like [{ x: time in ms, y: 4.5 }, ...].
+// name is "temperature" or "humidity". With more than MAX_POINTS readings, readings next to each other
+// are averaged into one point. A point with y: null goes in each long gap, which makes Chart.js stop the line there
+function chartPoints(rows, name) {
+    const readings = rows
+        .filter((row) => row[name] !== null)
+        .map((row) => ({ x: parseTime(row.time).getTime(), y: row[name] }));
+    // How many readings go into one point: 1 for an hour, 4 for a day, 26 for a week
+    const groupSize = Math.ceil(readings.length / MAX_POINTS);
+
+    const points = [];
+    let group = [];
+    for (let i = 0; i < readings.length; i++) {
+        group.push(readings[i]);
+        const next = readings[i + 1];
+        const isLast = next === undefined;
+        const gapAfter = !isLast && next.x - readings[i].x > GAP;
+
+        // A group ends when it is full, at a gap, or at the last reading. A gap always ends a group,
+        // so readings from before and after the sensor was offline are never averaged together
+        if (group.length === groupSize || gapAfter || isLast) {
+            const average = group.reduce((sum, reading) => sum + reading.y, 0) / group.length;
+            points.push({ x: group[0].x, y: average });
+            if (gapAfter) points.push({ x: readings[i].x + 1, y: null });
+            group = [];
+        }
+    }
+    return points;
+}
+
+// Settings for the history line charts that keep them quick on the Pi
+const FAST_LINE_CHART = {
+    // No animation: the chart is drawn again every minute
+    animation: false,
+    // The points are already { x, y } and sorted by time, so Chart.js can skip checking them
+    parsing: false,
+    normalized: true,
+    // No dots on the lines, only the lines
+    elements: { point: { radius: 0, hitRadius: 6 } }
+};
+
 // The server says 403 when nobody is signed in as admin (a restart of the app signs everyone out)
 function showSignedOut(message) {
     const link = document.createElement("a");
@@ -107,6 +167,20 @@ function showFanButton(button, state) {
     button.hidden = state !== "ON" && state !== "OFF";
     button.textContent = state === "ON" ? "Turn fan off" : "Turn fan on";
     button.dataset.action = state === "ON" ? "off" : "on";
+}
+
+// Ask the server for the fan state and whether the MQTT broker is reachable.
+// Gives back { state, broker, signedOut, offline }. broker is null when we don't know
+async function fetchFan() {
+    try {
+        const response = await fetch("/api/fan", { cache: "no-store" });
+        const result = await response.json();
+        if (response.status === 403) return { state: "UNKNOWN", broker: null, signedOut: true, offline: false };
+        if (!response.ok) return { state: "UNKNOWN", broker: null, signedOut: false, offline: false };
+        return { state: result.state, broker: result.broker, signedOut: false, offline: false };
+    } catch (error) {
+        return { state: "UNKNOWN", broker: null, signedOut: false, offline: true };
+    }
 }
 
 // Turn the fan on or off, whichever the button says. Gives back the new state

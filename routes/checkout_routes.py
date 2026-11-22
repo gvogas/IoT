@@ -77,16 +77,21 @@ def pay_basket():
     )
 
 
+# Remember that the receipt went out
+def record_emailed(purchase_id):
+    try:
+        mark_receipt_emailed(purchase_id)
+    except sqlite3.Error:
+        pass   # the email went out, only the record failed
+
+
 # Send the receipt in a thread. The email is made here first, because templates need the web request
 def email_in_background(purchase_id, address, paid_receipt):
     subject, text, html = receipt_email(paid_receipt)
 
     def send_and_record():
         if send(address, subject, text, html):
-            try:
-                mark_receipt_emailed(purchase_id)
-            except sqlite3.Error:
-                pass   # the email went out, only the record failed
+            record_emailed(purchase_id)
 
     threading.Thread(target=send_and_record, daemon=True).start()
 
@@ -95,10 +100,7 @@ def email_in_background(purchase_id, address, paid_receipt):
 def email_and_record(purchase_id, address, paid_receipt):
     if not send_receipt_email(address, paid_receipt):
         return False
-    try:
-        mark_receipt_emailed(purchase_id)
-    except sqlite3.Error:
-        pass   # the email went out, only the record failed
+    record_emailed(purchase_id)
     return True
 
 

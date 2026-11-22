@@ -99,18 +99,19 @@ Everything in `on_message()` is inside a `try`. If one message causes an error (
 
 `age` is the number of seconds since the last reading came in. If a sensor stops sending, that number keeps going up, and the page shows the fridge as offline after 15 seconds.
 
-### 3. The admin dashboard warns about it
+### 3. The admin dashboard shows it too
 
 ```mermaid
 sequenceDiagram
-    participant AD as admin/home.html
+    participant AD as admin/home.js
     participant F as Flask
     participant M as MqttController
 
-    loop every 30 seconds (FRIDGES_ENABLED on)
-        AD->>F: GET /admin (the page reloads itself)
+    loop every 2 seconds
+        AD->>F: GET /api/fridges
         F->>M: fridge_data() for each fridge
-        F-->>AD: red banner for a fridge over its threshold,<br/>Needs attention line for one silent for 15 s
+        F-->>AD: temperature, humidity, age, limit
+        AD->>AD: one card per fridge: OK, Too warm (red border), Offline or Waiting
     end
 ```
 

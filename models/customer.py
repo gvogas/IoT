@@ -71,15 +71,23 @@ def set_membership_number(customer_id, number):
     return execute("UPDATE Customer SET membershipNumber = ? WHERE customerID = ?", (number, customer_id)) > 0
 
 
+# What is wrong with the email, or None if it looks right. Used by sign-up and by check_new_email
+def email_problem(email):
+    if not email:
+        return "Please enter your email."
+    if len(email) > MAX_EMAIL:
+        return f"Email must be {MAX_EMAIL} characters or less."
+    if not re.match(EMAIL_REGEX, email):
+        return "Please enter a valid email address."
+    return None
+
+
 # Gives back (email, error)
 def check_new_email(text, customer_id):
     email = text.strip().lower()
-    if not email:
-        return None, "Please enter your new email."
-    if len(email) > MAX_EMAIL:
-        return None, f"Email must be {MAX_EMAIL} characters or less."
-    if not re.match(EMAIL_REGEX, email):
-        return None, "Please enter a valid email address."
+    error = email_problem(email)
+    if error:
+        return None, error
     if query_one("SELECT 1 FROM Customer WHERE LOWER(email) = ? AND customerID != ?", (email, customer_id)):
         return None, "This email is already registered."
     return email, None
@@ -140,15 +148,9 @@ class Customer:
         elif len(self.address) < 5:
             errors.append("Please enter your full address.")
 
-        email_ok = False
-        if not self.email:
-            errors.append("Please enter your email.")
-        elif len(self.email) > MAX_EMAIL:
-            errors.append(f"Email must be {MAX_EMAIL} characters or less.")
-        elif not re.match(EMAIL_REGEX, self.email):
-            errors.append("Please enter a valid email address.")
-        else:
-            email_ok = True
+        email_error = email_problem(self.email)
+        if email_error:
+            errors.append(email_error)
 
         phone_ok = False
         if not self.phone_number:
@@ -170,7 +172,7 @@ class Customer:
         if len(self.password) < MIN_PASSWORD:
             errors.append(f"Password must be at least {MIN_PASSWORD} characters.")
 
-        if email_ok and self.email_taken():
+        if email_error is None and self.email_taken():
             taken = True
         if phone_ok and self.phone_taken():
             taken = True
@@ -193,13 +195,12 @@ class Customer:
     def phone_taken(self):
         return query_one("SELECT 1 FROM Customer WHERE phoneNumber = ?", (self.phone_number,)) is not None
 
-    # Raises IntegrityError if the email or phone is already used
+    # Gives back the membership number. Raises IntegrityError if the email or phone is already used
     def save(self):
-        self.membership_number = self.barcode
         # New people start as "customer". tools/set_role.py makes someone an admin
         execute(
             "INSERT INTO Customer (customerName, address, email, phoneNumber, passwordHash, membershipNumber, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (self.name, self.address, self.email, self.phone_number, generate_password_hash(self.password),
-             self.membership_number, now_text()),
+             self.barcode, now_text()),
         )
-        return self.membership_number
+        return self.barcode

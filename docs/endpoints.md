@@ -27,7 +27,7 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 ## Dashboard and Reports
 | URL | Who can open it | File | What it does |
 |---|---|---|---|
-| `/admin` | admin | routes/admin_routes.py | The dashboard: today against yesterday, what needs attention, latest orders and the last 7 days |
+| `/admin` | admin | routes/admin_routes.py | The dashboard: today's profit (links to Reports for today) and a live card for each fridge |
 | `/reports?period=today\|month\|last_month\|all` | admin | routes/admin_routes.py | Sales, profit, tax, a sales chart, units sold per product (with the most and least sold), the best products and sales per category for the period (all time if left out) |
 | `/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` | admin | routes/admin_routes.py | The same report for any days, both included. Leave `to` out for a single day |
 
@@ -35,7 +35,7 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | URL | Who can open it | File | What it does |
 |---|---|---|---|
 | `/inventory`, `/inventory.csv` | admin | routes/product_routes.py | Stock of every product, EPC search and the CSV download |
-| `/api/inventory` | admin | routes/product_routes.py | Stock numbers of every product and the totals for the cards (asked every 5 s by the Inventory page) |
+| `/api/inventory` | admin | routes/product_routes.py | Stock numbers of every product and the totals for the cards (asked every 2 s by the Inventory page) |
 | `/products/new` | admin | routes/product_routes.py | The form to add a product ("Save and add another" comes back to an empty form) |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |
@@ -54,7 +54,7 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/api/fan` | admin | routes/fan_routes.py | The fan's state, ON or OFF, and `broker`: whether the app can reach the MQTT broker (asked every 2 s) |
 | `/api/fan/on` (POST) | admin | routes/fan_routes.py | Turn the fan on |
 | `/api/fan/off` (POST) | admin | routes/fan_routes.py | Turn the fan off |
-| `/api/room` | admin | routes/room_routes.py | The MSP01's live readings and stats (asked every 5 s). See [msp01.md](msp01.md#api) |
+| `/api/room` | admin | routes/room_routes.py | The MSP01's live readings and stats (asked every 2 s). See [msp01.md](msp01.md#api) |
 
 ## Errors
 
