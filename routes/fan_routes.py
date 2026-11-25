@@ -14,19 +14,7 @@ def fan_status():
     return jsonify(state=fan_controller.get_state(), broker=mqtt_controller.connected)
 
 
-# Turn the fan on from the fridge pages
-@fan_routes.route("/api/fan/on", methods=["POST"])
-@admin_api
-def turn_on():
-    try:
-        state = fan_controller.turn_on()
-    except Exception:
-        current_app.logger.exception("Unable to turn on the shared fan")
-        return jsonify(error="Unable to turn on the fan.", state="UNKNOWN"), 503
-    return jsonify(success="Fan turned on.", state=state)
-
-
-# Turn the fan off from the fridge pages
+# Turn the fan off from the fridge pages. Only a YES reply to the alert email turns it on
 @fan_routes.route("/api/fan/off", methods=["POST"])
 @admin_api
 def turn_off():

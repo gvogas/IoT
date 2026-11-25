@@ -171,7 +171,7 @@ flowchart TD
 Every action tells the person what happened with a toast, a small box at the bottom right that fades out by itself. Success is green and errors are red and stay longer.
 
 - A route that saves something and then reloads the page calls `flash()`. `base.html` shows each flashed message as a toast.
-- A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan on or off) do this.
+- A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan off) do this.
 - Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "2 items in range could not be recognised.") stay in the basket, because they can repeat on every read and would pile up.
 
 Emails are notifications too: receipts ([checkout.md](checkout.md)), stock emails ([products-and-stock.md](products-and-stock.md#stock-emails)) and fridge alerts ([fridges.md](fridges.md#when-a-fridge-gets-too-warm)).

@@ -42,8 +42,9 @@ if __name__ == "__main__":
         if FRIDGES_ENABLED or MSP01_ENABLED:
             mqtt_controller.start()
 
-        # Check the inbox for YES/NO replies to fridge alert emails
-        if FRIDGES_ENABLED:
+        # Check the inbox for YES/NO replies to fridge alert emails.
+        # Same check as MQTT above, because MQTT is what sends the alerts
+        if FRIDGES_ENABLED or MSP01_ENABLED:
             threading.Thread(target=check_forever, daemon=True).start()
 
         # Hear the MSP01 sensor (in Fridge 3) over Bluetooth (msp01/index.js) and pass its readings to MQTT

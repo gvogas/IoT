@@ -162,11 +162,10 @@ function setTrend(element, stats) {
     element.querySelector(".trend-text").textContent = trend.text;
 }
 
-// The fan button says "Turn fan on" or "Turn fan off" to match the fan. Hidden when the state is unknown
+// The fan button only turns the fan off, so it only shows while the fan is on.
+// Turning the fan on is done by replying YES to the alert email
 function showFanButton(button, state) {
-    button.hidden = state !== "ON" && state !== "OFF";
-    button.textContent = state === "ON" ? "Turn fan off" : "Turn fan on";
-    button.dataset.action = state === "ON" ? "off" : "on";
+    button.hidden = state !== "ON";
 }
 
 // Ask the server for the fan state and whether the MQTT broker is reachable.
@@ -183,11 +182,11 @@ async function fetchFan() {
     }
 }
 
-// Turn the fan on or off, whichever the button says. Gives back the new state
+// Turn the fan off. Gives back the new state
 async function pressFanButton(button) {
     button.disabled = true;
     try {
-        const response = await fetch(`/api/fan/${button.dataset.action}`, { method: "POST" });
+        const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
         showToast(result.error || result.success, result.error ? "danger" : "success");
         return response.ok ? result.state : "UNKNOWN";

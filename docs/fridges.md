@@ -179,7 +179,7 @@ Other emails in the inbox are left unread.
 
 ## The fan
 
-The readings never switch the fan by themselves. A YES reply turns it on. On the Fridges page and each fridge's page, one button turns it on or off and its label follows the fan (`/api/fan/on`, `/api/fan/off`). All the fridges share this one fan. When the app stops, it turns the fan off.
+The readings never switch the fan by themselves. Only a YES reply to the alert email turns it on. While it is on, the Fridges page and each fridge's page show a "Turn fan off" button (`/api/fan/off`). All the fridges share this one fan. When the app stops, it turns the fan off.
 
 ## Settings
 

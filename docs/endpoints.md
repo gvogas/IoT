@@ -54,7 +54,6 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/api/fridges/<id>/history?hours=1\|24\|168` | admin | routes/fridge_routes.py | Saved readings for the chart (asked every 60 s) |
 | `/api/fridges/<id>/threshold` (POST) | admin | routes/fridge_routes.py | Change the fridge's temperature threshold |
 | `/api/fan` | admin | routes/fan_routes.py | The fan's state, ON or OFF, and `broker`: whether the app can reach the MQTT broker (asked every 2 s) |
-| `/api/fan/on` (POST) | admin | routes/fan_routes.py | Turn the fan on |
 | `/api/fan/off` (POST) | admin | routes/fan_routes.py | Turn the fan off |
 | `/api/room` | admin | routes/room_routes.py | The MSP01's live readings and stats (asked every 2 s). See [msp01.md](msp01.md#api) |
 
