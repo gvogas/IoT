@@ -18,7 +18,7 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/signin`, `/signout` | everyone | routes/auth_routes.py | Checks email + password, stores `id`, `name`, `role` in the session cookie |
 | `/signup` | everyone | routes/customer_routes.py | Sign up form (auth/signup.js sends it to `/submit`) |
 | `/submit` (POST) | everyone | routes/customer_routes.py | Validates and saves a new customer, then signs them in |
-| `/account` | signed in | routes/customer_routes.py | The customer's own details, membership number and purchases |
+| `/account` | signed in | routes/customer_routes.py | The customer's own details, membership number and purchases, with date filters, a spending chart and a product summary with price history |
 | `/account/email` (POST) | signed in | routes/customer_routes.py | Changes the customer's own email, after checking their password |
 | `/customers` | admin | routes/customer_routes.py | List of every customer |
 | `/api/customers/<id>/role` (POST) | admin | routes/customer_routes.py | Change someone's role (not your own) |
@@ -30,6 +30,8 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/admin` | admin | routes/admin_routes.py | The dashboard: today's profit (links to Reports for today) and a live card for each fridge |
 | `/reports?period=today\|month\|last_month\|all` | admin | routes/admin_routes.py | Sales, profit, tax, a sales chart, units sold per product (with the most and least sold), the best products and sales per category for the period (all time if left out) |
 | `/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` | admin | routes/admin_routes.py | The same report for any days, both included. Leave `to` out for a single day |
+| `/reports?...&category=Drinks` | admin | routes/admin_routes.py | Add to either of the above to count only one category (customer activity counts receipts with something from it) |
+| `/reports.csv?...` | admin | routes/admin_routes.py | The report as a CSV file, with the same address options as `/reports` |
 
 ## Products and stock
 | URL | Who can open it | File | What it does |

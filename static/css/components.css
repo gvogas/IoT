@@ -216,8 +216,8 @@ table,
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    color: #FFFFFF;
-    background: var(--arctic-navy);
+    color: var(--on-fill);
+    background: var(--fill);
     font-size: 1rem;
 }
 
@@ -577,7 +577,7 @@ body {
 }
 
 .change.up {
-    color: #1F5F53;
+    color: var(--success-strong);
     background: var(--success-tint);
 }
 
@@ -718,7 +718,7 @@ body {
 }
 
 .badge.text-bg-success {
-    color: #1F5F53 !important;
+    color: var(--success-strong) !important;
     background-color: var(--success-tint) !important;
 }
 
@@ -933,7 +933,7 @@ body {
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #1F5F53;
+    color: var(--success-strong);
     background: var(--success-tint);
 }
 
@@ -1001,9 +1001,9 @@ body {
     gap: 0.75rem;
     margin-bottom: 1rem;
     padding: 0.85rem 1rem;
-    border: 1px solid #BCDFD7;
+    border: 1px solid var(--bs-success-border-subtle);
     border-radius: 10px;
-    color: #1F5F53;
+    color: var(--success-strong);
     background: var(--success-tint);
 }
 
@@ -1019,7 +1019,7 @@ body {
 .member-switch {
     min-height: 32px;
     padding: 0 0.25rem;
-    color: #1F5F53;
+    color: var(--success-strong);
     font-size: 0.8rem;
     white-space: nowrap;
 }
@@ -1168,13 +1168,13 @@ body {
 
 /* ---------- Account ---------- */
 .member-card {
-    color: var(--arctic-ice);
-    background: var(--arctic-navy);
+    color: var(--on-fill);
+    background: var(--fill);
     border: 0;
 }
 
 .member-card .stat-label {
-    color: var(--arctic-mist);
+    color: var(--on-fill-muted);
 }
 
 .member-card .stat-value {
@@ -1344,8 +1344,8 @@ body {
 }
 
 .avatar.admin {
-    color: #FFFFFF;
-    background: var(--arctic-navy);
+    color: var(--on-fill);
+    background: var(--fill);
 }
 
 .you-tag {
@@ -1610,7 +1610,7 @@ fieldset:disabled {
     background: currentColor;
 }
 
-.fridge-status.ok { color: #1F5F53; background: var(--success-tint); }
+.fridge-status.ok { color: var(--success-strong); background: var(--success-tint); }
 .fridge-status.hot { color: var(--danger); background: var(--danger-tint); }
 .fridge-status.waiting { color: var(--warning-text); background: var(--warning-tint); }
 
@@ -2221,8 +2221,8 @@ fieldset:disabled {
     z-index: 2000;
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    background: var(--arctic-navy);
-    color: #FFFFFF;
+    background: var(--fill);
+    color: var(--on-fill);
     transform: translateY(-200%);
 }
 
@@ -2232,7 +2232,7 @@ fieldset:disabled {
 
 /* Small text on the navy membership card (the grey text-secondary was too faint there) */
 .member-card .member-note {
-    color: var(--arctic-mist);
+    color: var(--on-fill-muted);
 }
 
 /* The fan state and its button on a fridge's page */
@@ -2274,4 +2274,29 @@ fieldset:disabled {
 .range-chart,
 .fridges-chart {
     direction: ltr;
+}
+
+
+/* The moon / sun button in the top bar */
+.theme-button {
+    font-size: 1.1rem;
+}
+
+/* Printing a page (the Print button on Reports): no menu, buttons or filters, and no card shadows */
+@media print {
+    .sidebar-column,
+    .topbar,
+    .skip-link,
+    .toast-container,
+    .date-range,
+    .page-actions,
+    .table-tools,
+    .sort-button i {
+        display: none !important;
+    }
+
+    .card {
+        break-inside: avoid;
+        box-shadow: none;
+    }
 }

@@ -15,6 +15,8 @@ const DANGER = themeColour("--danger");
 const DANGER_TINT = themeColour("--danger-tint");
 const SUCCESS = themeColour("--success");
 const WARNING = themeColour("--warning");
+// The card colour, for the gaps between doughnut slices
+const SURFACE = themeColour("--surface");
 
 // For charts with one colour per slice, like sales by category. They repeat after the last one
 const SLICE_COLOURS = [BLUE, NAVY, MIST, SUCCESS, WARNING, SLATE, DANGER];

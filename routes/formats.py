@@ -9,6 +9,11 @@ def nice_date(text):
     return f"{moment:%b} {moment.day}, {moment.year}"
 
 
+# A date (not text) -> "Fri, Nov 6, 2026"
+def nice_day(moment):
+    return f"{moment:%a}, {moment:%b} {moment.day}, {moment.year}"
+
+
 # "2026-11-06 15:03:43" -> "Nov 6, 2026 at 3:03 PM"
 def nice_datetime(text):
     moment = datetime.strptime(text, DATE_FORMAT)

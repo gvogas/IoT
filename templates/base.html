@@ -14,6 +14,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.0.18/index.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    {# Dark or light mode, set before the page shows so it doesn't flash white. Saved by the moon button (common.js).
+       With nothing saved yet, it follows the computer's setting #}
+    <script>
+        const savedTheme = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.bsTheme = savedTheme || (prefersDark ? "dark" : "light");
+    </script>
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -61,6 +68,10 @@
         <a class="brand d-lg-none" href="/"><span class="brand-icon"><i class="bi bi-snow2" aria-hidden="true"></i></span> Store</a>
 
         <div class="topbar-end">
+            {# Switch between light and dark mode. common.js handles it #}
+            <button type="button" class="btn btn-icon theme-button" id="theme-button" aria-label="Switch to dark mode">
+                <i class="bi bi-moon" aria-hidden="true"></i>
+            </button>
             {# Language picker. language.js handles it. "notranslate" stops Google from translating the choices #}
             <div class="language-item notranslate" translate="no">
                 <label class="visually-hidden" for="language-select">Language</label>

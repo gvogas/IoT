@@ -53,8 +53,8 @@ if (categoryCanvas) {
             datasets: [{
                 data: categories.map((category) => category.sales),
                 backgroundColor: categories.map((category, i) => SLICE_COLOURS[i % SLICE_COLOURS.length]),
-                // A white gap between the slices
-                borderColor: "#fff",
+                // A gap the colour of the card between the slices
+                borderColor: SURFACE,
                 borderWidth: 2
             }]
         },

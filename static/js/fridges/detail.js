@@ -54,7 +54,7 @@ const rangeChart = new Chart(document.getElementById("range-chart"), {
     type: "doughnut",
     data: {
         labels: ["Under the limit", "Over the limit"],
-        datasets: [{ data: [0, 0], backgroundColor: [SUCCESS, DANGER], borderColor: "#fff", borderWidth: 2 }]
+        datasets: [{ data: [0, 0], backgroundColor: [SUCCESS, DANGER], borderColor: SURFACE, borderWidth: 2 }]
     },
     options: {
         cutout: "70%",

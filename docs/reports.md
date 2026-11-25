@@ -21,7 +21,7 @@ The fridge cards change every 2 seconds by themselves (`static/js/admin/home.js`
 
 ## Reports
 
-Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included). Leave To empty to see a single day. The page reloads every 30 seconds, so a new sale shows up by itself. For the chosen period it shows:
+Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included), and a Category picker. Leave To empty to see a single day. With a category picked, every sales number, the chart, Sold per product, Best products and By category count only that category's products. The tax is then worked out again from that category's taxable items, so it can be a cent off the receipts. Customer activity counts only receipts with at least one item from that category, and a new customer is one whose first purchase from that category is in the period. The Print button opens the browser's print window (pick "Save as PDF" for a file), and CSV downloads the report as a spreadsheet (`/reports.csv`, same period and category). The page reloads every 30 seconds, so a new sale shows up by itself. For the chosen period it shows:
 
 | Part | Shows |
 |---|---|
@@ -30,8 +30,9 @@ Reports has buttons for Today, This month, Last month and All time, with All tim
 | Net profit | With the margin and the cost of the items sold |
 | Average order | With the items per order |
 | Tax owed | Split into GST and QST |
+| Customer activity | Customers who bought something, how many were new (first purchase ever in the period) and returning, the number of purchases, and the busiest and quietest days (most and fewest customers, days with no sales count too). Ties are all named, up to 3. A single day has no busiest or quietest day |
 | Sales chart | Sales per day for a month or a range of up to 62 days, or per month for all time or a longer range. Today or a single day has no chart |
-| Sold per product | Every product with the units sold and the sales, most sold first. Products still for sale that sold nothing are listed with 0. It has search, a category filter and sortable columns |
+| Sold per product | Every product with the units sold and the sales, most sold first. Products still for sale that sold nothing are listed with 0. It has search and sortable columns |
 | Most and least sold | Above that table. Ties are all shown, like "2 items: Smart Plug, Smart Camera, 5 sold each". The least sold counts products that sold 0 |
 | Best products | The 8 products that made the most profit, with the best seller's picture at the top. Each one's profit counts only its units with a cost |
 | By category | A doughnut chart of the sales per category, and a table with each category's sales and share |
@@ -78,4 +79,8 @@ flowchart TD
 | Drawing the charts | `static/js/admin/reports_charts.js` | Draws the sales chart and the category doughnut with Chart.js. See [Charts](architecture.md#charts) |
 | `sales_by_category()` | `models/report.py` | Sales per category |
 | `percent_change()` | `routes/admin_routes.py` | Up or down, in % |
+| `chosen_report()` | `routes/admin_routes.py` | Reads the period, the From and To days and the category from the address, for the page and the CSV |
+| `reports_csv()` | `routes/admin_routes.py` | The report as a CSV file |
+| `customer_activity()` | `models/report.py` | Customers, new and returning, and the busiest and quietest days (optionally for one category) |
+| `CATEGORY_FILTER` | `models/report.py` | The bit of SQL that keeps only one category's products |
 | `money` filter | `routes/formats.py` | Shows amounts like `$1,314.50` or `-$16.00` |

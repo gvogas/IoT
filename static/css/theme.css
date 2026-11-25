@@ -17,11 +17,18 @@
     --tint-strong: #CFE2EC;
     --surface: #FFFFFF;
 
+    /* Dark boxes with light text on them, like the main button and the membership card */
+    --fill: var(--arctic-navy);
+    --fill-hover: var(--navy-hover);
+    --on-fill: #FFFFFF;
+    --on-fill-muted: #ACBCBF;
+
     /* Status colours, kept out of the palette so warnings stand out */
     --danger: #A63D32;
     --danger-tint: #F8E6E3;
     --success: #2B7A6B;
     --success-tint: #E2F2EE;
+    --success-strong: #1F5F53;
     --warning: #E9B44C;
     --warning-text: #7A4F08;
     --warning-tint: #FBF2DE;
@@ -53,7 +60,7 @@
     --bs-danger-text-emphasis: var(--danger);
     --bs-danger-bg-subtle: var(--danger-tint);
     --bs-danger-border-subtle: #E9C4BE;
-    --bs-success-text-emphasis: #1F5F53;
+    --bs-success-text-emphasis: var(--success-strong);
     --bs-success-bg-subtle: var(--success-tint);
     --bs-success-border-subtle: #BCDFD7;
     --bs-warning-text-emphasis: var(--warning-text);
@@ -66,12 +73,15 @@
 }
 
 .btn-primary {
-    --bs-btn-bg: var(--arctic-navy);
-    --bs-btn-border-color: var(--arctic-navy);
-    --bs-btn-hover-bg: var(--navy-hover);
-    --bs-btn-hover-border-color: var(--navy-hover);
-    --bs-btn-active-bg: var(--navy-hover);
-    --bs-btn-active-border-color: var(--navy-hover);
+    --bs-btn-bg: var(--fill);
+    --bs-btn-border-color: var(--fill);
+    --bs-btn-color: var(--on-fill);
+    --bs-btn-hover-bg: var(--fill-hover);
+    --bs-btn-hover-border-color: var(--fill-hover);
+    --bs-btn-hover-color: var(--on-fill);
+    --bs-btn-active-bg: var(--fill-hover);
+    --bs-btn-active-border-color: var(--fill-hover);
+    --bs-btn-active-color: var(--on-fill);
     --bs-btn-disabled-bg: var(--arctic-mist);
     --bs-btn-disabled-border-color: var(--arctic-mist);
     --bs-btn-disabled-color: var(--arctic-navy);
@@ -86,9 +96,9 @@
     --bs-btn-hover-bg: var(--tint);
     --bs-btn-hover-color: var(--arctic-navy);
     --bs-btn-hover-border-color: var(--arctic-navy);
-    --bs-btn-active-bg: var(--arctic-navy);
-    --bs-btn-active-color: #FFFFFF;
-    --bs-btn-active-border-color: var(--arctic-navy);
+    --bs-btn-active-bg: var(--fill);
+    --bs-btn-active-color: var(--on-fill);
+    --bs-btn-active-border-color: var(--fill);
     --bs-btn-disabled-color: var(--muted);
     --bs-btn-disabled-border-color: var(--arctic-mist);
     --bs-btn-focus-shadow-rgb: 82, 137, 173;
@@ -184,6 +194,52 @@
 .dropdown-menu {
     --bs-dropdown-bg: var(--surface);
     --bs-dropdown-link-hover-bg: var(--tint);
-    --bs-dropdown-link-active-bg: var(--arctic-navy);
+    --bs-dropdown-link-active-bg: var(--fill);
     --bs-dropdown-border-color: var(--line);
+}
+
+
+/* Dark mode. The moon button in the top bar switches it (common.js), and it is saved in the browser.
+   Only the colours change: the same names now hold dark backgrounds and light text */
+:root[data-bs-theme="dark"] {
+    color-scheme: dark;
+
+    --arctic-blue: #6FA3C7;
+    --arctic-navy: #E2EDF1;
+    --arctic-mist: #4A5E66;
+    --arctic-ice: #0F1A21;
+    --arctic-slate: #7F9AA8;
+
+    --link: #8CC0E3;
+    --muted: #9DB3BF;
+    --navy-hover: #FFFFFF;
+    --line: #2A3A44;
+    --tint: #1E2F39;
+    --tint-strong: #284150;
+    --surface: #16232C;
+
+    --fill: #3A6F92;
+    --fill-hover: #4A82A8;
+    --on-fill: #FFFFFF;
+    --on-fill-muted: #D0E1EA;
+
+    --danger: #E58A7F;
+    --danger-tint: #3A1F1C;
+    --success: #5CC3AE;
+    --success-tint: #16332D;
+    --success-strong: #7DD3C0;
+    --warning: #E9B44C;
+    --warning-text: #F2CC7E;
+    --warning-tint: #3A2F17;
+
+    --bs-body-color-rgb: 226, 237, 241;
+    --bs-emphasis-color-rgb: 226, 237, 241;
+    --bs-link-color-rgb: 140, 192, 227;
+    --bs-link-hover-color-rgb: 226, 237, 241;
+    --bs-primary-rgb: 58, 111, 146;
+    --bs-secondary-rgb: 157, 179, 191;
+    --bs-danger-border-subtle: #6B2F28;
+    --bs-success-border-subtle: #2C5A50;
+    --bs-warning-border-subtle: #6B5420;
+    --bs-tertiary-bg: var(--tint);
 }

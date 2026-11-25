@@ -1,6 +1,7 @@
 import calendar
 from datetime import datetime, timedelta
 
+from models.checkout import GST_RATE, QST_RATE
 from models.database import DATE_FORMAT, query, query_one
 
 # The period buttons on the Reports page
@@ -9,6 +10,17 @@ PERIODS = {"today": "Today", "month": "This month", "last_month": "Last month", 
 # Full dates on purpose: SQLite treats a short one like "9999" as a number
 FIRST_DATE = "0000-01-01 00:00:00"
 LAST_DATE = "9999-12-31 23:59:59"
+
+# Added to a WHERE to keep only one category's products (p is the Product table).
+# It takes the category name twice. An empty name keeps every category
+CATEGORY_FILTER = "AND (? = '' OR p.categoryID IN (SELECT categoryID FROM Category WHERE categoryName = ?))"
+
+# Added to a WHERE on the Purchase table to keep only receipts with at least one item from a category.
+# It also takes the category name twice. An empty name keeps every receipt
+PURCHASE_CATEGORY_FILTER = """AND (? = '' OR purchaseID IN (SELECT pi.purchaseID FROM PurchaseItem pi
+                                 JOIN Product p ON p.productID = pi.productID
+                                 JOIN Category c ON c.categoryID = p.categoryID
+                                 WHERE c.categoryName = ?))"""
 
 
 # The same moment one month earlier. Mar 31 becomes Feb 28, because February has no 31st
@@ -72,10 +84,11 @@ def range_dates(day_from, day_to):
             "compare_label": label, "from": first.strftime("%Y-%m-%d"), "to": last.strftime("%Y-%m-%d")}
 
 
-# Sales before tax, cost and profit. Units with no cost are counted in `missing`
-def profit_summary(start=None, end=None):
+# Sales before tax, cost and profit. Units with no cost are counted in `missing`.
+# With a category, only that category's products count
+def profit_summary(start=None, end=None, category=""):
     dates = (start or FIRST_DATE, end or LAST_DATE)
-    items = query_one("""
+    items = query_one(f"""
         SELECT ROUND(COALESCE(SUM(quantity * unitPrice), 0), 2) AS sales,
                ROUND(COALESCE(SUM(CASE WHEN cost IS NOT NULL THEN quantity * unitPrice END), 0), 2) AS costedSales,
                ROUND(COALESCE(SUM(CASE WHEN cost IS NOT NULL THEN quantity * cost END), 0), 2) AS cost,
@@ -86,15 +99,32 @@ def profit_summary(start=None, end=None):
               FROM PurchaseItem pi
               JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
               JOIN Product p ON p.productID = pi.productID
-              WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ?)
-    """, dates)
-    purchases = query_one("""
-        SELECT COUNT(*) AS orders,
-               ROUND(COALESCE(SUM(gstAmount), 0), 2) AS gst,
-               ROUND(COALESCE(SUM(qstAmount), 0), 2) AS qst,
-               ROUND(COALESCE(SUM(total), 0), 2) AS total
-        FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ?
-    """, dates)
+              WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ? {CATEGORY_FILTER})
+    """, dates + (category, category))
+
+    if not category:
+        # The taxes and totals saved on each receipt
+        purchases = query_one("""
+            SELECT COUNT(*) AS orders,
+                   ROUND(COALESCE(SUM(gstAmount), 0), 2) AS gst,
+                   ROUND(COALESCE(SUM(qstAmount), 0), 2) AS qst,
+                   ROUND(COALESCE(SUM(total), 0), 2) AS total
+            FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ?
+        """, dates)
+    else:
+        # A receipt's tax is for all of its items, so for one category it is worked out again from the taxable items.
+        # It can be a cent off the receipts, because each receipt was rounded on its own
+        lines = query_one(f"""
+            SELECT COUNT(DISTINCT pu.purchaseID) AS orders,
+                   COALESCE(SUM(CASE WHEN pi.isTaxable THEN pi.quantity * pi.unitPrice END), 0) AS taxable
+            FROM PurchaseItem pi
+            JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
+            JOIN Product p ON p.productID = pi.productID
+            WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ? {CATEGORY_FILTER}
+        """, dates + (category, category))
+        gst = round(lines["taxable"] * float(GST_RATE), 2)
+        qst = round(lines["taxable"] * float(QST_RATE), 2)
+        purchases = {"orders": lines["orders"], "gst": gst, "qst": qst, "total": round(items["sales"] + gst + qst, 2)}
 
     summary = dict(items)
     summary.update(dict(purchases))
@@ -114,8 +144,8 @@ def profit_summary(start=None, end=None):
 
 
 # Most profitable products first. Products with no cost come last
-def top_products(start=None, end=None, limit=5):
-    rows = query("""
+def top_products(start=None, end=None, limit=5, category=""):
+    rows = query(f"""
         SELECT productID, productName, imagePath,
                SUM(quantity) AS units,
                ROUND(SUM(quantity * unitPrice), 2) AS sales,
@@ -125,18 +155,18 @@ def top_products(start=None, end=None, limit=5):
               FROM PurchaseItem pi
               JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
               JOIN Product p ON p.productID = pi.productID
-              WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ?)
+              WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ? {CATEGORY_FILTER})
         GROUP BY productID
         ORDER BY profit IS NULL, profit DESC, sales DESC
         LIMIT ?
-    """, (start or FIRST_DATE, end or LAST_DATE, limit))
+    """, (start or FIRST_DATE, end or LAST_DATE, category, category, limit))
     return [dict(row) for row in rows]
 
 
 # How many units of each product were sold in the period, most first.
 # Products still for sale that sold nothing are in the list too, with 0
-def product_quantities(start=None, end=None):
-    rows = query("""
+def product_quantities(start=None, end=None, category=""):
+    rows = query(f"""
         SELECT p.productID, p.productName, p.imagePath, c.categoryName,
                COALESCE(s.units, 0) AS units, COALESCE(s.sales, 0) AS sales
         FROM Product p
@@ -146,9 +176,9 @@ def product_quantities(start=None, end=None):
                    JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
                    WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ?
                    GROUP BY pi.productID) s ON s.productID = p.productID
-        WHERE p.isActive = 1 OR s.units > 0
+        WHERE (p.isActive = 1 OR s.units > 0) {CATEGORY_FILTER}
         ORDER BY units DESC, p.productName COLLATE NOCASE
-    """, (start or FIRST_DATE, end or LAST_DATE))
+    """, (start or FIRST_DATE, end or LAST_DATE, category, category))
     return [dict(row) for row in rows]
 
 
@@ -174,7 +204,7 @@ def chart_by_month(period, start=None, end=None):
 
 # Reports chart bars: one per day for a month or a short date range, one per month for all time or a long range.
 # end is the day after the last one (like in period_dates). Today or a single day has no chart
-def sales_chart(period, start=None, end=None):
+def sales_chart(period, start=None, end=None, category=""):
     if period == "today":
         return []
 
@@ -186,11 +216,15 @@ def sales_chart(period, start=None, end=None):
     by_month = chart_by_month(period, start, end)
 
     group = "%Y-%m" if by_month else "%Y-%m-%d"
+    # Added up from the items (not the receipt subtotals), so a category can be picked
     rows = query(f"""
-        SELECT strftime('{group}', purchaseDate) AS slot, ROUND(SUM(subtotal), 2) AS sales
-        FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ?
+        SELECT strftime('{group}', pu.purchaseDate) AS slot, ROUND(SUM(pi.quantity * pi.unitPrice), 2) AS sales
+        FROM PurchaseItem pi
+        JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
+        JOIN Product p ON p.productID = pi.productID
+        WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ? {CATEGORY_FILTER}
         GROUP BY slot
-    """, (start or FIRST_DATE, end or LAST_DATE))
+    """, (start or FIRST_DATE, end or LAST_DATE, category, category))
     sales_by_slot = {row["slot"]: row["sales"] for row in rows}
 
     bars = []
@@ -224,15 +258,81 @@ def sales_chart(period, start=None, end=None):
 
 
 # Sales before tax per category, biggest first
-def sales_by_category(start=None, end=None):
-    rows = query("""
+def sales_by_category(start=None, end=None, category=""):
+    rows = query(f"""
         SELECT c.categoryName, ROUND(SUM(pi.quantity * pi.unitPrice), 2) AS sales, SUM(pi.quantity) AS units
         FROM PurchaseItem pi
         JOIN Purchase pu ON pu.purchaseID = pi.purchaseID
         JOIN Product p ON p.productID = pi.productID
         JOIN Category c ON c.categoryID = p.categoryID
-        WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ?
+        WHERE pu.purchaseDate >= ? AND pu.purchaseDate < ? {CATEGORY_FILTER}
         GROUP BY c.categoryID
         ORDER BY sales DESC
-    """, (start or FIRST_DATE, end or LAST_DATE))
+    """, (start or FIRST_DATE, end or LAST_DATE, category, category))
     return [dict(row) for row in rows]
+
+
+# Every category name, for the category picker on the Reports page
+def category_names():
+    return [row["categoryName"] for row in query("SELECT categoryName FROM Category ORDER BY categoryName COLLATE NOCASE")]
+
+
+# The days in a list of days with the most or the fewest customers. Ties are all kept
+def days_with(days, customers):
+    return [day for day in days if day["customers"] == customers]
+
+
+# Who shopped in the period: how many customers, how many were new, and the busiest and quietest days.
+# A customer is new if their first purchase ever is in the period. Every day in the period is counted,
+# days with no sales too, so the quietest day can be a day nobody came.
+# With a category, only receipts with something from that category count, and new means
+# their first purchase from that category
+def customer_activity(start=None, end=None, category=""):
+    dates = (start or FIRST_DATE, end or LAST_DATE)
+    counts = query_one(f"""
+        SELECT COUNT(DISTINCT customerID) AS customers, COUNT(*) AS orders
+        FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ? {PURCHASE_CATEGORY_FILTER}
+    """, dates + (category, category))
+    new = query_one(f"""
+        SELECT COUNT(*) AS new
+        FROM (SELECT customerID, MIN(purchaseDate) AS firstPurchase FROM Purchase
+              WHERE customerID IS NOT NULL {PURCHASE_CATEGORY_FILTER} GROUP BY customerID)
+        WHERE firstPurchase >= ? AND firstPurchase < ?
+    """, (category, category) + dates)["new"]
+
+    # Customers and purchases on each day that had a sale
+    rows = query(f"""
+        SELECT date(purchaseDate) AS day, COUNT(DISTINCT customerID) AS customers, COUNT(*) AS orders
+        FROM Purchase WHERE purchaseDate >= ? AND purchaseDate < ? {PURCHASE_CATEGORY_FILTER}
+        GROUP BY day
+    """, dates + (category, category))
+    by_day = {row["day"]: row for row in rows}
+
+    # The first and last day of the period. All time starts on the first sale
+    if start:
+        first_day = datetime.strptime(start[:10], "%Y-%m-%d")
+    elif rows:
+        first_day = datetime.strptime(min(by_day), "%Y-%m-%d")
+    else:
+        first_day = None
+    if end:
+        last_day = datetime.strptime(end, DATE_FORMAT) - timedelta(seconds=1)
+    else:
+        last_day = datetime.now()
+
+    days = []
+    if first_day:
+        day = first_day
+        while day.date() <= last_day.date():
+            row = by_day.get(day.strftime("%Y-%m-%d"))
+            days.append({"date": day, "customers": row["customers"] if row else 0, "orders": row["orders"] if row else 0})
+            day += timedelta(days=1)
+
+    busiest, quietest = [], []
+    # Only worth showing when there is more than one day to compare, and someone came
+    if len(days) > 1 and counts["orders"]:
+        busiest = days_with(days, max(day["customers"] for day in days))
+        quietest = days_with(days, min(day["customers"] for day in days))
+
+    return {"customers": counts["customers"], "orders": counts["orders"], "new": new,
+            "returning": counts["customers"] - new, "busiest": busiest, "quietest": quietest, "day_count": len(days)}

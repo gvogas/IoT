@@ -8,24 +8,38 @@
     <div class="page-head">
         <div>
             <h1>Reports</h1>
-            <p>Sales and profit for {{ range_text if period == 'custom' else periods[period]|lower }}{% if compare_label %}, compared with {{ compare_label }}{% endif %}.</p>
+            <p>Sales and profit for {{ range_text if period == 'custom' else periods[period]|lower }}{% if category %} in {{ category }}{% endif %}{% if compare_label %}, compared with {{ compare_label }}{% endif %}.</p>
         </div>
-        {# The buttons reload the page with ?period= in the address #}
-        <div class="segmented" role="group" aria-label="Time period">
-            {% for key, label in periods.items() %}
-            <a class="segmented-item{{ ' active' if key == period }}" href="/reports?period={{ key }}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>
-            {% endfor %}
+        <div class="page-actions">
+            {# The buttons reload the page with ?period= in the address, and keep the chosen category #}
+            <div class="segmented" role="group" aria-label="Time period">
+                {% for key, label in periods.items() %}
+                <a class="segmented-item{{ ' active' if key == period }}" href="/reports?period={{ key }}{% if category %}&category={{ category|urlencode }}{% endif %}"{% if key == period %} aria-current="page"{% endif %}>{{ label }}</a>
+                {% endfor %}
+            </div>
+            {# Print opens the browser's print window, where "Save as PDF" is one of the printers #}
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <a class="btn btn-outline-secondary" href="{{ csv_link }}"><i class="bi bi-download" aria-hidden="true"></i> CSV</a>
         </div>
     </div>
 
-    {# Pick any days. The page reloads with ?from=...&to=... in the address. An empty To means one day #}
+    {# Pick any days and a category. The page reloads with ?from=...&to=...&category=... in the address.
+       An empty To means one day. With both days empty, the period button that was picked stays #}
     <form class="date-range mb-3" method="get" action="/reports">
+        {% if period != 'custom' %}<input type="hidden" name="period" value="{{ period }}">{% endif %}
         <label for="from">From</label>
-        <input type="date" class="form-control" id="from" name="from" value="{{ day_from }}" required>
+        <input type="date" class="form-control" id="from" name="from" value="{{ day_from }}">
         <label for="to">To</label>
         <input type="date" class="form-control" id="to" name="to" value="{{ day_to }}">
+        <label for="category">Category</label>
+        <select class="form-select category-filter" id="category" name="category">
+            <option value="">All categories</option>
+            {% for name in category_names %}
+            <option{{ ' selected' if name == category }}>{{ name }}</option>
+            {% endfor %}
+        </select>
         <button type="submit" class="btn btn-primary">Show</button>
-        {% if period == 'custom' %}<a class="btn btn-link" href="/reports">Clear</a>{% endif %}
+        {% if period == 'custom' or category %}<a class="btn btn-link" href="/reports">Clear</a>{% endif %}
         <span class="small text-secondary">Leave To empty for a single day.</span>
     </form>
     {% if date_error %}<div class="alert alert-danger py-2 px-3">{{ date_error }}</div>{% endif %}
@@ -33,7 +47,7 @@
     {# Total sales for the chosen days, with the dates #}
     <div class="total-line mb-3">
         <i class="bi bi-receipt" aria-hidden="true"></i>
-        <span>Total sales ({{ range_text }}): <b class="num">{{ money.sales|money }}</b> before tax · <span class="num">{{ money.total|money }}</span> with tax</span>
+        <span>Total sales ({{ range_text }}{% if category %}, {{ category }}{% endif %}): <b class="num">{{ money.sales|money }}</b> before tax · <span class="num">{{ money.total|money }}</span> with tax</span>
     </div>
 
     {# The four numbers. Under each one: how much it went up or down since the period before #}
@@ -85,7 +99,7 @@
                         <span class="stat-label">Tax owed</span>
                     </div>
                     <div class="stat-value">{{ money.tax|money }}</div>
-                    <div class="stat-note">GST {{ money.gst|money }} · QST {{ money.qst|money }}</div>
+                    <div class="stat-note">GST {{ money.gst|money }} · QST {{ money.qst|money }}{% if category %} · worked out for {{ category }}{% endif %}</div>
                 </div>
             </div>
         </div>
@@ -99,6 +113,60 @@
     {% else %}
     <div class="mb-4"></div>
     {% endif %}
+
+    {# Who shopped in the period. With a category, only receipts with something from it #}
+    <section class="card mb-4" aria-labelledby="activity-title">
+        <div class="card-head">
+            <h2 id="activity-title">Customer activity</h2>
+            <span class="text-secondary small">{{ range_text }}{% if category %} · {{ category }}{% endif %}</span>
+        </div>
+        <div class="card-body pt-0">
+            <div class="row row-cols-2 row-cols-md-4 g-3">
+                <div class="col">
+                    <div class="stat-label">Customers</div>
+                    <div class="stat-value">{{ activity.customers }}</div>
+                    <div class="stat-note">bought something</div>
+                </div>
+                <div class="col">
+                    <div class="stat-label">New</div>
+                    <div class="stat-value">{{ activity.new }}</div>
+                    <div class="stat-note">first purchase ever</div>
+                </div>
+                <div class="col">
+                    <div class="stat-label">Returning</div>
+                    <div class="stat-value">{{ activity.returning }}</div>
+                    <div class="stat-note">bought before this</div>
+                </div>
+                <div class="col">
+                    <div class="stat-label">Purchases</div>
+                    <div class="stat-value">{{ activity.orders }}</div>
+                    <div class="stat-note">receipts</div>
+                </div>
+            </div>
+
+            {# The busiest and quietest days. Ties are all named, up to 3 #}
+            {% if activity.busiest %}
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <div class="sold-box most">
+                        <span class="sold-box-title"><i class="bi bi-people" aria-hidden="true"></i> Busiest day</span>
+                        <b>{% for day in activity.busiest[:3] %}{{ day.date|nice_day }}{{ ' · ' if not loop.last }}{% endfor %}{% if activity.busiest|length > 3 %} and {{ activity.busiest|length - 3 }} more{% endif %}</b>
+                        <small>{{ activity.busiest[0].customers }} {{ 'customer' if activity.busiest[0].customers == 1 else 'customers' }}{{ ' each' if activity.busiest|length > 1 }}{% if activity.busiest|length == 1 %}, {{ activity.busiest[0].orders }} {{ 'purchase' if activity.busiest[0].orders == 1 else 'purchases' }}{% endif %}</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="sold-box least">
+                        <span class="sold-box-title"><i class="bi bi-person-dash" aria-hidden="true"></i> Quietest day</span>
+                        <b>{% for day in activity.quietest[:3] %}{{ day.date|nice_day }}{{ ' · ' if not loop.last }}{% endfor %}{% if activity.quietest|length > 3 %} and {{ activity.quietest|length - 3 }} more{% endif %}</b>
+                        <small>{{ activity.quietest[0].customers }} {{ 'customer' if activity.quietest[0].customers == 1 else 'customers' }}{{ ' each' if activity.quietest|length > 1 }}{% if activity.quietest|length == 1 %}, {{ activity.quietest[0].orders }} {{ 'purchase' if activity.quietest[0].orders == 1 else 'purchases' }}{% endif %}</small>
+                    </div>
+                </div>
+            </div>
+            {% elif activity.day_count == 1 %}
+            <p class="text-secondary small mb-0 mt-3">Pick more than one day to see the busiest and quietest days.</p>
+            {% endif %}
+        </div>
+    </section>
 
     {# One bar per day (a month) or per month (all time), drawn by static/js/admin/reports_charts.js with Chart.js.
        The list inside the canvas is for screen readers #}
@@ -151,12 +219,6 @@
         {% if quantities %}
         <div class="table-tools">
             <div class="table-tools-end">
-                {% if product_categories|length > 1 %}
-                <select class="form-select category-filter" aria-label="Filter by category" data-category-filter>
-                    <option value="">All categories</option>
-                    {% for category in product_categories %}<option>{{ category }}</option>{% endfor %}
-                </select>
-                {% endif %}
                 <div class="search-field">
                     <i class="bi bi-search" aria-hidden="true"></i>
                     <input type="search" class="form-control search-box" placeholder="Search by ID, name or category" aria-label="Search products" data-search>
@@ -278,11 +340,11 @@
                             <tr><th>Category</th><th class="text-end">Sales</th><th class="text-end">Share</th></tr>
                         </thead>
                         <tbody>
-                            {% for category in categories %}
-                            {% set share = category.sales * 100 / category_total %}
+                            {% for row in categories %}
+                            {% set share = row.sales * 100 / category_total %}
                             <tr>
-                                <td>{{ category.categoryName }}</td>
-                                <td class="text-end num">{{ category.sales|money }}<div class="small text-secondary">{{ category.units }} sold</div></td>
+                                <td>{{ row.categoryName }}</td>
+                                <td class="text-end num">{{ row.sales|money }}<div class="small text-secondary">{{ row.units }} sold</div></td>
                                 <td class="text-end num">{{ '%.0f'|format(share) }}%</td>
                             </tr>
                             {% endfor %}

@@ -1,8 +1,8 @@
 # Phase 4 status
 
-Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
+Checked against `Phase-4.pdf` on 2026-11-13, re-audited and finished on 2026-11-25. The 2026-11-25 items were tested on a copy of the app with the hardware stubbed out: every page loaded, the report numbers were checked against SQL, and the My Account filters were run in headless Chromium (light, dark and phone width). Tick a box when the item is finished and tested.
 
-23 of 42 items are done. The biggest gaps are the Customer Activity report and the customer-side reports (period filter, item search, price history).
+39 of 42 items are done. Left: the full run-through on the Pi with the hardware, checking live inventory with a real checkout, and preparing to explain the design. All three need people and hardware, not code.
 
 ## 1. System Integration
 - [x] Phase 2 (product tracking and inventory) working. See `phase3-status.md`
@@ -15,10 +15,10 @@ Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by r
 - [x] Last restocked date (Last received column)
 - [x] Colour-coded levels (red = out, yellow = low, green = ok badges)
 - [x] Low stock alert, customizable (per product, `lowStockThreshold`, plus the admin emails). The PDF says per category; ours is per product, which is finer. Mention this in the demo
-- [ ] Real-time updates after a purchase. Built: `static/js/products/inventory.js` asks `/api/inventory` every 5 s and updates the cards, stock, badges and filter counts. The API is tested; still to check in a browser with a real checkout
+- [ ] Real-time updates after a purchase. Built: `static/js/products/inventory.js` asks `/api/inventory` every 2 s and updates the cards, stock, badges and filter counts. The API is tested; still to check in a browser with a real checkout
 
 ## 2.2 Sales Report (Admin)
-`/reports` has Today, This month, Last month, All time, plus From and To date boxes (`?from=&to=`).
+`/reports` has Today, This month, Last month, All time, plus From and To date boxes (`?from=&to=`) and a Category picker (`?category=`).
 - [x] Sales chart per day (a month) or per month (all time)
 - [x] Sales by category (table with share bars)
 - [x] Pick a specific day (From only, To empty)
@@ -27,38 +27,38 @@ Checked against `Phase-4.pdf` on 2026-11-13. Found by reading the code, not by r
 - [x] Most sold items by quantity (ties shown together, like "2 items: Smart Plug, Smart Camera")
 - [x] Least sold items in the period (products that sold 0 count)
 - [x] Total sales for the chosen day or range shown with the dates, like "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00 before tax" (with tax too)
-- [ ] Category filter (show only one category's products). The Sold per product table has one; the cards, chart and Best products don't filter by category yet
+- [x] Category filter: the Category picker filters the cards, total line, chart, Sold per product, Best products and By category. Tax is worked out from that category's taxable items (`CATEGORY_FILTER` in `models/report.py`)
 
 ## 2.3 Customer Activity Report (Admin)
-Nothing for this yet. `/customers` lists customers and their spending, but has no date filter.
-- [ ] Number of customers who bought something on a chosen day
-- [ ] Number of customers who bought something in a date range
-- [ ] New vs returning customers in the range (new = first purchase falls inside the range)
-- [ ] Most crowded and least crowded day in the range (by number of purchases or customers)
+A Customer activity card on `/reports`, using the same period or From and To days (`customer_activity()` in `models/report.py`). It ignores the category.
+- [x] Number of customers who bought something on a chosen day (From only)
+- [x] Number of customers who bought something in a date range
+- [x] New vs returning customers in the range (new = first purchase ever falls inside the range)
+- [x] Busiest and quietest day in the range, by number of customers (days with no sales count, ties all named)
 
 ## 3. Customer Reports (My Account)
 ### 3.1 Receipt history
 - [x] List of receipts with date and time, items, prices and total (`/account`)
-- [ ] Filter receipts by a day or a date range
+- [x] Filter receipts by a day or a date range (From and To boxes on `/account`, `static/js/customers/account.js`)
 
 ### 3.2 Total purchase amount
 - [x] Total spent (all time card)
-- [ ] Total spent in the selected period
-- [ ] Graph of spending over time (optional)
+- [x] Total spent in the selected period (all three cards follow the From and To boxes)
+- [x] Graph of spending over time: Spending over time chart, per month, or per day when the shown receipts are all in one month
 
 ### 3.3 Search purchase history
-The search box filters receipts by product name or date, but does not summarize the item.
-- [ ] Choose an item and see how many times it was bought
-- [ ] Date, time and price of each purchase of that item
-- [ ] Price history chart ("inflation report") for that item
+Typing in the search box opens a Product purchase summary card above the receipts. It only counts receipts inside the From and To days.
+- [x] Choose an item and see how many times it was bought (times and units). A search matching several products shows a button for each to choose one
+- [x] Date, time and price of each purchase of that item
+- [x] Price history chart ("inflation report"), with the change from the first price to the last, like "$1.99 to $2.29 (+15%)"
 
 ## 4. Extras (optional)
 - [x] Notifications: toasts, low stock and restocked emails, receipt email, fridge temperature alert emails
 - [x] Exportable report: inventory CSV (`/inventory.csv`)
 - [x] Dashboard on `/admin`: today's profit (click it for today's report) and a live temperature card for each fridge
-- [ ] Light and dark mode. No dark theme in `theme.css` yet
-- [ ] Export the Sales or Customer Activity report (CSV, or a Print button with `window.print()` for PDF)
-- [ ] Responsive check on phone width (carried over from Phase 3)
+- [x] Light and dark mode: moon / sun button in the top bar, saved in the browser, follows the computer's setting at first (`:root[data-bs-theme="dark"]` in `theme.css`)
+- [x] Export the Sales and Customer Activity report: CSV button (`/reports.csv`) and a Print button (Save as PDF), with print styles that hide the menu and filters
+- [x] Responsive check on phone width (Reports and My Account at 390 px in headless Chromium)
 
 ## 5. MSP01 BLE Sensor
 - [x] Read the MSP01 over Bluetooth with reelyActive barnowl/advlib and publish to MQTT (`msp01/index.js`)
@@ -78,6 +78,6 @@ From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, 
 
 
 ## 6. Final Demo
-- [ ] Demo script: inventory, purchase, live sync, admin reports, customer reports, extras
+- [x] Demo script: [demo-script.md](../demo-script.md)
 - [ ] Be ready to explain design decisions, technologies and the database (`architecture.md`, `database.md`)
 

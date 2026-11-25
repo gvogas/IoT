@@ -110,3 +110,24 @@ document.querySelectorAll("form[data-confirm-title]").forEach((form) => {
 document.querySelectorAll(".toast[data-delay]").forEach((element) => {
     new bootstrap.Toast(element, { delay: Number(element.dataset.delay) }).show();
 });
+
+
+// The moon / sun button in the top bar switches between light and dark mode, and the browser remembers it.
+// base.html sets the mode when the page opens
+const themeButton = document.getElementById("theme-button");
+function showThemeButton() {
+    const dark = document.documentElement.dataset.bsTheme === "dark";
+    themeButton.querySelector("i").className = dark ? "bi bi-sun" : "bi bi-moon";
+    themeButton.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+}
+if (themeButton) {
+    showThemeButton();
+    themeButton.addEventListener("click", () => {
+        const dark = document.documentElement.dataset.bsTheme === "dark";
+        document.documentElement.dataset.bsTheme = dark ? "light" : "dark";
+        localStorage.setItem("theme", dark ? "light" : "dark");
+        showThemeButton();
+        // Charts read their colours once, so a page with charts reloads to draw them in the new colours
+        if (typeof Chart !== "undefined") location.reload();
+    });
+}

@@ -9,7 +9,7 @@ from routes.auth_routes import auth_routes
 from routes.checkout_routes import checkout_routes
 from routes.customer_routes import customer_routes
 from routes.fan_routes import fan_routes
-from routes.formats import money, nice_date, nice_datetime
+from routes.formats import money, nice_date, nice_datetime, nice_day
 from routes.fridge_routes import fridge_routes
 from routes.product_routes import product_routes
 from routes.room_routes import room_routes
@@ -28,6 +28,7 @@ def register_routes(app):
 
     app.add_template_filter(nice_date)
     app.add_template_filter(nice_datetime)
+    app.add_template_filter(nice_day)
     app.add_template_filter(money)
 
     # Database errors no route handles, like "no such table" if init_database wasn't run

@@ -62,7 +62,7 @@
                     <div class="card h-100">
                         <div class="card-body py-3">
                             <div class="stat-label">Total spent</div>
-                            <div class="stat-value notranslate" translate="no" data-total-spent>${{ '%.2f'|format(total_spent) }}</div>
+                            <div class="stat-value notranslate" translate="no" data-total-spent>{{ total_spent|money }}</div>
                         </div>
                     </div>
                 </div>
@@ -70,7 +70,7 @@
                     <div class="card h-100">
                         <div class="card-body py-3">
                             <div class="stat-label">Purchases</div>
-                            <div class="stat-value">{{ purchases|length }}</div>
+                            <div class="stat-value" data-purchase-count>{{ purchases|length }}</div>
                         </div>
                     </div>
                 </div>
@@ -78,8 +78,22 @@
                     <div class="card h-100">
                         <div class="card-body py-3">
                             <div class="stat-label">Items bought</div>
-                            <div class="stat-value">{{ item_count }}</div>
+                            <div class="stat-value" data-item-count>{{ item_count }}</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Spending per month (or per day when every shown receipt is in one month). account.js draws it
+               from the receipts below, so it follows the From and To boxes #}
+            <div class="card mb-3">
+                <div class="card-head">
+                    <h2>Spending over time</h2>
+                    <span class="text-secondary small">With tax</span>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="sales-chart">
+                        <canvas id="spending-chart" role="img" aria-label="Spending over time"></canvas>
                     </div>
                 </div>
             </div>
@@ -88,58 +102,57 @@
                 <div class="card-body pb-3">
                     <h2>Purchase history</h2>
 
-                    <div class="table-tools mb-0">
-                        <!-- Search purchases by product name or date -->
-                        <input type="search"
-                               class="form-control search-box"
-                               placeholder="Search by product or date"
-                               aria-label="Search purchases"
-                               data-search>
+                    <!-- Search purchases by product name or date -->
+                    <input type="search" class="form-control search-box mb-2" placeholder="Search by product or date"
+                           aria-label="Search purchases" data-search>
 
-                        <!-- Filter receipts by purchase date -->
-                        <div>
-                            <label for="date-from" class="form-label">From</label>
-                            <input type="date"
-                                   id="date-from"
-                                   class="form-control"
-                                   data-date-from>
-                        </div>
-
-                        <div>
-                            <label for="date-to" class="form-label">To</label>
-                            <input type="date"
-                                   id="date-to"
-                                   class="form-control"
-                                   data-date-to>
-                        </div>
-
-                        <span class="text-secondary small ms-md-auto"
-                              data-count
-                              aria-live="polite"></span>
+                    <!-- Only show receipts from these days. Empty means no limit -->
+                    <div class="date-range">
+                        <label for="date-from">From</label>
+                        <input type="date" id="date-from" class="form-control" data-date-from>
+                        <label for="date-to">To</label>
+                        <input type="date" id="date-to" class="form-control" data-date-to>
+                        <!-- Empties both date boxes. Only shown while a date is picked -->
+                        <button type="button" class="btn btn-link" data-date-clear hidden>Clear</button>
+                        <span class="text-secondary small ms-auto" data-count aria-live="polite"></span>
                     </div>
 
+                    {# Shown while searching. account.js fills it in #}
                     <div class="card mt-3 mb-3" id="product-summary" hidden>
                         <div class="card-body">
-                            <h3 class="h5">Product Purchase Summary</h3>
+                            <h3 class="h5">Product purchase summary</h3>
 
-                            <!-- Name of the searched product -->
-                            <div class="fw-semibold" id="searched-product"></div>
-
-                            <!-- Number of times the product was purchased -->
-                            <div class="small text-secondary mt-2">
-                                Times purchased:
-                                <span id="product-purchase-count">0</span>
+                            <!-- When the search matches more than one product: a button for each, to choose one -->
+                            <div id="product-choices" hidden>
+                                <p class="small text-secondary mb-2">Your search matches more than one product. Choose one:</p>
+                                <div class="d-flex flex-wrap gap-2" id="product-choice-buttons"></div>
                             </div>
 
-                            <!-- Dates, times and prices of previous purchases -->
-                            <div id="product-purchase-details" class="mt-3"></div>
+                            <div id="product-details">
+                                <!-- Name of the product -->
+                                <div class="fw-semibold" id="searched-product"></div>
+
+                                <!-- How many times it was bought, and how many units -->
+                                <div class="small text-secondary mt-1" id="product-purchase-count"></div>
+
+                                <!-- How the price changed, like "$1.99 to $2.29 (+15%)" -->
+                                <div class="small mt-1" id="product-price-change"></div>
+
+                                <!-- The price each time it was bought (the "inflation report") -->
+                                <div class="sales-chart mt-3" id="price-chart-box">
+                                    <canvas id="price-chart" role="img" aria-label="Price history"></canvas>
+                                </div>
+
+                                <!-- Date, time, quantity and price of each purchase -->
+                                <div id="product-purchase-details" class="mt-3"></div>
+                            </div>
                         </div>
                     </div>
 
                 </div>
 
                 {% for purchase in purchases %}
-                <details class="purchase" data-search-row data-search-date="{{ purchase.purchaseDate.strftime('%Y-%m-%d') }}" data-purchase-total="{{ '%.2f'|format(purchase.total) }}" {% if loop.first %}open{% endif %}
+                <details class="purchase" data-search-row data-purchase-date="{{ purchase.purchaseDate[:10] }}" data-purchase-total="{{ '%.2f'|format(purchase.total) }}" data-item-count="{{ purchase.itemCount }}" {% if loop.first %}open{% endif %}
                          data-search="{{ (purchase.lines|map(attribute='productName')|join(' ') ~ ' ' ~ purchase.purchaseDate|nice_datetime ~ ' #' ~ purchase.purchaseID)|lower }}">
                     <summary>
                         <div>
@@ -154,7 +167,7 @@
 
                     <div class="purchase-body">
                         {% for line in purchase.lines %}
-                        <div class="purchase-line" data-product-name="{{ line.productName|lower }}" data-product-date="{{ purchase.purchaseDate.strftime('%Y-%m-%d %H:%M') }}" data-product-price="{{ '%.2f'|format(line.unitPrice) }}" data-product-quantity="{{ line.quantity }}">
+                        <div class="purchase-line" data-product-name="{{ line.productName }}" data-product-date="{{ purchase.purchaseDate|nice_datetime }}" data-product-day="{{ purchase.purchaseDate|nice_date }}" data-product-price="{{ '%.2f'|format(line.unitPrice) }}" data-product-quantity="{{ line.quantity }}">
                             {% if line.imagePath %}
                             <img class="product-image sm" src="{{ url_for('static', filename=line.imagePath) }}" alt="" loading="lazy">
                             {% else %}
@@ -203,6 +216,7 @@
 {% endblock %}
 
 {% block scripts %}
-    <!--<script src="{{ url_for('static', filename='js/table_filter.js') }}"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/customers/account.js') }}"></script>
 {% endblock %}
