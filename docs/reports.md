@@ -17,16 +17,16 @@ Admins land on the dashboard when they sign in. It has only two things, as cards
 | Profit today | Profit so far today, how much it went up or down since yesterday at the same time of day, and today's sales and orders. Clicking it opens Reports for today (`/reports?period=today`) |
 | One card per fridge | Temperature, status (OK, Too warm, Offline or Waiting), limit, humidity and the time since the last reading. A fridge over its limit gets a red border. Clicking a card opens that fridge |
 
-The fridge cards change every 2 seconds by themselves (`static/js/admin/home.js` asks `/api/fridges`). The page reloads every 30 seconds so the profit stays up to date. A sensor counts as offline after 15 seconds with no reading, the same as on the fridge pages. The MSP01's light and motion cards are on Fridge 3's page (see [msp01.md](msp01.md#light-and-motion-cards)).
+The fridge cards change every 2 seconds by themselves (`static/js/admin/home.js` asks `/api/fridges`). The page reloads every 30 seconds so the profit stays up to date, but only while it is scrolled to the top, nothing is being typed and the tab is showing (`reloadEvery()` in `static/js/common.js`), so it never jumps away from what someone is reading. A sensor counts as offline after 15 seconds with no reading, the same as on the fridge pages. The MSP01's light and motion cards are on Fridge 3's page (see [msp01.md](msp01.md#light-and-motion-cards)).
 
 ## Reports
 
-Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included), and a Category picker. Leave To empty to see a single day. With a category picked, every sales number, the chart, Sold per product, Best products and By category count only that category's products. The tax is then worked out again from that category's taxable items, so it can be a cent off the receipts. Customer activity counts only receipts with at least one item from that category, and a new customer is one whose first purchase from that category is in the period. The Print button opens the browser's print window (pick "Save as PDF" for a file), and CSV downloads the report as a spreadsheet (`/reports.csv`, same period and category). The page reloads every 30 seconds, so a new sale shows up by itself. For the chosen period it shows:
+Reports has buttons for Today, This month, Last month and All time, with All time as the default. Under them are From and To date boxes for any days you want (both days included), and a Category picker. Leave To empty to see a single day. With a category picked, every sales number, the chart, Sold per product, Best products and By category count only that category's products. The tax is then worked out again from that category's taxable items, so it can be a cent off the receipts. Customer activity counts only receipts with at least one item from that category, and a new customer is one whose first purchase from that category is in the period. The Print button opens the browser's print window (pick "Save as PDF" for a file), and CSV downloads the report as a spreadsheet (`/reports.csv`, same period and category). The page reloads every 30 seconds, so a new sale shows up by itself. Like the dashboard, it waits while someone is scrolled down or typing in the date boxes. For the chosen period it shows:
 
 | Part | Shows |
 |---|---|
-| Total sales line | The dates and the total, like "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00 before tax · $2,920.37 with tax" |
-| Sales | Before tax (GST and QST go to the government), and the number of orders |
+| Total sales line | The dates and the total, like "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00 before tax, $2,920.37 with tax" |
+| Sales | Before tax (GST and QST go to the government), and the number of orders. Sales, Net profit, Average order and Tax owed sit side by side in one strip |
 | Net profit | With the margin and the cost of the items sold |
 | Average order | With the items per order |
 | Tax owed | Split into GST and QST |
@@ -34,7 +34,7 @@ Reports has buttons for Today, This month, Last month and All time, with All tim
 | Sales chart | Sales per day for a month or a range of up to 62 days, or per month for all time or a longer range. Today or a single day has no chart |
 | Sold per product | Every product with the units sold and the sales, most sold first. Products still for sale that sold nothing are listed with 0. It has search and sortable columns |
 | Most and least sold | Above that table. Ties are all shown, like "2 items: Smart Plug, Smart Camera, 5 sold each". The least sold counts products that sold 0 |
-| Best products | The 8 products that made the most profit, with the best seller's picture at the top. Each one's profit counts only its units with a cost |
+| Best products | The 8 products that made the most profit, with the top one's picture first. Each one's profit counts only its units with a cost |
 | By category | A doughnut chart of the sales per category, and a table with each category's sales and share |
 
 Each number except tax is compared with the period before:

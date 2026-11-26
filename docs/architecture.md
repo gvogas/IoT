@@ -174,6 +174,8 @@ Every action tells the person what happened with a toast, a small box at the bot
 - A button that talks to the server without reloading the page calls `showToast(text, kind)` from `static/js/common.js`. The checkout (remove, clear, pay, receipt email), My Account (email a receipt) and the fridge pages (change the limit, turn the fan off) do this.
 - Two things are not toasts on purpose: a form error is shown next to the form, and the checkout's reader messages ("Item already sold", "2 items in range could not be recognised.") stay in the basket, because they can repeat on every read and would pile up.
 
+A page that doesn't exist shows `error.html` in the store's layout (the 404 handler in `routes/__init__.py`), and an `/api/` address gets `{"error": "Not found."}`.
+
 Emails are notifications too: receipts ([checkout.md](checkout.md)), stock emails ([products-and-stock.md](products-and-stock.md#stock-emails)) and fridge alerts ([fridges.md](fridges.md#when-a-fridge-gets-too-warm)).
 
 ## Charts

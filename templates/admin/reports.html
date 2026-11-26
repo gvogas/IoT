@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Reports{% endblock %}
 
-{# Reload every 30 seconds so new sales show up without pressing refresh #}
-{% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
 
 {% block content %}
     <div class="page-head">
@@ -47,63 +45,35 @@
     {# Total sales for the chosen days, with the dates #}
     <div class="total-line mb-3">
         <i class="bi bi-receipt" aria-hidden="true"></i>
-        <span>Total sales ({{ range_text }}{% if category %}, {{ category }}{% endif %}): <b class="num">{{ money.sales|money }}</b> before tax · <span class="num">{{ money.total|money }}</span> with tax</span>
+        <span>Total sales ({{ range_text }}{% if category %}, {{ category }}{% endif %}): <b class="num">{{ money.sales|money }}</b> before tax, <span class="num">{{ money.total|money }}</span> with tax</span>
     </div>
 
-    {# The four numbers. Under each one: how much it went up or down since the period before #}
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-3">
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
-                        <span class="stat-label">Sales</span>
-                    </div>
-                    <div class="stat-value">{{ money.sales|money }}</div>
-                    {% if changes %}{% with change=changes.sales %}{% include "admin/change.html" %}{% endwith %}{% endif %}
-                    <div class="stat-note">{{ money.orders }} {{ 'order' if money.orders == 1 else 'orders' }}, before tax</div>
-                </div>
-            </div>
+    {# The four numbers in one strip. Under each one: how much it went up or down since the period before #}
+    <section class="stat-strip mb-3" aria-label="Totals for the period">
+        <div>
+            <div class="stat-label">Sales</div>
+            <div class="stat-value">{{ money.sales|money }}</div>
+            {% if changes %}{% with change=changes.sales %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+            <div class="stat-note">{{ money.orders }} {{ 'order' if money.orders == 1 else 'orders' }}, before tax</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon good"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
-                        <span class="stat-label">Net profit</span>
-                    </div>
-                    <div class="stat-value{{ ' alert-value' if money.profit < 0 }}">{{ money.profit|money }}</div>
-                    {% if changes %}{% with change=changes.profit %}{% include "admin/change.html" %}{% endwith %}{% endif %}
-                    <div class="stat-note">{% if money.margin is not none %}{{ money.margin }}% margin · {% endif %}items cost {{ money.cost|money }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Net profit</div>
+            <div class="stat-value{{ ' alert-value' if money.profit < 0 }}">{{ money.profit|money }}</div>
+            {% if changes %}{% with change=changes.profit %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+            <div class="stat-note">{% if money.margin is not none %}{{ money.margin }}% margin, {% endif %}items cost {{ money.cost|money }}</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-basket" aria-hidden="true"></i></span>
-                        <span class="stat-label">Average order</span>
-                    </div>
-                    <div class="stat-value">{{ money.average|money }}</div>
-                    {% if changes %}{% with change=changes.average %}{% include "admin/change.html" %}{% endwith %}{% endif %}
-                    <div class="stat-note">{{ money.items_per_order }} items per order</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Average order</div>
+            <div class="stat-value">{{ money.average|money }}</div>
+            {% if changes %}{% with change=changes.average %}{% include "admin/change.html" %}{% endwith %}{% endif %}
+            <div class="stat-note">{{ money.items_per_order }} items per order</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-bank" aria-hidden="true"></i></span>
-                        <span class="stat-label">Tax owed</span>
-                    </div>
-                    <div class="stat-value">{{ money.tax|money }}</div>
-                    <div class="stat-note">GST {{ money.gst|money }} · QST {{ money.qst|money }}{% if category %} · worked out for {{ category }}{% endif %}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Tax owed</div>
+            <div class="stat-value">{{ money.tax|money }}</div>
+            <div class="stat-note">GST {{ money.gst|money }}, QST {{ money.qst|money }}{% if category %}, worked out for {{ category }}{% endif %}</div>
         </div>
-    </div>
+    </section>
 
     {% if money.missing %}
     <p class="text-secondary small mb-4">
@@ -118,7 +88,7 @@
     <section class="card mb-4" aria-labelledby="activity-title">
         <div class="card-head">
             <h2 id="activity-title">Customer activity</h2>
-            <span class="text-secondary small">{{ range_text }}{% if category %} · {{ category }}{% endif %}</span>
+            <span class="text-secondary small">{{ range_text }}{% if category %}, {{ category }}{% endif %}</span>
         </div>
         <div class="card-body pt-0">
             <div class="row row-cols-2 row-cols-md-4 g-3">
@@ -148,16 +118,16 @@
             {% if activity.busiest %}
             <div class="row g-3 mt-1">
                 <div class="col-md-6">
-                    <div class="sold-box most">
+                    <div class="sold-box">
                         <span class="sold-box-title"><i class="bi bi-people" aria-hidden="true"></i> Busiest day</span>
-                        <b>{% for day in activity.busiest[:3] %}{{ day.date|nice_day }}{{ ' · ' if not loop.last }}{% endfor %}{% if activity.busiest|length > 3 %} and {{ activity.busiest|length - 3 }} more{% endif %}</b>
+                        <b>{% for day in activity.busiest[:3] %}{{ day.date|nice_day }}{{ ', ' if not loop.last }}{% endfor %}{% if activity.busiest|length > 3 %} and {{ activity.busiest|length - 3 }} more{% endif %}</b>
                         <small>{{ activity.busiest[0].customers }} {{ 'customer' if activity.busiest[0].customers == 1 else 'customers' }}{{ ' each' if activity.busiest|length > 1 }}{% if activity.busiest|length == 1 %}, {{ activity.busiest[0].orders }} {{ 'purchase' if activity.busiest[0].orders == 1 else 'purchases' }}{% endif %}</small>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="sold-box least">
+                    <div class="sold-box">
                         <span class="sold-box-title"><i class="bi bi-person-dash" aria-hidden="true"></i> Quietest day</span>
-                        <b>{% for day in activity.quietest[:3] %}{{ day.date|nice_day }}{{ ' · ' if not loop.last }}{% endfor %}{% if activity.quietest|length > 3 %} and {{ activity.quietest|length - 3 }} more{% endif %}</b>
+                        <b>{% for day in activity.quietest[:3] %}{{ day.date|nice_day }}{{ ', ' if not loop.last }}{% endfor %}{% if activity.quietest|length > 3 %} and {{ activity.quietest|length - 3 }} more{% endif %}</b>
                         <small>{{ activity.quietest[0].customers }} {{ 'customer' if activity.quietest[0].customers == 1 else 'customers' }}{{ ' each' if activity.quietest|length > 1 }}{% if activity.quietest|length == 1 %}, {{ activity.quietest[0].orders }} {{ 'purchase' if activity.quietest[0].orders == 1 else 'purchases' }}{% endif %}</small>
                     </div>
                 </div>
@@ -199,14 +169,14 @@
         {% if most_sold %}
         <div class="row g-3 px-3 pb-3">
             <div class="col-md-6">
-                <div class="sold-box most">
+                <div class="sold-box">
                     <span class="sold-box-title"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i> Most sold</span>
                     <b>{% if most_sold|length > 1 %}{{ most_sold|length }} items: {% endif %}{{ most_sold|map(attribute='productName')|join(', ') }}</b>
                     <small>{{ most_sold[0].units }} sold{{ ' each' if most_sold|length > 1 }}</small>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="sold-box least">
+                <div class="sold-box">
                     <span class="sold-box-title"><i class="bi bi-arrow-down-circle" aria-hidden="true"></i> Least sold</span>
                     <b>{% if least_sold|length > 1 %}{{ least_sold|length }} items: {% endif %}{{ least_sold|map(attribute='productName')|join(', ') }}</b>
                     <small>{{ least_sold[0].units }} sold{{ ' each' if least_sold|length > 1 }}</small>
@@ -263,7 +233,7 @@
                     <span class="text-secondary small">By profit</span>
                 </div>
                 {% if top %}
-                {# The best seller gets a big picture at the top #}
+                {# The product with the most profit gets a big picture at the top #}
                 {% set best = top[0] %}
                 <a class="spotlight" href="/products/{{ best.productID }}">
                     {% if best.imagePath %}
@@ -272,9 +242,8 @@
                     <span class="product-image spot no-image"><i class="bi bi-image" aria-hidden="true"></i></span>
                     {% endif %}
                     <span class="spotlight-text">
-                        <span class="spotlight-tag"><i class="bi bi-trophy" aria-hidden="true"></i> Best seller</span>
                         <b>{{ best.productName }}</b>
-                        <small>{{ best.units }} sold · {{ best.sales|money }} in sales</small>
+                        <small>{{ best.units }} sold, {{ best.sales|money }} in sales</small>
                     </span>
                     <span class="spotlight-profit num">
                         {% if best.profit is not none %}{{ best.profit|money }}<small>profit</small>{% else %}<small>No cost yet</small>{% endif %}
@@ -360,6 +329,8 @@
 {% endblock %}
 
 {% block scripts %}
+    {# reloadEvery (common.js) reloads every 30 seconds so new sales show up without pressing refresh #}
+    <script>reloadEvery(30);</script>
     <script src="{{ url_for('static', filename='js/table_filter.js') }}"></script>
     {# The numbers for the charts, like [{"label": "5", "title": "Nov 05", "sales": 120.5}, ...] #}
     <script>

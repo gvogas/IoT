@@ -50,12 +50,13 @@ function updateFilterCounts() {
     if (searchBox) searchBox.dispatchEvent(new Event("input"));
 }
 
-// A card number, red when it is more than 0
-function setCard(id, value, redWhenAbove0) {
+// A number in the top strip. alertClass colours it when it is more than 0:
+// "warn-value" (yellow, low stock) or "alert-value" (red, out of stock)
+function setCard(id, value, alertClass) {
     const element = document.getElementById(id);
     if (!element) return;
     element.textContent = value;
-    if (redWhenAbove0) element.classList.toggle("alert-value", value > 0);
+    if (alertClass) element.classList.toggle(alertClass, value > 0);
 }
 
 async function updateInventory() {
@@ -71,11 +72,11 @@ async function updateInventory() {
             const row = document.querySelector(`[data-product-id="${product.productID}"]`);
             if (row) updateRow(row, product);
         }
-        setCard("units", data.units, false);
-        setCard("value", `$${data.value.toFixed(2)}`, false);
-        setCard("low", data.low, true);
-        setCard("out", data.out, true);
-        setCard("last", data.last || "None yet", false);
+        setCard("units", data.units, "");
+        setCard("value", `$${data.value.toFixed(2)}`, "");
+        setCard("low", data.low, "warn-value");
+        setCard("out", data.out, "alert-value");
+        setCard("last", data.last || "None yet", "");
         updateFilterCounts();
 
         liveStatus.textContent = `Last checked ${new Date().toLocaleTimeString()}.`;

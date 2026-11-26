@@ -14,8 +14,22 @@
     {# JS fills this with one tile per fridge #}
     <div id="fridges" class="fridge-tiles"></div>
 
+    {# The shared fan comes before the history: it is the one control on this page #}
+    <section class="card fan-card mb-3" aria-labelledby="shared-fan-title">
+        <div class="card-body">
+            <span id="fan-icon" class="fan-icon"><i class="bi bi-fan" aria-hidden="true"></i></span>
+            <div class="fan-info">
+                <h2 id="shared-fan-title">Shared fan</h2>
+                <p>Status: <b id="fan-state" role="status">UNKNOWN</b></p>
+                <p class="small text-secondary">It never starts by itself. Reply YES to a fridge alert email to turn it on.</p>
+            </div>
+            <div id="fan-message" role="status" hidden></div>
+            <button type="button" class="btn btn-outline-secondary" id="fan-button" hidden>Turn fan off</button>
+        </div>
+    </section>
+
     {# Every fridge's temperature on one chart, to compare them. Drawn by static/js/fridges/dashboard.js with Chart.js #}
-    <section class="card mb-3" aria-labelledby="fridges-chart-title">
+    <section class="card" aria-labelledby="fridges-chart-title">
         <div class="card-body">
             <div class="history-head">
                 <h2 id="fridges-chart-title">All fridges, last 24 hours</h2>
@@ -27,17 +41,6 @@
         </div>
     </section>
 
-    <section class="card fan-card" aria-labelledby="shared-fan-title">
-        <div class="card-body">
-            <span id="fan-icon" class="fan-icon"><i class="bi bi-fan" aria-hidden="true"></i></span>
-            <div class="fan-info">
-                <h2 id="shared-fan-title">Shared fan</h2>
-                <p>Status: <b id="fan-state" role="status">UNKNOWN</b></p>
-            </div>
-            <div id="fan-message" role="status" hidden></div>
-            <button type="button" class="btn btn-outline-secondary" id="fan-button" hidden>Turn fan off</button>
-        </div>
-    </section>
 
     {# Blueprint for a fridge tile. Not shown until JS clones it #}
     <template id="tile-template">

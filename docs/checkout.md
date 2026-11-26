@@ -23,6 +23,12 @@ flowchart TD
     Receipt --> Out["5. Signed out,<br/>ready for the next customer"]
 ```
 
+## What the screen shows
+
+The same three steps are along the top of the page: **1 Scan your items**, **2 Scan your card** and **3 Pay**. `checkout.js` marks a step done with a tick and makes the next one bold, so a customer always sees what to do next. Paying is in one box on the right (under the basket on a phone), in the order it happens: the membership card box (or the signed-in customer and the points this sale earns), the totals, then the Pay button last. The line under Pay says why it can't be pressed yet ("Scan an item to start.", "Scan your membership card above to pay.") or that the receipt will be emailed.
+
+A product that was just scanned in is tinted green for a moment so the customer sees what was added. While paying, the button shows a spinner and "Paying...". The receipt window shows the points earned in a large green box with the new balance, and the Send email button says "Sending..." and then "Email sent".
+
 ## Scanning the basket
 
 The page asks the reader for tags over and over while it is open.

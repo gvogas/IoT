@@ -48,7 +48,16 @@ logs/               app.log and its older copies, made by app.py (not in git)
 
 ## Theme
 
-The colours are the Arctic Reflection palette: `#5289AD`, `#243C4C`, `#ACBCBF`, `#F4FCFB` and `#698696`. They are all at the top of [static/css/theme.css](static/css/theme.css), so changing a value there changes every page.
+The colours are the Arctic Reflection palette: `#5289AD`, `#243C4C`, `#ACBCBF`, `#F4FCFB` and `#698696`. They are all at the top of [static/css/theme.css](static/css/theme.css), so changing a value there changes every page. The same file has the corner sizes (`--radius-sm`, `--radius-md`, `--radius-lg`), the spacing steps (`--space-1` to `--space-6`) and the type sizes, and [static/css/components.css](static/css/components.css) uses those names instead of numbers.
+
+A few rules keep the pages consistent:
+
+- Cards have a border and no shadow. A card is used for something you can click (the dashboard and fridge tiles) or a region that stands on its own (a table, a chart, a form). Numbers that belong together sit side by side in one `.stat-strip` with thin lines between them, instead of a card each.
+- One dark navy button per page for the main action (Pay, Save, Receive stock). Everything else is an outline button.
+- Red and yellow are kept for things that need action: out of stock, low stock, a fridge over its limit, a loss. A state is never shown by colour alone: the badge or label always says it in words too.
+- Prices, temperatures and totals use tabular numbers, so they don't shift when they change.
+- Movement is short and only shows something real: a newly scanned product, the fan turning while it is on. All of it turns off when the computer asks for reduced motion.
+- Every text colour passes 4.5:1 contrast in light and dark mode. `#5289AD` and `#698696` are too pale for text on white, so text uses the darker `--link` and `--muted` steps.
 
 The pages load Bootstrap, its icons and the Inter font from a CDN, so the browser needs internet to show them properly. Any language other than English also needs internet, because Google Translate does the translating.
 

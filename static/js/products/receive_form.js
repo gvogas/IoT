@@ -18,8 +18,8 @@ function updateReceiveForm() {
     const bad = tokens.length - valid.length;
 
     let text = valid.length === 0 ? "No EPCs entered" : `${unitsLabel(valid.length)} entered`;
-    if (bad) text += ` · ${bad} not a valid EPC`;
-    if (repeated.size) text += ` · ${repeated.size} repeated`;
+    if (bad) text += `, ${bad} not a valid EPC`;
+    if (repeated.size) text += `, ${repeated.size} repeated`;
     hint.textContent = text;
     hint.classList.toggle("text-danger", bad > 0 || repeated.size > 0);
 

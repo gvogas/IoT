@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 
-{# Reload every 30 seconds so today's profit stays up to date. The fridge cards update every 2 seconds by themselves #}
-{% block head %}<meta http-equiv="refresh" content="30">{% endblock %}
 
 {% block content %}
     <div class="page-head">
@@ -18,12 +16,11 @@
             <a class="card stat-card dash-card h-100" href="/reports?period=today">
                 <div class="card-body">
                     <div class="stat-top">
-                        <span class="stat-icon good"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
                         <span class="stat-label">Profit today</span>
                     </div>
                     <div class="stat-value{{ ' alert-value' if profit.profit < 0 }}">{{ profit.profit|money }}</div>
                     {% with change=change, compare_label="yesterday" %}{% include "admin/change.html" %}{% endwith %}
-                    <div class="stat-note">{{ profit.sales|money }} in sales · {{ profit.orders }} {{ 'order' if profit.orders == 1 else 'orders' }}</div>
+                    <div class="stat-note">{{ profit.sales|money }} in sales, {{ profit.orders }} {{ 'order' if profit.orders == 1 else 'orders' }}</div>
                     <span class="dash-link">Open today's report <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                 </div>
             </a>
@@ -35,12 +32,11 @@
             <a class="card stat-card dash-card h-100{{ ' hot' if fridge.status == 'hot' }}" href="/fridges/{{ fridge.id }}" data-fridge-id="{{ fridge.id }}">
                 <div class="card-body">
                     <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-thermometer-half" aria-hidden="true"></i></span>
                         <span class="stat-label">{{ fridge.name }}</span>
                         <span class="fridge-status {{ fridge.status }} ms-auto"><span class="dot"></span><span class="status-text">{{ status_text[fridge.status] }}</span></span>
                     </div>
                     <div class="stat-value"><span class="temp">{{ '%.1f'|format(fridge.temperature) if fridge.temperature is not none else '--' }}</span> <small>°C</small></div>
-                    <div class="stat-note">Limit {{ '%.1f'|format(fridge.threshold) }} °C · Humidity <span class="hum">{{ fridge.humidity|round|int if fridge.humidity is not none else '--' }}</span> %</div>
+                    <div class="stat-note">Limit {{ '%.1f'|format(fridge.threshold) }} °C, humidity <span class="hum">{{ fridge.humidity|round|int if fridge.humidity is not none else '--' }}</span> %</div>
                     <div class="stat-note last-reading">{{ 'No reading yet' if fridge.age is none else 'Last reading ' ~ fridge.age ~ ' s ago' }}</div>
                 </div>
             </a>
@@ -50,6 +46,8 @@
 {% endblock %}
 
 {% block scripts %}
+    {# reloadEvery (common.js) reloads every 30 seconds so today's profit stays up to date. The fridge cards update every 2 seconds by themselves #}
+    <script>reloadEvery(30);</script>
     {% if fridges %}
     <script src="{{ url_for('static', filename='js/fridges/common.js') }}"></script>
     <script src="{{ url_for('static', filename='js/admin/home.js') }}"></script>

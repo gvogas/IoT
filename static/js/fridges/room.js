@@ -89,7 +89,7 @@ function showLight(room, stats) {
     const icon = byId("room-light-icon");
     if (room.light !== null) {
         byId("room-light").textContent = Math.round(room.light);
-        byId("room-light-unit").textContent = `lux · ${lightWord(room.light)}`;
+        byId("room-light-unit").textContent = `lux, ${lightWord(room.light).toLowerCase()}`;
         byId("room-light-bar").style.width = `${Math.min(room.light, LIGHT_FULL) / LIGHT_FULL * 100}%`;
         icon.className = room.light < 50 ? "bi bi-moon" : "bi bi-brightness-high";
     } else if (room.bright !== null) {

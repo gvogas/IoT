@@ -2,7 +2,7 @@
 
 Checked against `Phase-3.pdf` on 2026-11-11, extras updated 2026-11-12. Found by reading the code, not by running the app. Tick a box when the item is finished and tested.
 
-Progress: 34 of 35 items done. The 1 open item is a bonus (responsive).
+Progress: 35 of 35 items done.
 
 ## Product management
 - [x] Register a product (name, category, price, UPC, EPC, producer)
@@ -61,7 +61,5 @@ Extra, not in the PDF: the admin page (`/admin`) shows the sales before tax, cos
 - [x] Toast notifications exist (`static/js/common.js`)
 - [x] Toast shown after every action. Server actions use `flash()` (product add, edit, delete, receive, clear, sign-up, email change). Button actions on the pages use `showToast()` in `common.js` (checkout remove, clear and pay, receipt email, fridge limit, fan on/off). Not toasts on purpose: form errors next to the field, and the reader status line, which repeats
 - [x] Bilingual English/French interface (bonus). The language picker in the menu (`static/js/language.js`) has French and 9 more languages, translated by Google Translate. The receipt email is translated by hand in `mail/translations.py`. See [Languages](architecture.md#languages)
-- [ ] Responsive UI check on phone width (bonus). The viewport tag and some phone-width CSS rules exist (`components.css`), but no page has been checked at phone width
+- [x] Responsive UI check on phone width (bonus). Every page checked at 375, 768 and 1440 px in headless Chromium on 2026-11-25 (signed out, customer and admin), with no sideways scrolling at 200% zoom
 
-## Suggested order
-1. Responsive check on phone width

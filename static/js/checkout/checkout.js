@@ -10,8 +10,12 @@ const summaryCount = document.getElementById("summary-count");
 const pointsPreview = document.getElementById("points-preview");
 const readerStatus = document.getElementById("reader-status");
 const readerStatusText = document.getElementById("reader-status-text");
+const payHint = document.getElementById("pay-hint");
+const paySpinner = document.getElementById("pay-spinner");
 
 let items = [];
+// Products scanned in since the last draw. Their rows are highlighted for a moment so the customer sees what was added
+let justAdded = new Set();
 
 // The basket is kept in this tab, so it is still there after signing in
 try { items = JSON.parse(sessionStorage.getItem("basket") || "[]"); } catch (e) { items = []; }
@@ -76,6 +80,7 @@ function render() {
     basketRows.innerHTML = "";
     lines.forEach((line, productID) => {
         const row = document.createElement("tr");
+        if (justAdded.has(productID)) row.className = "just-added";
         row.appendChild(productCell(line));
         // data-label shows next to each value when the table is stacked on a phone
         [["Qty", line.qty], ["Price", money(line.price)], ["Total", money(line.price * line.qty)]].forEach(([label, text], i) => {
@@ -133,7 +138,39 @@ function render() {
     document.getElementById("basket-table").hidden = items.length === 0;
     payButton.disabled = !window.signedIn || items.length === 0;
     clearButton.disabled = items.length === 0;
+    showSteps();
+    justAdded = new Set();
     try { sessionStorage.setItem("basket", JSON.stringify(items)); } catch (e) { /* storage blocked */ }
+}
+
+// Mark the steps at the top done or current, and say under Pay what is still missing
+function showSteps() {
+    const scanned = items.length > 0;
+    setStep("step-scan", scanned ? "done" : "current");
+    if (!window.signedIn) setStep("step-card", scanned ? "current" : "");
+    setStep("step-pay", scanned && window.signedIn ? "current" : "");
+
+    if (!scanned) payHint.textContent = "Scan an item to start.";
+    else if (!window.signedIn) payHint.textContent = "Scan your membership card above to pay.";
+    else payHint.textContent = window.hasEmail ? "The receipt is emailed to you after paying." : "";
+}
+
+// state is "done", "current" or "" (not reached yet). A done step shows a tick instead of its number
+function setStep(id, state) {
+    const step = document.getElementById(id);
+    if (!step) return;
+    step.className = state;
+    const mark = step.querySelector(".step-mark");
+    if (state === "done") mark.innerHTML = '<i class="bi bi-check-lg"></i>';
+    else mark.textContent = step.dataset.number;
+    if (state === "current") step.setAttribute("aria-current", "step");
+    else step.removeAttribute("aria-current");
+}
+
+// Show "Paying..." with a spinner on the Pay button while the payment is sent
+function setPaying(paying) {
+    paySpinner.hidden = !paying;
+    if (paying) payLabel.textContent = "Paying...";
 }
 
 // The reader scans all the time, and each new tag in range is added to the basket
@@ -187,6 +224,7 @@ function handleScan(data) {
 
     if (fresh.length) {
         items = items.concat(fresh);
+        justAdded = new Set(fresh.map((item) => item.productID));
         render();
     }
 
@@ -229,12 +267,14 @@ clearButton.addEventListener("click", () => {
 payButton.addEventListener("click", async () => {
     payButton.disabled = true;
     paused = true;   // so the paid items are not scanned again
+    setPaying(true);
     setReaderStatus("paused", "Paying...");
     try {
         const { ok, data } = await postJson("/api/checkout/pay", { epcs: items.map((item) => item.epc) });
         if (ok) {
             items = [];
             window.signedIn = false;   // the server signs the customer out after paying
+            setPaying(false);
             render();
             setReaderStatus("paused", "Paid");
             showToast(data.success);
@@ -247,6 +287,7 @@ payButton.addEventListener("click", async () => {
         showToast("Payment failed. Please try again.", "danger");
     }
     paused = false;
+    setPaying(false);
     setReaderStatus("ok", "Reader ready");
     render();
 });
@@ -269,7 +310,7 @@ function showReceipt(receipt, emailMessage) {
         body.appendChild(element);
         return element;
     };
-    document.getElementById("receipt-meta").textContent = `Receipt #${receipt.purchaseID} · ${receipt.date}`;
+    document.getElementById("receipt-meta").textContent = `Receipt #${receipt.purchaseID}, ${receipt.date}`;
     if (receipt.customer) add("p", `${receipt.customer} (${receipt.membershipNumber})`, "mb-3");
 
     const table = document.createElement("table");
@@ -300,11 +341,19 @@ function showReceipt(receipt, emailMessage) {
     });
     body.appendChild(table);
 
-    add("p", `Loyalty points earned: +${receipt.pointsEarned || 0}`, "receipt-points mb-1");
+    // The points earned get their own box: it is the part of paying the customer cares about most
+    const points = document.createElement("div");
+    points.className = "receipt-points";
+    const earned = document.createElement("b");
+    earned.textContent = `+${receipt.pointsEarned || 0} points`;
+    points.appendChild(earned);
     if (receipt.customerPoints !== null && receipt.customerPoints !== undefined) {
-        add("p", `Your points balance: ${receipt.customerPoints} points ($${Math.floor(receipt.customerPoints / 100)} in rewards)`, "small text-secondary mb-2");
+        const balance = document.createElement("span");
+        balance.textContent = `Balance ${receipt.customerPoints} points ($${Math.floor(receipt.customerPoints / 100)} in rewards)`;
+        points.appendChild(balance);
     }
-    add("p", `Paid by ${receipt.paymentMethod}. Thank you!`, "mb-0");
+    body.appendChild(points);
+    add("p", `Paid by ${receipt.paymentMethod}. Thank you!`, "mb-0 mt-3");
     if (emailMessage) {
         add("p", emailMessage, "small text-secondary mt-2 mb-0");
     }
@@ -315,14 +364,18 @@ function showReceipt(receipt, emailMessage) {
     document.getElementById("receipt-done").addEventListener("click", finish);
     const emailButton = document.getElementById("receipt-email");
     emailButton.disabled = false;
+    const emailLabel = emailButton.querySelector("span");
     emailButton.addEventListener("click", async () => {
         emailButton.disabled = true;
+        emailLabel.textContent = "Sending...";
         try {
             const { ok, data } = await postJson("/api/checkout/receipt-email");
             showToast(ok ? data.success : data.error, ok ? "success" : "danger");
+            emailLabel.textContent = ok ? "Email sent" : "Send email";
             if (!ok) emailButton.disabled = false;
         } catch (e) {
             showToast("The email could not be sent. Please try again.", "danger");
+            emailLabel.textContent = "Send email";
             emailButton.disabled = false;
         }
     });

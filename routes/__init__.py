@@ -45,6 +45,14 @@ def register_routes(app):
         flash(f"That image is too big. The limit is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", "error")
         return redirect(request.path)
 
+    # A page that doesn't exist, like a mistyped address. Shown in the store's own layout instead of Flask's plain page
+    @app.errorhandler(404)
+    def not_found(err):
+        if is_api_request():
+            return jsonify(error="Not found."), 404
+        return render_template("error.html", title="Page not found",
+                               text="There is no page at this address. Check the address, or go back to the store."), 404
+
     # The RFID reader is unplugged or not answering
     @app.errorhandler(ReaderError)
     def reader_error(err):

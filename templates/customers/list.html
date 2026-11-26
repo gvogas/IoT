@@ -9,52 +9,24 @@
         </div>
     </div>
 
-    <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
-                        <span class="stat-label">Members</span>
-                    </div>
-                    <div class="stat-value">{{ customers|length }}</div>
-                </div>
-            </div>
+    <section class="stat-strip mb-4" aria-label="Customer totals">
+        <div>
+            <div class="stat-label">Members</div>
+            <div class="stat-value">{{ customers|length }}</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
-                        <span class="stat-label">Admins</span>
-                    </div>
-                    <div class="stat-value">{{ admin_count }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Admins</div>
+            <div class="stat-value">{{ admin_count }}</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon good"><i class="bi bi-person-plus" aria-hidden="true"></i></span>
-                        <span class="stat-label">Joined this month</span>
-                    </div>
-                    <div class="stat-value">{{ new_this_month }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Joined this month</div>
+            <div class="stat-value">{{ new_this_month }}</div>
         </div>
-        <div class="col">
-            <div class="card stat-card h-100">
-                <div class="card-body">
-                    <div class="stat-top">
-                        <span class="stat-icon good"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
-                        <span class="stat-label">Total spent</span>
-                    </div>
-                    <div class="stat-value notranslate" translate="no">${{ '%.2f'|format(total_spent) }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Total spent</div>
+            <div class="stat-value notranslate" translate="no">${{ '%.2f'|format(total_spent) }}</div>
         </div>
-    </div>
+    </section>
 
     <div class="table-tools">
         <input type="search" class="form-control search-box" placeholder="Search customers" aria-label="Search customers" data-search>

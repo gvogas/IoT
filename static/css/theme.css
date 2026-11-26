@@ -33,6 +33,29 @@
     --warning-text: #7A4F08;
     --warning-tint: #FBF2DE;
 
+    /* Toasts have white text, so they keep these darker colours in dark mode too */
+    --toast-success: #2B7A6B;
+    --toast-danger: #A63D32;
+
+    /* Corners: small for controls, medium for boxes inside a page, large for cards, pill for chips and badges */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 999px;
+
+    /* Spacing steps (0.25, 0.5, 0.75, 1, 1.5, 2 rem). Bootstrap's own classes use the same steps */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+
+    /* Type sizes: page title, section title, body, small. Weights are only 400, 500, 600 and 700 */
+    --text-title: 1.75rem;
+    --text-section: 1.125rem;
+    --text-small: 0.875rem;
+
     /* Bootstrap */
     --bs-body-font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --bs-font-monospace: ui-monospace, "SF Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
@@ -44,9 +67,9 @@
     --bs-secondary-color: var(--muted);
     --bs-heading-color: var(--arctic-navy);
     --bs-border-color: var(--line);
-    --bs-border-radius: 8px;
+    --bs-border-radius: var(--radius-sm);
     --bs-border-radius-sm: 6px;
-    --bs-border-radius-lg: 12px;
+    --bs-border-radius-lg: var(--radius-md);
     --bs-link-color: var(--link);
     --bs-link-color-rgb: 58, 111, 146;
     --bs-link-hover-color: var(--arctic-navy);
@@ -128,8 +151,8 @@
 .card {
     --bs-card-bg: var(--surface);
     --bs-card-border-color: var(--line);
-    --bs-card-border-radius: 16px;
-    --bs-card-inner-border-radius: 15px;
+    --bs-card-border-radius: var(--radius-lg);
+    --bs-card-inner-border-radius: calc(var(--radius-lg) - 1px);
     --bs-card-spacer-x: 1.25rem;
     --bs-card-spacer-y: 1.25rem;
 }
@@ -218,8 +241,9 @@
     --tint-strong: #284150;
     --surface: #16232C;
 
-    --fill: #3A6F92;
-    --fill-hover: #4A82A8;
+    /* Dark enough that white and the pale --on-fill-muted text both pass 4.5:1, also on hover */
+    --fill: #335F7D;
+    --fill-hover: #3A6F92;
     --on-fill: #FFFFFF;
     --on-fill-muted: #D0E1EA;
 
@@ -236,7 +260,10 @@
     --bs-emphasis-color-rgb: 226, 237, 241;
     --bs-link-color-rgb: 140, 192, 227;
     --bs-link-hover-color-rgb: 226, 237, 241;
-    --bs-primary-rgb: 58, 111, 146;
+    --bs-primary-rgb: 51, 95, 125;
+    /* Bootstrap's text-success and text-danger, lightened like --success and --danger above */
+    --bs-success-rgb: 92, 195, 174;
+    --bs-danger-rgb: 229, 138, 127;
     --bs-secondary-rgb: 157, 179, 191;
     --bs-danger-border-subtle: #6B2F28;
     --bs-success-border-subtle: #2C5A50;

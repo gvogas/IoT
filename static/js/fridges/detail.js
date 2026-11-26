@@ -286,7 +286,10 @@ async function updateHistory() {
 page.querySelectorAll(".range-buttons button").forEach((button) => {
     button.addEventListener("click", () => {
         historyHours = Number(button.dataset.hours);
-        page.querySelectorAll(".range-buttons button").forEach((b) => b.classList.toggle("active", b === button));
+        page.querySelectorAll(".range-buttons button").forEach((b) => {
+            b.classList.toggle("active", b === button);
+            b.setAttribute("aria-pressed", b === button);
+        });
         updateHistory();
     });
 });

@@ -128,10 +128,11 @@
             <div class="card-body">
                 <div class="history-head">
                     <h2>History</h2>
-                    <div class="btn-group range-buttons" role="group" aria-label="Time range">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-hours="1">1 h</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm active" data-hours="24">24 h</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-hours="168">7 days</button>
+                    {# Same look as the period picker on Reports, since it does the same job #}
+                    <div class="segmented range-buttons" role="group" aria-label="Time range">
+                        <button type="button" class="segmented-item" aria-pressed="false" data-hours="1">1 h</button>
+                        <button type="button" class="segmented-item active" aria-pressed="true" data-hours="24">24 h</button>
+                        <button type="button" class="segmented-item" aria-pressed="false" data-hours="168">7 days</button>
                     </div>
                 </div>
                 <p class="history-empty text-secondary" hidden>No saved readings yet. One reading is saved every minute.</p>
@@ -161,7 +162,7 @@
             <div class="room-head">
                 <h2 id="room-title">MSP01 sensor</h2>
                 <span id="room-status" class="fridge-status waiting"><span class="dot"></span><span class="status-text">Waiting</span></span>
-                <span class="room-meta">Battery <b id="room-battery">--</b> % · Signal <b id="room-rssi">--</b> dBm · <span id="room-age">No reading yet</span></span>
+                <span class="room-meta">Battery <b id="room-battery">--</b> %, signal <b id="room-rssi">--</b> dBm, <span id="room-age">No reading yet</span></span>
             </div>
             <div id="room-message" role="status" hidden></div>
 

@@ -3,12 +3,11 @@
 {% block main_class %}narrow{% endblock %}
 
 {% block content %}
-    <div class="card error-card">
-        <div class="empty-state">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-            <h2>{{ title }}</h2>
-            <p>{{ text }}</p>
-            <a class="btn btn-primary" href="/">Back to the store</a>
-        </div>
+    {# No card around it: the message is the only thing on the page #}
+    <div class="empty-state error-card">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <h1 class="h2">{{ title }}</h1>
+        <p>{{ text }}</p>
+        <a class="btn btn-primary" href="/">Back to the store</a>
     </div>
 {% endblock %}

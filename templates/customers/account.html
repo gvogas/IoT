@@ -57,32 +57,21 @@
 
         <div class="col-lg-8">
             {% if purchases %}
-            <div class="row row-cols-3 g-3 mb-3 account-stats">
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body py-3">
-                            <div class="stat-label">Total spent</div>
-                            <div class="stat-value notranslate" translate="no" data-total-spent>{{ total_spent|money }}</div>
-                        </div>
-                    </div>
+            {# account.js changes these three numbers when the From and To boxes change #}
+            <section class="stat-strip mb-3" aria-label="Your totals">
+                <div>
+                    <div class="stat-label">Total spent</div>
+                    <div class="stat-value notranslate" translate="no" data-total-spent>{{ total_spent|money }}</div>
                 </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body py-3">
-                            <div class="stat-label">Purchases</div>
-                            <div class="stat-value" data-purchase-count>{{ purchases|length }}</div>
-                        </div>
-                    </div>
+                <div>
+                    <div class="stat-label">Purchases</div>
+                    <div class="stat-value" data-purchase-count>{{ purchases|length }}</div>
                 </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body py-3">
-                            <div class="stat-label">Items bought</div>
-                            <div class="stat-value" data-item-count>{{ item_count }}</div>
-                        </div>
-                    </div>
+                <div>
+                    <div class="stat-label">Items bought</div>
+                    <div class="stat-value" data-item-count>{{ item_count }}</div>
                 </div>
-            </div>
+            </section>
 
             {# Spending per month (or per day when every shown receipt is in one month). account.js draws it
                from the receipts below, so it follows the From and To boxes #}
@@ -157,7 +146,7 @@
                     <summary>
                         <div>
                             <div class="fw-semibold">{{ purchase.purchaseDate|nice_datetime }}</div>
-                            <div class="small text-secondary">Receipt #{{ purchase.purchaseID }} · {{ purchase.itemCount }} {{ 'item' if purchase.itemCount == 1 else 'items' }}</div>
+                            <div class="small text-secondary">Receipt #{{ purchase.purchaseID }}, {{ purchase.itemCount }} {{ 'item' if purchase.itemCount == 1 else 'items' }}</div>
                         </div>
                         <div class="purchase-total">
                             <span class="fw-semibold num">${{ '%.2f'|format(purchase.total) }}</span>
@@ -175,7 +164,7 @@
                             {% endif %}
                             <div class="purchase-line-name">
                                 <div>{{ line.productName }}</div>
-                                <div class="small text-secondary">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}{% if not line.isTaxable %} · No tax{% endif %}</div>
+                                <div class="small text-secondary">{{ line.quantity }} × ${{ '%.2f'|format(line.unitPrice) }}{% if not line.isTaxable %}, no tax{% endif %}</div>
                             </div>
                             <div class="num">${{ '%.2f'|format(line.quantity * line.unitPrice) }}</div>
                         </div>

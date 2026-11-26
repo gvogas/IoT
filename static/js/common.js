@@ -131,3 +131,15 @@ if (themeButton) {
         if (typeof Chart !== "undefined") location.reload();
     });
 }
+
+
+// Reload the page every few seconds so new sales show up (the Dashboard and Reports use it).
+// It waits while someone is reading further down the page, typing in a box, or has the tab hidden,
+// so the page never jumps away from what they are looking at
+function reloadEvery(seconds) {
+    setInterval(() => {
+        const typing = document.activeElement && document.activeElement.matches("input, select, textarea");
+        const busy = window.scrollY > 0 || document.hidden || typing || document.querySelector(".modal.show");
+        if (!busy) location.reload();
+    }, seconds * 1000);
+}

@@ -184,7 +184,10 @@ async function fetchFan() {
 
 // Turn the fan off. Gives back the new state
 async function pressFanButton(button) {
+    // Say what is happening while the request is on its way, so nobody presses twice
+    const label = button.textContent;
     button.disabled = true;
+    button.textContent = "Turning off...";
     try {
         const response = await fetch("/api/fan/off", { method: "POST" });
         const result = await response.json();
@@ -195,6 +198,7 @@ async function pressFanButton(button) {
         return "UNKNOWN";
     } finally {
         button.disabled = false;
+        button.textContent = label;
     }
 }
 

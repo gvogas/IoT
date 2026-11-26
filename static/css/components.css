@@ -42,14 +42,14 @@ main.tiny {
 }
 
 h1, .h1 {
-    font-size: 1.75rem;
-    font-weight: 650;
+    font-size: var(--text-title);
+    font-weight: 600;
     letter-spacing: -0.01em;
     margin-bottom: 0.25rem;
 }
 
 h2, .h2 {
-    font-size: 1.125rem;
+    font-size: var(--text-section);
     font-weight: 600;
 }
 
@@ -110,8 +110,6 @@ table,
         animation: none !important;
     }
 
-    .fridge-tile:hover,
-    .dash-card:hover,
     .btn:active {
         transform: none;
     }
@@ -215,7 +213,7 @@ table,
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     color: var(--on-fill);
     background: var(--fill);
     font-size: 1rem;
@@ -253,7 +251,7 @@ table,
     min-height: 44px;
     padding: 0 0.75rem;
     margin-bottom: 2px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     color: var(--arctic-navy);
     font-weight: 500;
     text-decoration: none;
@@ -359,6 +357,24 @@ table,
     .user-text {
         display: none;
     }
+
+    /* The globe icon is dropped on phones to make room. The picker still shows the language name */
+    .language-item > .bi-translate {
+        display: none;
+    }
+
+    .topbar {
+        gap: var(--space-1);
+        padding-inline: var(--space-2);
+    }
+
+    .topbar-end {
+        gap: var(--space-2);
+    }
+}
+
+.topbar .btn {
+    white-space: nowrap;
 }
 
 /* Language picker in the top bar */
@@ -373,7 +389,7 @@ table,
     width: auto;
     min-height: 38px;
     border-color: var(--line);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
 }
 
 /* Hide the bar and pop-ups Google Translate adds, we have our own picker */
@@ -390,9 +406,8 @@ body {
 
 
 /* ---------- Cards and tiles ---------- */
-.card {
-    box-shadow: 0 1px 3px rgba(36, 60, 76, 0.05);
-}
+/* Cards have a border and no shadow. A card is used for something you can click (the dashboard and fridge tiles)
+   or for a region that stands on its own (a table, a chart, a form). Numbers that belong together go in one .stat-strip */
 
 .stat-label {
     font-size: 0.875rem;
@@ -413,40 +428,53 @@ body {
     color: var(--muted);
 }
 
-/* A number card: an icon and its name on top, then the number */
+/* A dashboard card's top row: its name, and its status at the end */
 .stat-top {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.75rem;
 }
 
-.stat-icon {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 1.05rem;
-    color: var(--link);
-    background: var(--tint-strong);
+/* Numbers that belong together, side by side in one box with thin lines between them.
+   One shared boundary instead of a card per number. The cells wrap onto more rows on narrow screens,
+   and each cell draws its line on its left and top, so the lines stay right after wrapping */
+.stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    overflow: hidden; /* hides the lines of the cells on the outer edge */
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
 }
 
-.stat-icon.good {
-    color: var(--success);
-    background: var(--success-tint);
+.stat-strip > div {
+    padding: var(--space-4) 1.25rem;
+    box-shadow: -1px -1px 0 var(--line);
 }
 
-.stat-icon.warn {
-    color: var(--warning-text);
-    background: var(--warning-tint);
-}
+/* Phones: two numbers per row, and a last odd one takes the whole row so no empty half is left */
+@media (max-width: 575.98px) {
+    .stat-strip {
+        grid-template-columns: 1fr 1fr;
+    }
 
-.stat-icon.bad {
-    color: var(--danger);
-    background: var(--danger-tint);
+    .stat-strip > div {
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .stat-strip > div:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    /* A filter bar that wraps onto two lines looks broken as a pill, so it gets plain rounded corners */
+    .segmented {
+        border-radius: var(--radius-md);
+    }
+
+    .segmented-item {
+        border-radius: var(--radius-sm);
+    }
 }
 
 /* Buttons joined in one rounded bar, for picking a period or a filter. The picked one is filled in */
@@ -456,7 +484,7 @@ body {
     gap: 0.25rem;
     padding: 0.25rem;
     border: 1px solid var(--line);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--surface);
 }
 
@@ -467,7 +495,7 @@ body {
     min-height: 36px;
     padding: 0 0.9rem;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--muted);
@@ -511,7 +539,7 @@ body {
     gap: 0.6rem;
     padding: 0.75rem 1rem;
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     background: var(--surface);
 }
 
@@ -519,22 +547,19 @@ body {
     font-size: 1.15rem;
 }
 
-/* Most sold (green) and least sold (yellow) boxes on the Reports page */
+/* Most and least sold, busiest and quietest day on the Reports page. Neutral on purpose:
+   red and yellow are kept for things that need action, like stock and fridges */
 .sold-box {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     height: 100%;
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
 }
 
-.sold-box.most {
-    background: var(--success-tint);
-}
-
-.sold-box.least {
-    background: var(--warning-tint);
+.sold-box {
+    background: var(--tint);
 }
 
 .sold-box-title {
@@ -570,7 +595,7 @@ body {
     display: inline-flex;
     align-items: center;
     padding: 0.05rem 0.5rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-weight: 600;
     color: var(--muted);
     background: var(--tint);
@@ -599,7 +624,7 @@ body {
     gap: 1rem;
     margin: 0 1.25rem 1rem;
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     color: inherit;
     text-decoration: none;
     background: var(--tint);
@@ -613,7 +638,7 @@ body {
 .product-image.spot {
     width: 88px;
     height: 88px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     font-size: 2rem;
 }
 
@@ -627,22 +652,11 @@ body {
 
 .spotlight-text b {
     font-size: 1.15rem;
-    font-weight: 650;
+    font-weight: 600;
 }
 
 .spotlight-text small {
     color: var(--muted);
-}
-
-.spotlight-tag {
-    align-self: flex-start;
-    margin-bottom: 0.25rem;
-    padding: 0.1rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--warning-text);
-    background: var(--warning-tint);
 }
 
 .spotlight-profit {
@@ -677,8 +691,14 @@ body {
     line-height: 2.2rem;
 }
 
+/* A number that needs action: red for out of stock or a loss, dark yellow for low stock.
+   The label next to it always says what it is, so the colour is never the only sign */
 .stat-value.alert-value {
     color: var(--danger);
+}
+
+.stat-value.warn-value {
+    color: var(--warning-text);
 }
 
 .empty-state {
@@ -712,7 +732,7 @@ body {
 /* Soft tinted pills instead of Bootstrap's solid badges. Bootstrap marks its badge colours !important, so these have to as well */
 .badge {
     padding: 0.35em 0.75em;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.78rem;
     font-weight: 600;
 }
@@ -735,6 +755,16 @@ body {
 .badge.text-bg-secondary {
     color: var(--muted) !important;
     background-color: var(--tint) !important;
+}
+
+
+/* Toasts: white text on a dark green or red, the same in light and dark mode */
+.toast.text-bg-success {
+    background-color: var(--toast-success) !important;
+}
+
+.toast.text-bg-danger {
+    background-color: var(--toast-danger) !important;
 }
 
 
@@ -879,12 +909,7 @@ body {
     align-items: start;
 }
 
-.checkout-side {
-    display: grid;
-    gap: 1.25rem;
-}
-
-/* The basket and the side column line up from the top on a big screen */
+/* The basket and the summary line up from the top on a big screen, and the summary stays in view while scrolling */
 @media (min-width: 992px) {
     .checkout-side {
         position: sticky;
@@ -917,11 +942,97 @@ body {
 
 .card-head .count {
     padding: 0.1rem 0.6rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--tint);
     font-size: 0.8rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+/* The three checkout steps under the title. Numbered because the order matters.
+   Read from a step away, so the text is larger than on the admin pages */
+.checkout-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 1.05rem;
+    color: var(--muted);
+}
+
+.checkout-steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.step-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--arctic-mist);
+    border-radius: 50%;
+    font-size: var(--text-small);
+    font-weight: 600;
+}
+
+/* The step to do now: dark and bold. A done step gets a tick in green */
+.checkout-steps li.current {
+    font-weight: 600;
+    color: var(--arctic-navy);
+}
+
+.checkout-steps li.current .step-mark {
+    border-color: var(--fill);
+    color: var(--on-fill);
+    background: var(--fill);
+}
+
+.checkout-steps li.done {
+    color: var(--success-strong);
+}
+
+.checkout-steps li.done .step-mark {
+    border-color: var(--success);
+    color: var(--success-strong);
+    background: var(--success-tint);
+}
+
+/* A product row that was just scanned in fades from a tint to normal, so the customer sees what was added */
+.basket-table tr.just-added > td {
+    animation: just-added 1.6s ease-out;
+}
+
+@keyframes just-added {
+    from { background-color: var(--success-tint); }
+}
+
+/* Why Pay can't be pressed yet, or where the receipt goes. It keeps its height so the card doesn't jump */
+.pay-hint {
+    min-height: 1.5em;
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-small);
+    color: var(--muted);
+    text-align: center;
+}
+
+/* The membership card box at the top of the summary, before the totals, when nobody is signed in */
+.card-step {
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--line);
+}
+
+.card-step .form-label {
+    font-weight: 600;
+}
+
+.card-step .form-control {
+    min-height: 52px;
+    font-size: 1.1rem;
 }
 
 /* The reader's light next to the page title */
@@ -930,7 +1041,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     padding: 0.3rem 0.8rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--success-strong);
@@ -944,11 +1055,6 @@ body {
     background: currentColor;
 }
 
-.reader-status[data-state="ok"] .dot,
-.reader-status:not([data-state]) .dot {
-    animation: reader-pulse 2s ease-in-out infinite;
-}
-
 .reader-status[data-state="error"] {
     color: var(--danger);
     background: var(--danger-tint);
@@ -957,10 +1063,6 @@ body {
 .reader-status[data-state="paused"] {
     color: var(--muted);
     background: var(--tint-strong);
-}
-
-@keyframes reader-pulse {
-    50% { opacity: 0.35; }
 }
 
 .basket-message {
@@ -1002,7 +1104,7 @@ body {
     margin-bottom: 1rem;
     padding: 0.85rem 1rem;
     border: 1px solid var(--bs-success-border-subtle);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     color: var(--success-strong);
     background: var(--success-tint);
 }
@@ -1071,7 +1173,7 @@ body {
 /* The receipt after paying */
 .receipt-sheet {
     border: 0;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 24px 60px rgba(36, 60, 76, 0.3);
 }
 
@@ -1102,9 +1204,26 @@ body {
     padding-right: 0;
 }
 
+/* The points earned, the high point of paying. Big number, balance under it */
 .receipt-points {
-    color: var(--success);
-    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--success-strong);
+    background: var(--success-tint);
+    text-align: center;
+}
+
+.receipt-points b {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.receipt-points span {
+    font-size: var(--text-small);
 }
 
 /* Phones: the basket rows stack, one card per product */
@@ -1232,7 +1351,7 @@ body {
 
 .purchase:last-of-type,
 .purchase:last-of-type summary {
-    border-radius: 0 0 11px 11px;
+    border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
 }
 
 .purchase-total {
@@ -1284,17 +1403,6 @@ body {
     margin-top: 1rem;
 }
 
-/* Phones: the total gets its own row, so long amounts don't break across lines */
-@media (max-width: 575.98px) {
-    .account-stats > .col {
-        width: 50%;
-    }
-
-    .account-stats > .col:first-child {
-        width: 100%;
-    }
-}
-
 .member-number {
     font-family: var(--bs-font-monospace);
     font-size: 1.6rem;
@@ -1325,6 +1433,9 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    /* Without a minimum the name and email squeeze to a few letters a line on a tablet.
+       Below this the table scrolls sideways in its card instead */
+    min-width: 13rem;
     text-align: left;
     overflow-wrap: anywhere;
 }
@@ -1351,7 +1462,7 @@ body {
 .you-tag {
     margin-left: 0.25rem;
     padding: 0.05rem 0.4rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--arctic-navy);
@@ -1408,13 +1519,13 @@ body {
     width: 100%;
     max-width: none;
     padding-inline-start: 2.4rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
 }
 
 .category-filter {
     flex: 0 1 200px;
     min-height: 44px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
 }
 
 .chip-count {
@@ -1466,7 +1577,7 @@ th[aria-sort] .sort-button i {
     align-items: center;
     justify-content: center;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     object-fit: contain;
 }
@@ -1479,7 +1590,7 @@ th[aria-sort] .sort-button i {
 .product-image.lg {
     width: 160px;
     height: 160px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 }
 
 .product-image.no-image {
@@ -1546,7 +1657,7 @@ th[aria-sort] .sort-button i {
     padding: 0.75rem 1.25rem 0;
     background: var(--tint);
     border-bottom: 1px solid var(--line);
-    border-radius: 11px 11px 0 0;
+    border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
 }
 
 .detail-tabs .nav-tabs {
@@ -1595,7 +1706,7 @@ fieldset:disabled {
     align-items: center;
     gap: 0.45rem;
     padding: 0.2rem 0.7rem 0.2rem 0.6rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     font-size: 0.875rem;
     font-weight: 600;
     white-space: nowrap;
@@ -1658,27 +1769,25 @@ fieldset:disabled {
     gap: 0.75rem;
     color: inherit;
     text-decoration: none;
-    transition: border-color 0.15s ease-out, transform 0.15s ease-out;
+    transition: border-color 0.15s ease-out;
 }
 
 .fridge-tile:hover,
 .fridge-tile:focus-visible {
     border-color: var(--arctic-blue);
-    transform: translateY(-2px);
 }
 
-/* The dashboard cards (today's profit and each fridge) are links: they lift on hover like the fridge tiles */
+/* The dashboard cards (today's profit and each fridge) are links: the border turns blue on hover, like the fridge tiles */
 .dash-card {
     color: inherit;
     text-decoration: none;
-    transition: border-color 0.15s ease-out, transform 0.15s ease-out;
+    transition: border-color 0.15s ease-out;
 }
 
 .dash-card:hover,
 .dash-card:focus-visible {
     color: inherit;
     border-color: var(--arctic-blue);
-    transform: translateY(-2px);
 }
 
 .dash-card.hot,
@@ -1856,7 +1965,7 @@ fieldset:disabled {
     justify-content: center;
     width: 56px;
     height: 56px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     font-size: 1.9rem;
     color: var(--arctic-slate);
     background: var(--tint);
@@ -1928,7 +2037,7 @@ fieldset:disabled {
     align-items: center;
     gap: 0.5rem;
     padding: 0.9rem 0.6rem 1rem;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--arctic-ice);
 }
 
@@ -2008,7 +2117,7 @@ fieldset:disabled {
 .detail-sentence {
     margin: 0;
     padding: 0.65rem 0.75rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--tint);
 }
 
@@ -2174,19 +2283,44 @@ fieldset:disabled {
     color: var(--muted);
 }
 
+/* The MSP01 light and motion icons. They show a live state (bright or dark, someone moving or not),
+   so they are kept here and nowhere else */
+.stat-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    color: var(--link);
+    background: var(--tint-strong);
+}
+
+.stat-icon.good {
+    color: var(--success);
+    background: var(--success-tint);
+}
+
+.stat-icon.warn {
+    color: var(--warning-text);
+    background: var(--warning-tint);
+}
+
 /* A thin bar under a number, full at 100% */
 .room-meter {
     height: 6px;
     margin-top: 0.5rem;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--tint);
 }
 
 .room-meter-fill {
     width: 0;
     height: 100%;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--arctic-blue);
     transition: width 0.4s ease-out;
 }
@@ -2220,7 +2354,7 @@ fieldset:disabled {
     left: 0.5rem;
     z-index: 2000;
     padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--fill);
     color: var(--on-fill);
     transform: translateY(-200%);

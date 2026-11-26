@@ -7,7 +7,7 @@
     <div class="page-head">
         <div>
             <h1>{{ product.productName }}</h1>
-            <p>{{ product.categoryName }} · {{ product.producerName }}</p>
+            <p>{{ product.categoryName }}, made by {{ product.producerName }}</p>
         </div>
         <div class="page-actions">
             <a class="btn btn-outline-secondary" href="/products/{{ product.productID }}/edit"><i class="bi bi-pencil" aria-hidden="true"></i> Edit product</a>
@@ -21,40 +21,25 @@
     </div>
     {% endif %}
 
-    <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">In stock</div>
-                    <div class="stat-value{{ ' alert-value' if stock.inStock <= product.lowStockThreshold }}">{{ stock.inStock }}</div>
-                </div>
-            </div>
+    {# In stock is red when none are left and yellow at the alert level or under, like the inventory list #}
+    <section class="stat-strip mb-4" aria-label="Stock numbers">
+        <div>
+            <div class="stat-label">In stock</div>
+            <div class="stat-value{{ ' alert-value' if stock.inStock == 0 else (' warn-value' if stock.inStock <= product.lowStockThreshold) }}">{{ stock.inStock }}</div>
         </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Sold</div>
-                    <div class="stat-value">{{ stock.totalSold }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Sold</div>
+            <div class="stat-value">{{ stock.totalSold }}</div>
         </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Deliveries</div>
-                    <div class="stat-value">{{ history|length }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Deliveries</div>
+            <div class="stat-value">{{ history|length }}</div>
         </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body py-3">
-                    <div class="stat-label">Low stock alert at</div>
-                    <div class="stat-value">{{ product.lowStockThreshold }}</div>
-                </div>
-            </div>
+        <div>
+            <div class="stat-label">Low stock alert at</div>
+            <div class="stat-value">{{ product.lowStockThreshold }}</div>
         </div>
-    </div>
+    </section>
 
     <div class="row g-3 mb-4">
         <div class="col-lg-5">
