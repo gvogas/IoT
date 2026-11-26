@@ -118,7 +118,7 @@ def main():
             dateReceived DATE NOT NULL
         );''')
 
-    # Receipt header (customerID is NULL for guests)
+    # Receipt header (customerID is NULL only for old demo data)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Purchase (
             purchaseID INTEGER PRIMARY KEY AUTOINCREMENT,

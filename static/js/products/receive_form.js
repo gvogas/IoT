@@ -2,11 +2,6 @@
 const epcBox = document.querySelector("[data-epc-input]");
 const receiveButton = document.querySelector("[data-receive-button]");
 
-// "1 unit", "3 units"
-function unitsLabel(count) {
-    return `${count} ${count === 1 ? "unit" : "units"}`;
-}
-
 // Count the EPCs in the box and update the button
 function updateReceiveForm() {
     if (!epcBox || !receiveButton) return;
@@ -17,13 +12,13 @@ function updateReceiveForm() {
     const repeated = new Set(valid.filter((token, index) => valid.indexOf(token) !== index));
     const bad = tokens.length - valid.length;
 
-    let text = valid.length === 0 ? "No EPCs entered" : `${unitsLabel(valid.length)} entered`;
+    let text = valid.length === 0 ? "No EPCs entered" : `${plural(valid.length, "unit")} entered`;
     if (bad) text += `, ${bad} not a valid EPC`;
     if (repeated.size) text += `, ${repeated.size} repeated`;
     hint.textContent = text;
     hint.classList.toggle("text-danger", bad > 0 || repeated.size > 0);
 
-    receiveButton.textContent = valid.length ? `Receive ${unitsLabel(valid.length)}` : "Receive stock";
+    receiveButton.textContent = valid.length ? `Receive ${plural(valid.length, "unit")}` : "Receive stock";
 }
 
 if (epcBox) epcBox.addEventListener("input", updateReceiveForm);

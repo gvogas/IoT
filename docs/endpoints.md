@@ -10,12 +10,12 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/api/checkout/pay` (POST) | signed in | routes/checkout_routes.py | Saves the receipt and marks the tags as sold |
 | `/api/checkout/receipt-email` (POST) | after paying | routes/checkout_routes.py | Emails the receipt that was just paid |
 | `/api/receipts/<id>/email` (POST) | signed in, own receipts | routes/checkout_routes.py | Emails a past receipt from the purchase history |
-| `/api/scan-login` (POST) | everyone | routes/checkout_routes.py | Signs in with the barcode on a membership card |
+| `/api/scan-login` (POST) | everyone | routes/checkout_routes.py | Signs in with the barcode on a membership card. Customers only, an admin card gets a 403 |
 
 ## Accounts
 | URL | Who can open it | File | What it does |
 |---|---|---|---|
-| `/signin`, `/signout` | everyone | routes/auth_routes.py | Checks email + password, stores `id`, `name`, `role` in the session cookie |
+| `/signin`, `/signout` (POST) | everyone | routes/auth_routes.py | Checks email + password, stores `id`, `name`, `role` in the session cookie |
 | `/signup` | everyone | routes/customer_routes.py | Sign up form (auth/signup.js sends it to `/submit`) |
 | `/submit` (POST) | everyone | routes/customer_routes.py | Validates and saves a new customer, then signs them in |
 | `/account` | signed in | routes/customer_routes.py | The customer's own details, membership number and purchases, with date filters, a spending chart and a product summary with price history |
@@ -41,7 +41,7 @@ Every URL the app answers, grouped by area. "API" rows send back JSON and are ca
 | `/products/new` | admin | routes/product_routes.py | The form to add a product ("Save and add another" comes back to an empty form) |
 | `/products/<id>` | admin | routes/product_routes.py | One product: stock, receiving, deliveries and units |
 | `/products/<id>/edit`, `/delete`, `/receive`, `/clear-epcs` | admin | routes/product_routes.py | Change a product or its stock |
-| `/products/upc-check` | admin | routes/product_routes.py | Says if another product already has a UPC, for the product form |
+| `/api/products/upc-check` | admin | routes/product_routes.py | Says if another product already has a UPC, for the product form |
 | `/rfid/scan` (POST) | admin | routes/product_routes.py | Asks the RFID reader for tags, for the receive form |
 
 ## Fridges and sensors

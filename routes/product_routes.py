@@ -3,7 +3,7 @@ import io
 import sqlite3
 from datetime import date
 
-from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request
+from flask import Blueprint, Response, current_app, flash, jsonify, redirect, render_template, request
 
 from hardware.rfid import scan_once
 from mail.send_email import send_restock_alert
@@ -14,6 +14,7 @@ from models.product import (
 from models.product_image import MAX_UPLOAD_BYTES, delete_image, read_image, save_image
 from models.reception import check_reception, read_epcs, reception_history, save_reception
 from models.unit import clear_product_units, find_units, known_epcs, units_for_product
+from routes.formats import safe_cell
 from routes.guards import admin_api, admin_page
 
 product_routes = Blueprint("product_routes", __name__)
@@ -40,6 +41,17 @@ def product_not_found():
 
 # Inventory
 
+# The numbers at the top of the Inventory page. rows only has the products still sold
+def inventory_totals(rows):
+    return {
+        "units": sum(row["inStock"] for row in rows),
+        "value": round(sum(row["inStock"] * row["price"] for row in rows), 2),
+        "low": sum(1 for row in rows if row["lowStock"] and row["inStock"] > 0),
+        "out": sum(1 for row in rows if row["inStock"] == 0),
+        "last": max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
+    }
+
+
 # Stock of every product, out of stock first
 @product_routes.route("/inventory")
 @admin_page
@@ -57,12 +69,8 @@ def inventory():
         "products/inventory.html",
         rows=rows + hidden,
         hidden=len(hidden),
-        units=sum(row["inStock"] for row in rows),
-        value=sum(row["inStock"] * row["price"] for row in rows),
-        low=len(low),
-        out=len(out),
+        **inventory_totals(rows),
         categories=sorted({row["categoryName"] for row in rows + hidden}, key=str.lower),
-        last=max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
         epc_query=epc_query,
         matches=find_units(epc_query) if epc_query else [],
     )
@@ -89,22 +97,7 @@ def inventory_api():
     for row in rows + hidden_inventory_rows():
         products.append({"productID": row["productID"], "inStock": row["inStock"], "totalSold": row["totalSold"],
                          "lastReceived": row["lastReceived"], "status": stock_status(row)})
-    return jsonify(
-        products=products,
-        units=sum(row["inStock"] for row in rows),
-        value=round(sum(row["inStock"] * row["price"] for row in rows), 2),
-        low=sum(1 for row in rows if row["lowStock"] and row["inStock"] > 0),
-        out=sum(1 for row in rows if row["inStock"] == 0),
-        last=max((row["lastReceived"] for row in rows if row["lastReceived"]), default=None),
-    )
-
-
-# Excel runs a cell that starts with = + - or @ as a formula. A ' in front makes it plain text
-def safe_cell(value):
-    text = str(value)
-    if text.startswith(("=", "+", "-", "@")):
-        return "'" + text
-    return text
+    return jsonify(products=products, **inventory_totals(rows))
 
 
 # Download the inventory as a CSV spreadsheet
@@ -165,12 +158,13 @@ def new_product():
         if image_data:
             product["image"] = save_image(image_data)
         product_id = save_product(product)
-    except (sqlite3.Error, OSError) as err:
+    except (sqlite3.Error, OSError):
+        current_app.logger.exception("Could not add a product")
         delete_image(product["image"])
-        flash(f"Product not added. Could not save it: {err}", "error")
+        flash("Product not added. It could not be saved. Please try again.", "error")
         return render_product_form(None, request.form), 500
 
-    flash(f"Product \"{product['name']}\" added successfully.", "success")
+    flash(f"Product \"{product['name']}\" added.", "success")
     # "Save and add another" comes back to an empty form
     if request.form.get("next") == "another":
         return redirect("/products/new")
@@ -178,7 +172,7 @@ def new_product():
 
 
 # The form asks this as soon as a UPC is scanned, so a duplicate shows before saving
-@product_routes.route("/products/upc-check")
+@product_routes.route("/api/products/upc-check")
 @admin_api
 def upc_check():
     upc = request.args.get("upc", "").strip()
@@ -213,10 +207,11 @@ def edit_product(product_id):
         if image_data:
             values["image"] = save_image(image_data)
         update_product(product_id, values)
-    except (sqlite3.Error, OSError) as err:
+    except (sqlite3.Error, OSError):
+        current_app.logger.exception("Could not save product %s", product_id)
         if values["image"] != old_image:
             delete_image(values["image"])
-        flash(f"Changes not saved. Could not save them: {err}", "error")
+        flash("Changes not saved. They could not be saved. Please try again.", "error")
         return render_product_form(product_id, request.form, image_path=old_image), 500
 
     # Only delete the old file once the database no longer points at it
@@ -234,8 +229,9 @@ def remove_product(product_id):
     try:
         product = get_product(product_id)
         result = delete_product(product_id)
-    except sqlite3.Error as err:
-        flash(f"Product not deleted. Database error: {err}", "error")
+    except sqlite3.Error:
+        current_app.logger.exception("Could not delete product %s", product_id)
+        flash("Product not deleted. Something went wrong with the database.", "error")
         return redirect(f"/products/{product_id}")
 
     if result is None:
@@ -292,12 +288,17 @@ def receive_stock(product_id):
             return render_product_detail(product, epc_text, date_text, errors), 400
         stock_before = product_stock(product_id)["inStock"]
         save_reception(product_id, epcs, date_text)
-    except sqlite3.Error as err:
-        flash(f"Stock not received. Database error: {err}", "error")
+    except sqlite3.Error:
+        current_app.logger.exception("Could not receive stock for product %s", product_id)
+        flash("Stock not received. Something went wrong with the database.", "error")
         return redirect(f"/products/{product_id}")
 
+    # The stock is saved, so a failed email should not look like a failed delivery
     if stock_before <= product["lowStockThreshold"]:
-        send_restock_alert(product["productName"], len(epcs), stock_before + len(epcs), product["lowStockThreshold"])
+        try:
+            send_restock_alert(product["productName"], len(epcs), stock_before + len(epcs), product["lowStockThreshold"])
+        except Exception:
+            current_app.logger.exception("Restock alert for product %s failed", product_id)
 
     flash(f"{count_of(len(epcs), 'unit')} of \"{product['productName']}\" received on {date_text}.", "success")
     return redirect(f"/products/{product_id}")
@@ -312,8 +313,9 @@ def clear_epcs(product_id):
         if product is None:
             return product_not_found()
         count = clear_product_units(product_id)
-    except sqlite3.Error as err:
-        flash(f"Database error: {err}", "error")
+    except sqlite3.Error:
+        current_app.logger.exception("Could not clear the EPCs of product %s", product_id)
+        flash("The EPCs were not cleared. Something went wrong with the database.", "error")
         return redirect(f"/products/{product_id}")
 
     flash(f"Cleared {count_of(count, 'unit')} of \"{product['productName']}\". The tags can be received again.", "success")

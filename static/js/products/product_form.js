@@ -16,7 +16,7 @@ upcInput.addEventListener("change", async () => {
     const params = new URLSearchParams({ upc });
     if (upcInput.dataset.productId) params.set("productID", upcInput.dataset.productId);
     try {
-        const response = await fetch(`/products/upc-check?${params}`);
+        const response = await fetch(`/api/products/upc-check?${params}`);
         const result = await response.json();
         if (!result.taken) return;
         const link = document.createElement("a");

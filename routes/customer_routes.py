@@ -1,14 +1,14 @@
 import sqlite3
 from datetime import date
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, session
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session
 
 from models.checkout import purchase_history
 from models.customer import (
     ROLES, TAKEN_MESSAGE, Customer, check_membership_number, check_new_email, check_sign_in, customers_with_spending, get_customer,
-    set_email, set_membership_number, set_role,
+    get_customer_by_membership, set_email, set_membership_number, set_role,
 )
-from routes.guards import admin_api, admin_page, is_signed_in, remember_sign_in
+from routes.guards import admin_api, admin_page, remember_sign_in, signed_in_customer
 
 customer_routes = Blueprint("customer_routes", __name__)
 
@@ -36,31 +36,28 @@ def submit():
         if errors:
             return jsonify(error="\n".join(errors)), 400
 
-        membership_number = customer.save()
-        remember_sign_in(check_sign_in(customer.email, customer.password))
+        customer.save()
+        remember_sign_in(get_customer_by_membership(customer.barcode))
 
     except sqlite3.IntegrityError:
         # Two people signing up with the same email at the same moment
         return jsonify(error=TAKEN_MESSAGE), 400
 
-    except sqlite3.Error as err:
-        return jsonify(error=f"Database error: {err}"), 400
+    except sqlite3.Error:
+        current_app.logger.exception("Could not save the new customer")
+        return jsonify(error="Your account could not be saved. Please try again."), 500
 
-    flash(f"Welcome! Your membership number is {membership_number}.")
+    flash(f"Welcome! Your membership number is {customer.barcode}.")
     return jsonify(success="Account created!", redirect="/"), 200
 
 
 # My Account: the membership card and purchase history
 @customer_routes.route("/account")
 def account():
-    if not is_signed_in():
-        return redirect("/signin")
-
-    customer = get_customer(session["id"])
+    customer = signed_in_customer()
     if customer is None:
-        session.clear()
         return redirect("/signin")
-    purchases = purchase_history(session["id"])
+    purchases = purchase_history(customer["customerID"])
     return render_template(
         "customers/account.html", customer=customer, purchases=purchases,
         total_spent=sum(purchase["total"] for purchase in purchases),
@@ -71,16 +68,12 @@ def account():
 # A customer changes their own email. They need their password, because anyone with their card can sign in by scanning it
 @customer_routes.route("/account/email", methods=["POST"])
 def change_email():
-    if not is_signed_in():
-        return redirect("/signin")
-
-    customer = get_customer(session["id"])
+    customer = signed_in_customer()
     if customer is None:
-        session.clear()
         return redirect("/signin")
 
     if check_sign_in(customer["email"], request.form.get("password", "")) is None:
-        flash("Your password is not right, so your email was not changed.", "error")
+        flash("Wrong password, so your email was not changed.", "error")
         return redirect("/account")
 
     email, error = check_new_email(request.form.get("email", ""), customer["customerID"])
@@ -130,7 +123,7 @@ def change_role(customer_id):
     # The page reloads after this and shows the flash message
     message = f"{customer['customerName']} is now {'an admin' if role == 'admin' else 'a customer'}."
     flash(message, "success")
-    return jsonify(success=message, role=role), 200
+    return jsonify(success=message), 200
 
 
 # Give a customer a new card number
@@ -152,4 +145,4 @@ def change_membership(customer_id):
 
     message = f"{customer['customerName']}'s membership number is now {number}."
     flash(message, "success")
-    return jsonify(success=message, membershipNumber=number), 200
+    return jsonify(success=message), 200

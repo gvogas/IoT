@@ -5,12 +5,13 @@ from datetime import datetime, timedelta
 from flask import Blueprint, Response, render_template, request
 
 from config import FRIDGES_ENABLED, MSP01_ENABLED
+from models.database import DATE_FORMAT
 from models.fridge import Fridge
 from models.report import (PERIODS, category_names, chart_by_month, customer_activity, most_and_least_sold, period_dates,
                            product_quantities, profit_summary, range_dates, sales_by_category, sales_chart, top_products)
 from routes.fridge_routes import fridge_data
+from routes.formats import day_text, safe_cell
 from routes.guards import admin_page
-from routes.product_routes import safe_cell
 
 admin_routes = Blueprint("admin_routes", __name__)
 
@@ -71,18 +72,13 @@ def admin():
                            fridges=fridge_cards(), status_text=STATUS_TEXT)
 
 
-# A date like "Feb 1, 2026"
-def day_text(moment):
-    return f"{moment:%b} {moment.day}, {moment.year}"
-
-
 # The dates a period covers, like "Feb 1, 2026 to Feb 28, 2026". The end is not included, so the
 # last day is the second before it. No end means up to now
 def range_text(start, end):
     if start is None:
         return "All time"
-    first = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-    last = datetime.strptime(end, "%Y-%m-%d %H:%M:%S") - timedelta(seconds=1) if end else datetime.now()
+    first = datetime.strptime(start, DATE_FORMAT)
+    last = datetime.strptime(end, DATE_FORMAT) - timedelta(seconds=1) if end else datetime.now()
     if first.date() == last.date():
         return day_text(first)
     return f"{day_text(first)} to {day_text(last)}"

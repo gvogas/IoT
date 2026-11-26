@@ -14,15 +14,14 @@ def seconds_since(when):
     return round(time.time() - when) if when else None
 
 
-# The MSP01 sensor (in Fridge 3). The dashboard asks for this every 2 seconds
+# The MSP01 sensor (in Fridge 3). The fridge page (static/js/fridges/room.js) asks for this every 2 seconds.
+# Its temperature and humidity come with the fridge readings, so they are not sent here
 @room_routes.route("/api/room")
 @admin_api
 def api_room():
     room = mqtt_controller.room
     motion_age = seconds_since(room["last_motion"])
     return jsonify(
-        temperature=room["temperature"],
-        humidity=room["humidity"],
         light=room["light"],
         bright=room["bright"],
         battery=room["battery"],

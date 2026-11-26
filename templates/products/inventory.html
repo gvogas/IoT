@@ -21,7 +21,7 @@
         </div>
         <div>
             <div class="stat-label">Stock value</div>
-            <div class="stat-value" id="value">${{ '%.2f'|format(value) }}</div>
+            <div class="stat-value" id="value">{{ value|money }}</div>
             <div class="stat-note">In stock × selling price</div>
         </div>
         <div>
@@ -104,7 +104,7 @@
                             </div>
                         </td>
                         <td data-label="Category">{{ row.categoryName }}</td>
-                        <td class="text-end" data-label="Price">${{ '%.2f'|format(row.price) }}</td>
+                        <td class="text-end" data-label="Price">{{ row.price|money }}</td>
                         <td class="text-end" data-label="In stock" data-sort-value="{{ row.inStock }}">
                             <div class="stock-cell">
                                 <b data-in-stock>{{ row.inStock }}</b> <span class="small text-secondary">alert at {{ row.lowStockThreshold }}</span>

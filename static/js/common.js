@@ -10,6 +10,11 @@ async function postJson(url, body) {
     return { ok: response.ok, data: await response.json() };
 }
 
+// "1 item", "3 items"
+function plural(count, word) {
+    return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 // kind is "success", "warning" or "danger". content is text or a list of text and elements. Empty hides the box
 function setMessage(element, content, kind = "danger") {
     if (!element) return;
@@ -59,7 +64,8 @@ function showToast(text, kind = "success") {
     container.appendChild(element);
 
     element.addEventListener("hidden.bs.toast", () => element.remove());
-    new bootstrap.Toast(element, { delay: SHOW_TIME[kind] }).show();
+    // Without Bootstrap (no internet) the message stays on the page
+    if (window.bootstrap) new bootstrap.Toast(element, { delay: SHOW_TIME[kind] }).show();
 }
 
 // Our own "are you sure?" window. Resolves to true if confirmed. danger makes the button red
@@ -107,9 +113,11 @@ document.querySelectorAll("form[data-confirm-title]").forEach((form) => {
 });
 
 // Notifications from flash() on the server
-document.querySelectorAll(".toast[data-delay]").forEach((element) => {
-    new bootstrap.Toast(element, { delay: Number(element.dataset.delay) }).show();
-});
+if (window.bootstrap) {
+    document.querySelectorAll(".toast[data-delay]").forEach((element) => {
+        new bootstrap.Toast(element, { delay: Number(element.dataset.delay) }).show();
+    });
+}
 
 
 // The moon / sun button in the top bar switches between light and dark mode, and the browser remembers it.

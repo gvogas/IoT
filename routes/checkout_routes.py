@@ -1,7 +1,7 @@
 import sqlite3
 import threading
 
-from flask import Blueprint, jsonify, render_template, request, session, url_for
+from flask import Blueprint, current_app, jsonify, render_template, request, session, url_for
 
 from hardware.rfid import scan_once
 from mail.send_email import receipt_email, send, send_receipt_email, send_stock_alert
@@ -40,14 +40,27 @@ def pay_basket():
     if not is_signed_in():
         return jsonify(error="Scan your membership card or sign in to pay."), 401
 
-    epcs, errors = read_epcs(" ".join((request.get_json(silent=True) or {}).get("epcs", [])))
-    if errors or not epcs:
+    epcs = (request.get_json(silent=True) or {}).get("epcs")
+    if not isinstance(epcs, list) or not all(isinstance(epc, str) for epc in epcs):
+        return jsonify(error="The basket is empty. Scan your items first."), 400
+    epcs, errors = read_epcs(" ".join(epcs))
+    if errors:
+        return jsonify(error=" ".join(errors)), 400
+    if not epcs:
         return jsonify(error="The basket is empty. Scan your items first."), 400
 
     try:
         purchase_id, total = pay(session["id"], epcs)
     except ValueError as err:
         return jsonify(error=str(err)), 409
+
+    # The payment is saved, so sign out now. The next person at the checkout starts signed out,
+    # even if something below goes wrong
+    name = session.get("name", "")
+    session.clear()
+    # So the customer can still email this receipt after being signed out
+    session["last_purchase"] = purchase_id
+
     paid_receipt = receipt(purchase_id)
 
     # Email the receipt in the background, so the customer doesn't wait for Gmail.
@@ -56,15 +69,14 @@ def pay_basket():
     if address:
         email_in_background(purchase_id, address, paid_receipt)
 
-    alerts = stock_alerts(purchase_id)
-    if alerts:
-        send_stock_alert(alerts)
+    # A failed stock alert should not look like a failed payment
+    try:
+        alerts = stock_alerts(purchase_id)
+        if alerts:
+            send_stock_alert(alerts)
+    except Exception:
+        current_app.logger.exception("Stock alert after purchase %s failed", purchase_id)
 
-    # The next person at the checkout starts signed out
-    name = session.get("name", "")
-    session.clear()
-    # So the customer can still email this receipt after being signed out
-    session["last_purchase"] = purchase_id
     email_message = (
         f"Your receipt is on its way to {address}." if address
         else "There is no email on this account, so no receipt was emailed."
@@ -106,9 +118,11 @@ def email_and_record(purchase_id, address, paid_receipt):
 
 # Send a receipt to the customer's current email
 def send_receipt(purchase_id):
-    address = receipt_email_address(purchase_id)
     paid_receipt = receipt(purchase_id)
-    if not address or paid_receipt is None:
+    if paid_receipt is None:
+        return jsonify(error="That receipt was not found."), 404
+    address = receipt_email_address(purchase_id)
+    if not address:
         return jsonify(error="No email address on this account."), 400
 
     if not email_and_record(purchase_id, address, paid_receipt):
@@ -135,15 +149,17 @@ def email_past_receipt(purchase_id):
     return send_receipt(purchase_id)
 
 
-# Sign in by scanning a membership card. Admins go to the admin page, customers stay on the checkout
+# Sign in by scanning a membership card. Admins have to use the sign in form
 @checkout_routes.route("/api/scan-login", methods=["POST"])
 def scan_login():
-    code = (request.get_json(silent=True) or {}).get("code", "")
-    customer = get_customer_by_membership(code) if code.strip() else None
+    code = (request.get_json(silent=True) or {}).get("code")
+    customer = get_customer_by_membership(code) if isinstance(code, str) and code.strip() else None
     if customer is None:
         return jsonify(error="Barcode not recognised."), 404
 
-    remember_sign_in(customer)
+    # Anyone holding the card could sign in with it, so admin accounts need the password
     if customer["role"] == "admin":
-        return jsonify(role="admin", redirect="/admin")
-    return jsonify(role="customer", name=customer["customerName"])
+        return jsonify(error="Admins sign in with their email and password."), 403
+
+    remember_sign_in(customer)
+    return jsonify(success=True)

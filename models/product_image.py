@@ -40,9 +40,8 @@ def read_image(upload):
         return None, BAD_IMAGE
 
 
-# basename keeps the path inside the upload folder
+# Where a saved image is on disk. basename keeps a path from the database inside the upload folder
 def _file_on_disk(path):
-    # basename so a path from the database can never point outside the upload folder
     return os.path.join(STATIC_FOLDER, UPLOAD_FOLDER, os.path.basename(path))
 
 

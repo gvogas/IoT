@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 
 from flask import Flask
 
-from config import FRIDGES_ENABLED, MSP01_ENABLED, SECRET_KEY
+from config import ALERT_EMAIL, ALERT_EMAIL_PASSWORD, FRIDGES_ENABLED, MSP01_ENABLED, SECRET_KEY
 from controllers.fan_controller import fan_controller
 from controllers.mqtt_controller import mqtt_controller
 from hardware import fan, msp01
@@ -29,6 +29,10 @@ logging.basicConfig(
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+# Forms on other websites can't post to this app with someone's sign-in cookie
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# JavaScript on the page can't read the sign-in cookie
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 register_routes(app)
 
@@ -42,16 +46,17 @@ if __name__ == "__main__":
         if FRIDGES_ENABLED or MSP01_ENABLED:
             mqtt_controller.start()
 
-        # Check the inbox for YES/NO replies to fridge alert emails.
-        # Same check as MQTT above, because MQTT is what sends the alerts
-        if FRIDGES_ENABLED or MSP01_ENABLED:
+        # Check the inbox for YES/NO replies to fridge alert emails. Only with MQTT on, because MQTT
+        # is what sends the alerts, and only if the Gmail account is set in config.py
+        if (FRIDGES_ENABLED or MSP01_ENABLED) and ALERT_EMAIL and ALERT_EMAIL_PASSWORD:
             threading.Thread(target=check_forever, daemon=True).start()
 
         # Hear the MSP01 sensor (in Fridge 3) over Bluetooth (msp01/index.js) and pass its readings to MQTT
         if MSP01_ENABLED:
             msp01.start()
 
-        app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+        # Keep debug off. Flask's debug page lets anyone on the network run code on the Pi
+        app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
 
     finally:
         # Don't leave the fan spinning or the pins set after the app is gone

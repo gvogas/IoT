@@ -42,6 +42,8 @@ function isMinew(data) {
 const client = mqtt.connect(`mqtt://${MQTT_BROKER}:${MQTT_PORT}`, {
     username: process.env.MQTT_USERNAME || undefined,
     password: process.env.MQTT_PASSWORD || undefined,
+    // Don't keep readings in memory while the broker is down. Old readings are no use later
+    queueQoSZero: false,
 });
 client.on("connect", () => console.log(`MSP01: connected to MQTT at ${MQTT_BROKER}`));
 client.on("error", (err) => console.log(`MSP01: MQTT problem: ${err.message}`));

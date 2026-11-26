@@ -21,7 +21,8 @@ def signin():
 
 
 # Forget who is signed in
-@auth_routes.route("/signout")
+# POST only, so a link or image on another website can't sign people out
+@auth_routes.route("/signout", methods=["POST"])
 def signout():
     session.clear()
     return redirect("/")

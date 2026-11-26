@@ -71,8 +71,8 @@
                             {% set full = [product.lowStockThreshold * 2, 1]|max %}
                             <div class="stock-meter {{ level }}" aria-hidden="true"><div style="width: {{ [stock.inStock * 100 / full, 100]|min }}%"></div></div>
                         </dd>
-                        <dt>Price</dt><dd>${{ '%.2f'|format(product.price) }}</dd>
-                        <dt>Cost</dt><dd>{% if product.costPrice is not none %}${{ '%.2f'|format(product.costPrice) }} <span class="text-secondary">(${{ '%.2f'|format(product.price - product.costPrice) }} profit each)</span>{% else %}<span class="text-secondary">Not set</span>{% endif %}</dd>
+                        <dt>Price</dt><dd>{{ product.price|money }}</dd>
+                        <dt>Cost</dt><dd>{% if product.costPrice is not none %}{{ product.costPrice|money }} <span class="text-secondary">({{ (product.price - product.costPrice)|money }} profit each)</span>{% else %}<span class="text-secondary">Not set</span>{% endif %}</dd>
                         <dt>Sales tax</dt><dd>{{ 'GST and QST' if product.isTaxable else 'None (not taxable)' }}</dd>
                         <dt>UPC</dt><dd><code>{{ product.upc }}</code></dd>
                         <dt>Category</dt><dd>{{ product.categoryName }}</dd>

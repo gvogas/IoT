@@ -49,7 +49,7 @@ def get_customer(customer_id):
 
 # Find a customer by their card number, or None
 def get_customer_by_membership(number):
-    return query_one("SELECT customerID, customerName, role FROM Customer WHERE membershipNumber = ?", (number.strip().upper(),))
+    return query_one("SELECT customerID, customerName, role FROM Customer WHERE membershipNumber = ?", ("".join(number.split()).upper(),))
 
 
 # Pass customer_id so their own number doesn't count as taken
@@ -88,7 +88,7 @@ def check_new_email(text, customer_id):
     error = email_problem(email)
     if error:
         return None, error
-    if query_one("SELECT 1 FROM Customer WHERE LOWER(email) = ? AND customerID != ?", (email, customer_id)):
+    if query_one("SELECT 1 FROM Customer WHERE email = ? AND customerID != ?", (email, customer_id)):
         return None, "This email is already registered."
     return email, None
 
@@ -185,7 +185,7 @@ class Customer:
 
     # Is the email used by someone else?
     def email_taken(self):
-        return query_one("SELECT 1 FROM Customer WHERE LOWER(email) = ?", (self.email,)) is not None
+        return query_one("SELECT 1 FROM Customer WHERE email = ?", (self.email,)) is not None
 
     # Is the barcode used by someone else?
     def barcode_taken(self):
@@ -195,7 +195,7 @@ class Customer:
     def phone_taken(self):
         return query_one("SELECT 1 FROM Customer WHERE phoneNumber = ?", (self.phone_number,)) is not None
 
-    # Gives back the membership number. Raises IntegrityError if the email or phone is already used
+    # Gives back the new customer's ID. Raises IntegrityError if the email, phone or membership number is already used
     def save(self):
         # New people start as "customer". tools/set_role.py makes someone an admin
         execute(
@@ -203,4 +203,3 @@ class Customer:
             (self.name, self.address, self.email, self.phone_number, generate_password_hash(self.password),
              self.barcode, now_text()),
         )
-        return self.barcode

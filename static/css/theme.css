@@ -37,6 +37,10 @@
     --toast-success: #2B7A6B;
     --toast-danger: #A63D32;
 
+    /* Red buttons have white text, so they also stay dark red in dark mode */
+    --danger-fill: #A63D32;
+    --danger-fill-hover: #8C3329;
+
     /* Corners: small for controls, medium for boxes inside a page, large for cards, pill for chips and badges */
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -128,22 +132,23 @@
 }
 
 .btn-danger {
-    --bs-btn-bg: var(--danger);
-    --bs-btn-border-color: var(--danger);
-    --bs-btn-hover-bg: #8C3329;
-    --bs-btn-hover-border-color: #8C3329;
-    --bs-btn-active-bg: #8C3329;
-    --bs-btn-active-border-color: #8C3329;
+    --bs-btn-bg: var(--danger-fill);
+    --bs-btn-border-color: var(--danger-fill);
+    --bs-btn-hover-bg: var(--danger-fill-hover);
+    --bs-btn-hover-border-color: var(--danger-fill-hover);
+    --bs-btn-active-bg: var(--danger-fill-hover);
+    --bs-btn-active-border-color: var(--danger-fill-hover);
     --bs-btn-focus-shadow-rgb: 166, 61, 50;
 }
 
 .btn-outline-danger {
     --bs-btn-color: var(--danger);
     --bs-btn-border-color: var(--danger);
-    --bs-btn-hover-bg: var(--danger);
-    --bs-btn-hover-border-color: var(--danger);
-    --bs-btn-active-bg: var(--danger);
-    --bs-btn-active-border-color: var(--danger);
+    /* Filled on hover, so it uses the dark red that white text can sit on */
+    --bs-btn-hover-bg: var(--danger-fill);
+    --bs-btn-hover-border-color: var(--danger-fill);
+    --bs-btn-active-bg: var(--danger-fill-hover);
+    --bs-btn-active-border-color: var(--danger-fill-hover);
     --bs-btn-disabled-color: var(--muted);
     --bs-btn-disabled-border-color: var(--arctic-mist);
 }

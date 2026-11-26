@@ -19,7 +19,7 @@
                         <span class="stat-label">Profit today</span>
                     </div>
                     <div class="stat-value{{ ' alert-value' if profit.profit < 0 }}">{{ profit.profit|money }}</div>
-                    {% with change=change, compare_label="yesterday" %}{% include "admin/change.html" %}{% endwith %}
+                    {% with compare_label="yesterday" %}{% include "admin/change.html" %}{% endwith %}
                     <div class="stat-note">{{ profit.sales|money }} in sales, {{ profit.orders }} {{ 'order' if profit.orders == 1 else 'orders' }}</div>
                     <span class="dash-link">Open today's report <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                 </div>

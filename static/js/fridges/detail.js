@@ -137,6 +137,7 @@ async function update() {
             setMessage(message, fridge.error);
             return;
         }
+        setMessage(message, "");
         latest = fridge;
         showFridge(fridge);
     } catch (error) {
@@ -274,10 +275,12 @@ function drawChart(rows) {
 
 // Get the saved readings for the chart
 async function updateHistory() {
+    // Another range button may be pressed while we wait. Only draw the range still picked
+    const hours = historyHours;
     try {
-        const response = await fetch(`/api/fridges/${fridgeId}/history?hours=${historyHours}`, { cache: "no-store" });
+        const response = await fetch(`/api/fridges/${fridgeId}/history?hours=${hours}`, { cache: "no-store" });
         const rows = await response.json();
-        if (response.ok) drawChart(rows);
+        if (response.ok && hours === historyHours) drawChart(rows);
     } catch (error) {
         // Keep showing the old chart if the server can't be reached
     }

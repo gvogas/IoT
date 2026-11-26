@@ -21,7 +21,6 @@
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.dataset.bsTheme = savedTheme || (prefersDark ? "dark" : "light");
     </script>
-{% block head %}{% endblock %}
 </head>
 <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -51,7 +50,9 @@
 
             <div class="side-foot">
                 {% if session.id %}
-                <a class="side-link" href="/signout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out</a>
+                <form action="/signout" method="post">
+                    <button type="submit" class="side-link side-button"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out</button>
+                </form>
                 {% else %}
                 <a class="side-link{{ ' active' if request.path.startswith('/signin') }}" href="/signin"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Sign in</a>
                 <a class="side-link{{ ' active' if request.path.startswith('/signup') }}" href="/signup"><i class="bi bi-person-plus" aria-hidden="true"></i> Sign up</a>

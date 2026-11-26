@@ -22,7 +22,7 @@ sent_alerts = {}
 # Send from the store's Gmail account. Gives back True if it was sent
 def send(to_address, subject, text, html=None, message_id=None):
     if not (ALERT_EMAIL and ALERT_EMAIL_PASSWORD and to_address):
-        log.warning("Email not sent (%s): set ALERT_EMAIL, ALERT_EMAIL_PASSWORD and ALERT_TO (see config.py)", subject)
+        log.warning("Email not sent (%s): no address to send to, or ALERT_EMAIL / ALERT_EMAIL_PASSWORD not set in config.py", subject)
         return False
 
     msg = EmailMessage()
@@ -55,10 +55,8 @@ def send_temperature_alert(fridge_id, temperature, threshold):
     sent = send(
         ALERT_TO,
         f"Temperature Alert - Frig{fridge_id}",
-        f"The current temperature in Frig{fridge_id} is {temperature}°C.\n"
-        f"The temperature threshold is {threshold}°C.\n\n"
-        "Would you like to turn on the fan?\n"
-        "Reply YES to turn on the fan, or NO to take no action.",
+        f"Frig{fridge_id} is at {temperature}°C. The limit is {threshold}°C.\n\n"
+        "Reply YES to turn on the fan, or NO to leave it off.",
         message_id=message_id,
     )
     if sent:

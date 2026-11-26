@@ -34,7 +34,7 @@
             <div id="basket-empty" class="empty-state">
                 <span class="scan-icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></span>
                 <h2>Scan your items</h2>
-                <p>Hold your items near the reader. Each one shows up here by itself, no button needed.</p>
+                <p>Hold your items near the reader. Each one shows up here by itself.</p>
             </div>
         </section>
 
@@ -53,7 +53,9 @@
                         <div class="small">Membership <span class="code">{{ customer.membershipNumber }}</span></div>
                         <div class="small">This sale earns <b id="points-preview">0 points</b>. Balance: {{ customer.totalPoints or 0 }}.</div>
                     </div>
-                    <a class="btn btn-link btn-sm member-switch" href="/signout" aria-label="Not {{ customer.customerName }}? Sign out">Not you?</a>
+                    <form action="/signout" method="post">
+                        <button type="submit" class="btn btn-link btn-sm member-switch" aria-label="Not {{ customer.customerName }}? Sign out">Not you?</button>
+                    </form>
                 </div>
                 {% else %}
                 {# barcode_login.js handles this form, and also a card scanned anywhere on the page #}

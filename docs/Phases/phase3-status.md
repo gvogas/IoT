@@ -26,7 +26,7 @@ Extra, not in the PDF: admins are emailed when a product becomes low or out of s
 - [x] Barcode scan for membership card sign-in (`/api/scan-login`)
 - [x] UPC read by barcode scanner on the product form
 
-## Self-Checkout
+## Self-checkout
 - [x] Scan all items at once with RFID (`/api/checkout/scan`)
 - [x] Shopping list with items, GST, QST and total
 - [x] Remove unwanted items before paying (trash button per product, plus Clear)

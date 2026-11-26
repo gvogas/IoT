@@ -23,7 +23,7 @@ flowchart TD
     Add -->|"Save and add another"| Scan
 ```
 
-On the product form, the UPC box comes first and has the cursor, so an admin can scan the item in their hand before typing anything. The scanner's Enter moves the cursor to the name instead of sending the form. When the cursor leaves the UPC box, `product_form.js` asks `/products/upc-check` whether another product already has that UPC, and if so shows a link to it under the box. The server checks again when the form is saved. A new product has a "Save and add another" button, which saves it and opens an empty form.
+On the product form, the UPC box comes first and has the cursor, so an admin can scan the item in their hand before typing anything. The scanner's Enter moves the cursor to the name instead of sending the form. When the cursor leaves the UPC box, `product_form.js` asks `/api/products/upc-check` whether another product already has that UPC, and if so shows a link to it under the box. The server checks again when the form is saved. A new product has a "Save and add another" button, which saves it and opens an empty form.
 
 ## A unit from delivery to sale
 
@@ -72,7 +72,7 @@ Hidden products come last, with a grey Hidden badge, their own filter button, an
 
 Each row shows the product ID, name, category, price, units in stock, units sold, the last delivery date and a status badge. The page keeps itself up to date: `static/js/products/inventory.js` asks `/api/inventory` for the numbers every 2 seconds and changes the cards, the stock column, the badges and the filter counts, so a sale at the checkout shows up without reloading. A product added after the page was opened only appears after a reload.
 
-The page can also find any unit by EPC, including sold ones, and download the stock as a CSV (`/inventory.csv`). A product or category name that starts with `=`, `+`, `-` or `@` gets a `'` in front in the CSV, so Excel shows it as text instead of running it as a formula (`safe_cell()` in `routes/product_routes.py`). The Stock value at the top is the units in stock times the selling price.
+The page can also find any unit by EPC, including sold ones, and download the stock as a CSV (`/inventory.csv`). A product or category name that starts with `=`, `+`, `-` or `@` gets a `'` in front in the CSV, so Excel shows it as text instead of running it as a formula (`safe_cell()` in `routes/formats.py`). The Stock value at the top is the units in stock times the selling price.
 
 ## Stock emails
 

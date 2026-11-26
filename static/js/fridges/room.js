@@ -13,13 +13,6 @@ function byId(id) {
     return document.getElementById(id);
 }
 
-// "5 s ago", "3 min ago", "2 h ago"
-function roomTimeAgo(seconds) {
-    if (seconds < 60) return `${seconds} s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-    return `${Math.floor(seconds / 3600)} h ago`;
-}
-
 // "24 h: 19.5 to 23.1 °C", or "24 h: --" before the first saved reading
 function rangeText(low, high, unit, decimals) {
     if (low === null || high === null) return "24 h: --";
@@ -81,7 +74,7 @@ function showRoomStatus(age) {
     }
     byId("room-status").className = `fridge-status ${status}`;
     byId("room-status").querySelector(".status-text").textContent = text;
-    byId("room-age").textContent = age === null ? "No reading yet" : `Last reading ${roomTimeAgo(age)}`;
+    byId("room-age").textContent = age === null ? "No reading yet" : `Last reading ${timeAgo(age)}`;
 }
 
 // The light card. The sensor sends lux, or only light / dark on some versions
@@ -108,7 +101,7 @@ function showMotion(room, stats) {
     byId("room-motion-icon").className = `stat-icon ${room.motion ? "good" : ""}`;
     byId("room-last-motion").textContent = stats.lastMotionAge === null
         ? "No motion yet"
-        : `Last motion ${roomTimeAgo(stats.lastMotionAge)}`;
+        : `Last motion ${timeAgo(stats.lastMotionAge)}`;
 
     byId("room-visits").textContent = stats.motionToday;
 

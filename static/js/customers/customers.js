@@ -43,7 +43,7 @@ membershipForm.addEventListener("submit", async (event) => {
         }
         setMessage(membershipMessage, result.error);
     } catch (error) {
-        setMessage(membershipMessage, "Unable to reach the server. The membership number was not changed.");
+        setMessage(membershipMessage, "Cannot reach the server. The membership number was not changed.");
     }
     membershipSave.disabled = false;
     membershipInput.select();
@@ -81,7 +81,7 @@ roleConfirm.addEventListener("click", async () => {
         }
         setMessage(roleMessage, result.error);
     } catch (error) {
-        setMessage(roleMessage, "Unable to reach the server. The role was not changed.");
+        setMessage(roleMessage, "Cannot reach the server. The role was not changed.");
     }
     roleConfirm.disabled = false;
 });

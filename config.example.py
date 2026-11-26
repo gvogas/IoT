@@ -38,9 +38,10 @@ MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 IMAP_SERVER = "imap.gmail.com"
-ALERT_EMAIL = os.environ.get("ALERT_EMAIL", "you@gmail.com")
-ALERT_EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "your-gmail-app-password")
-ALERT_TO = os.environ.get("ALERT_TO", "alerts-go-here@gmail.com")
+# Leave them empty to turn email off. Example: "you@gmail.com", a Gmail app password, "alerts-go-here@gmail.com"
+ALERT_EMAIL = os.environ.get("ALERT_EMAIL", "")
+ALERT_EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
+ALERT_TO = os.environ.get("ALERT_TO", "")
 
 # Degrees below the threshold before another alert can be sent
 ALERT_RESET_MARGIN = 1.0

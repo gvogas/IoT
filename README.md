@@ -14,7 +14,7 @@ For Fridges 1 and 2, each fridge has its own ESP32 with a DHT11 sensor that send
 and the website shows them live.
 
 There is one fan, with a separate driver in hardware/fan.py.
-When a fridge goes over its threshold, the app emails an alert. Replying YES turns the fan on, and the fridge pages have a button to turn it on or off.
+When a fridge goes over its threshold, the app emails an alert. Replying YES turns the fan on, and the fridge pages have a button to turn it off.
 Admins can turn it off from the fridge dashboard. Sensor readings never switch it by themselves.
 
 Fridge 3 has a Minew MSP01 sensor instead, which measures the temperature, humidity and light, and sees movement.
@@ -92,7 +92,7 @@ Then fill in your own values:
 | config.h | `MQTT_BROKER` | Same IP as `MQTT_BROKER` in config.py |
 | config.h | `MQTT_USER`, `MQTT_PASSWORD` | The ESP32's broker login. Leave `MQTT_USER` empty (`""`) if the broker has no password |
 
-The email settings can also come from the `ALERT_EMAIL`, `ALERT_EMAIL_PASSWORD` and `ALERT_TO` environment variables.
+The email settings can also come from the `ALERT_EMAIL`, `ALERT_EMAIL_PASSWORD` and `ALERT_TO` environment variables. Leave them empty to turn email off: nothing is sent and the inbox is not checked.
 
 The Pi doesn't recognise the CF600's USB id, so after a reboot `/dev/ttyUSB0` is missing. When `RFID_PORT` isn't there, app.py runs `sudo modprobe usbserial vendor=0x0483 product=0x5750` to create it, so it may ask for your password when it starts. If the reader still isn't found, it logs an error and the app keeps running. The full guide (protocol, API, troubleshooting) is in [docs/rfid-reader.md](docs/rfid-reader.md).
 

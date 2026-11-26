@@ -63,7 +63,7 @@ sequenceDiagram
     alt a customer's card
         F-->>JS: signed in, page reloads
     else an admin's card
-        F-->>JS: signed in, go to the dashboard (/admin)
+        F-->>JS: refused (403), admins sign in with email and password
     end
 ```
 

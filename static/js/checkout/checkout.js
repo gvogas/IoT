@@ -35,11 +35,6 @@ function isTaxable(item) {
     return item.taxable !== false;
 }
 
-// "1 item", "3 items"
-function plural(count, word) {
-    return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
-
 // The basket's first column: picture and name
 function productCell(line) {
     const picture = document.createElement(line.image ? "img" : "span");
@@ -202,7 +197,7 @@ async function scanLoop() {
                 setReaderStatus("error", "Reader not answering");
                 // Customers get a plain message. Staff can find the reason in the browser console
                 console.error("Reader error:", err.message);
-                notify(basketMessage, "The item reader is not working right now. Please ask a member of staff for help.", "danger");
+                notify(basketMessage, "The item reader is not working. Please ask staff for help.", "danger");
                 pause = RETRY_PAUSE;
             }
         }
@@ -234,7 +229,7 @@ function handleScan(data) {
     } else if (again.length) {
         notify(basketMessage, `Item already scanned: ${names(again)}`, "warning");
     } else if (data.unknown) {
-        notify(basketMessage, `${data.unknown} ${data.unknown === 1 ? "item" : "items"} in range could not be recognised.`, "danger");
+        notify(basketMessage, `${plural(data.unknown, "item")} in range could not be recognised.`, "danger");
     } else if (fresh.length) {
         notify(basketMessage, `Added: ${names(fresh)}`, "success");
     }
@@ -341,7 +336,7 @@ function showReceipt(receipt, emailMessage) {
     });
     body.appendChild(table);
 
-    // The points earned get their own box: it is the part of paying the customer cares about most
+    // The points earned get their own box so they stand out
     const points = document.createElement("div");
     points.className = "receipt-points";
     const earned = document.createElement("b");

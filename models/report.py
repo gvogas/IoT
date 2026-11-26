@@ -71,6 +71,9 @@ def range_dates(day_from, day_to):
         return None
     if first > last:
         first, last = last, first
+    # Far-off years break the date maths and would loop over too many days
+    if first.year < 2000 or last.year > 2100:
+        return None
 
     # The end is midnight after the last day, so the whole last day counts
     end = last + timedelta(days=1)

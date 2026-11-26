@@ -66,6 +66,10 @@ async function updateInventory() {
             liveStatus.textContent = "Signed out. Sign in again to see live numbers.";
             return;
         }
+        if (!response.ok) {
+            liveStatus.textContent = "The live numbers could not be loaded.";
+            return;
+        }
         const data = await response.json();
 
         for (const product of data.products) {
@@ -73,7 +77,8 @@ async function updateInventory() {
             if (row) updateRow(row, product);
         }
         setCard("units", data.units, "");
-        setCard("value", `$${data.value.toFixed(2)}`, "");
+        // Same look as the |money filter on the server, like "$1,314.50"
+        setCard("value", `$${data.value.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, "");
         setCard("low", data.low, "warn-value");
         setCard("out", data.out, "alert-value");
         setCard("last", data.last || "None yet", "");
@@ -85,4 +90,5 @@ async function updateInventory() {
     }
 }
 
+updateInventory();
 setInterval(updateInventory, 2000);

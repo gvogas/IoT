@@ -3,7 +3,7 @@
 const MAX_KEY_GAP = 100;     // milliseconds between keys. A person types slower than this
 const MIN_CODE_LENGTH = 4;
 
-// onCustomer runs after a customer signs in. Admins always go to the admin page
+// onCustomer runs after a customer signs in. The server refuses admin cards, so admins use the sign in form
 function setupBarcodeLogin(onCustomer) {
     const form = document.getElementById("scan-form");
     const input = document.getElementById("scan-input");
@@ -18,7 +18,6 @@ function setupBarcodeLogin(onCustomer) {
         try {
             const { ok, data } = await postJson("/api/scan-login", { code });
             if (!ok) notify(message, data.error, "danger");
-            else if (data.redirect) window.location.href = data.redirect;
             else onCustomer();
         } catch (error) {
             notify(message, "Unable to sign in. Please try again.", "danger");
@@ -50,7 +49,11 @@ function setupBarcodeLogin(onCustomer) {
         if (event.key === "Enter") {
             const code = buffer.trim();
             buffer = "";
-            if (code.length >= MIN_CODE_LENGTH) signIn(code);
+            if (code.length >= MIN_CODE_LENGTH) {
+                // The scanner's Enter should not also click the button that has focus
+                event.preventDefault();
+                signIn(code);
+            }
         } else if (event.key.length === 1) {
             buffer += event.key;
         }

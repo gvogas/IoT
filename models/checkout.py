@@ -42,8 +42,7 @@ def basket_items(epcs):
 
 
 # Save a paid basket. Gives back (purchaseID, total), or raises ValueError and saves nothing
-def pay(customer_id, epcs, payment_method="card"):
-    epcs = list(dict.fromkeys(epcs))
+def pay(customer_id, epcs):
     items, sold, unknown = basket_items(epcs)
     if sold:
         raise ValueError("Item already sold. Remove it and scan again.")
@@ -61,12 +60,11 @@ def pay(customer_id, epcs, payment_method="card"):
     def work(conn):
         cursor = conn.execute(
             """INSERT INTO Purchase (customerID, purchaseDate, subtotal, gstAmount, qstAmount, taxAmount, total, pointsEarned, paymentMethod)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (customer_id, now_text(), str(subtotal), str(gst), str(qst), str(tax), str(total),
-             points_earned, payment_method),
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'card')""",
+            (customer_id, now_text(), str(subtotal), str(gst), str(qst), str(tax), str(total), points_earned),
         )
         purchase_id = cursor.lastrowid
-        if customer_id is not None and points_earned > 0:
+        if points_earned > 0:
             conn.execute(
                 "UPDATE Customer SET totalPoints = totalPoints + ? WHERE customerID = ?",
                 (points_earned, customer_id),

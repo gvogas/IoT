@@ -1,6 +1,6 @@
 import sqlite3
 
-from flask import flash, jsonify, redirect, render_template, request
+from flask import current_app, flash, jsonify, redirect, render_template, request
 
 from hardware.rfid import ReaderError
 from models.product_image import MAX_UPLOAD_BYTES
@@ -34,7 +34,9 @@ def register_routes(app):
     # Database errors no route handles, like "no such table" if init_database wasn't run
     @app.errorhandler(sqlite3.Error)
     def database_error(err):
-        text = f"Database error: {err}"
+        # The details go in the log. Visitors only see a short message
+        current_app.logger.exception("Database error")
+        text = "Something went wrong with the database. Please try again."
         if is_api_request():
             return jsonify(error=text), 500
         return render_template("error.html", title="Something went wrong", text=text), 500
@@ -42,7 +44,10 @@ def register_routes(app):
     # The product form checks the size first, so this only happens if that check didn't run
     @app.errorhandler(413)
     def upload_too_big(err):
-        flash(f"That image is too big. The limit is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", "error")
+        text = f"That image is too big. The limit is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
+        if is_api_request():
+            return jsonify(error=text), 413
+        flash(text, "error")
         return redirect(request.path)
 
     # A page that doesn't exist, like a mistyped address. Shown in the store's own layout instead of Flask's plain page

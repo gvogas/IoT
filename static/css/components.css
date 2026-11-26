@@ -257,6 +257,16 @@ table,
     text-decoration: none;
 }
 
+/* The Sign out button looks like the links above it */
+.side-button {
+    width: 100%;
+    background: none;
+    border: none;
+    font: inherit;
+    font-weight: 500;
+    text-align: left;
+}
+
 .side-link i {
     font-size: 1.1rem;
     color: var(--muted);
@@ -419,7 +429,6 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     line-height: 1.25;
-    font-variant-numeric: tabular-nums;
 }
 
 .stat-note {
@@ -437,8 +446,7 @@ body {
 }
 
 /* Numbers that belong together, side by side in one box with thin lines between them.
-   One shared boundary instead of a card per number. The cells wrap onto more rows on narrow screens,
-   and each cell draws its line on its left and top, so the lines stay right after wrapping */
+   The cells wrap onto more rows on narrow screens, and each cell draws its line on its left and top, so the lines stay right after wrapping */
 .stat-strip {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -556,9 +564,6 @@ body {
     height: 100%;
     padding: 1rem;
     border-radius: var(--radius-md);
-}
-
-.sold-box {
     background: var(--tint);
 }
 
@@ -923,7 +928,7 @@ body {
     }
 }
 
-/* A card's title row, with a line under it */
+/* A card's title row: the heading on the left, buttons or links on the right */
 .card-head {
     display: flex;
     flex-wrap: wrap;
@@ -1204,7 +1209,7 @@ body {
     padding-right: 0;
 }
 
-/* The points earned, the high point of paying. Big number, balance under it */
+/* The points earned: a big number with the balance under it */
 .receipt-points {
     display: flex;
     flex-direction: column;
@@ -1297,7 +1302,7 @@ body {
 }
 
 .member-card .stat-value {
-    color: #FFFFFF;
+    color: var(--on-fill);
 }
 
 .member-head {
@@ -2259,7 +2264,7 @@ fieldset:disabled {
 }
 
 
-/* ---------- Store room sensor (MSP01) on the dashboard ---------- */
+/* ---------- Store room sensor (MSP01) on the fridge page ---------- */
 .room-head {
     display: flex;
     flex-wrap: wrap;
@@ -2345,7 +2350,7 @@ fieldset:disabled {
     height: 140px;
 }
 
-/* ---------- Audit fixes ---------- */
+/* ---------- Other ---------- */
 
 /* "Skip to content": hidden until a keyboard user tabs to it */
 .skip-link {
@@ -2364,7 +2369,7 @@ fieldset:disabled {
     transform: none;
 }
 
-/* Small text on the navy membership card (the grey text-secondary was too faint there) */
+/* Small text on the navy membership card (text-secondary is too faint there) */
 .member-card .member-note {
     color: var(--on-fill-muted);
 }

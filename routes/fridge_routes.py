@@ -101,4 +101,4 @@ def set_threshold(fridge_id):
 
     if not Fridge(fridge_id).set_threshold(threshold):
         return jsonify(error=f"Fridge {fridge_id} not found."), 404
-    return jsonify(success=f"Threshold set to {threshold}"), 200
+    return jsonify(success=f"Limit set to {threshold} °C."), 200

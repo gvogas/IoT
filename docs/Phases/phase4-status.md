@@ -4,12 +4,12 @@ Checked against `Phase-4.pdf` on 2026-11-13, re-audited and finished on 2026-11-
 
 39 of 42 items are done. Left: the full run-through on the Pi with the hardware, checking live inventory with a real checkout, and preparing to explain the design. All three need people and hardware, not code.
 
-## 1. System Integration
+## 1. System integration
 - [x] Phase 2 (product tracking and inventory) working. See `phase3-status.md`
 - [x] Phase 3 (sales, purchasing, customers) working. See `phase3-status.md`
 - [ ] Full run-through of one demo workflow (receive stock, checkout, receipt, reports, MSP01) on the Pi, with the hardware plugged in
 
-## 2.1 Inventory Report (Admin)
+## 2.1 Inventory report (admin)
 - [x] Product name and product ID (ID column, also in the CSV and the search box)
 - [x] Available quantity for each product (`/inventory`, In stock column)
 - [x] Last restocked date (Last received column)
@@ -17,7 +17,7 @@ Checked against `Phase-4.pdf` on 2026-11-13, re-audited and finished on 2026-11-
 - [x] Low stock alert, customizable (per product, `lowStockThreshold`, plus the admin emails). The PDF says per category; ours is per product, which is finer. Mention this in the demo
 - [ ] Real-time updates after a purchase. Built: `static/js/products/inventory.js` asks `/api/inventory` every 2 s and updates the cards, stock, badges and filter counts. The API is tested; still to check in a browser with a real checkout
 
-## 2.2 Sales Report (Admin)
+## 2.2 Sales report (admin)
 `/reports` has Today, This month, Last month, All time, plus From and To date boxes (`?from=&to=`) and a Category picker (`?category=`).
 - [x] Sales chart per day (a month) or per month (all time)
 - [x] Sales by category (table with share bars)
@@ -29,14 +29,14 @@ Checked against `Phase-4.pdf` on 2026-11-13, re-audited and finished on 2026-11-
 - [x] Total sales for the chosen day or range shown with the dates, like "Total sales (Feb 1, 2026 to Feb 28, 2026): $2,540.00 before tax" (with tax too)
 - [x] Category filter: the Category picker filters the cards, total line, chart, Sold per product, Best products and By category. Tax is worked out from that category's taxable items (`CATEGORY_FILTER` in `models/report.py`)
 
-## 2.3 Customer Activity Report (Admin)
+## 2.3 Customer activity report (admin)
 A Customer activity card on `/reports`, using the same period or From and To days (`customer_activity()` in `models/report.py`). It ignores the category.
 - [x] Number of customers who bought something on a chosen day (From only)
 - [x] Number of customers who bought something in a date range
 - [x] New vs returning customers in the range (new = first purchase ever falls inside the range)
 - [x] Busiest and quietest day in the range, by number of customers (days with no sales count, ties all named)
 
-## 3. Customer Reports (My Account)
+## 3. Customer reports (My Account)
 ### 3.1 Receipt history
 - [x] List of receipts with date and time, items, prices and total (`/account`)
 - [x] Filter receipts by a day or a date range (From and To boxes on `/account`, `static/js/customers/account.js`)
@@ -60,7 +60,7 @@ Typing in the search box opens a Product purchase summary card above the receipt
 - [x] Export the Sales and Customer Activity report: CSV button (`/reports.csv`) and a Print button (Save as PDF), with print styles that hide the menu and filters
 - [x] Responsive check on phone width (Reports and My Account at 390 px in headless Chromium)
 
-## 5. MSP01 BLE Sensor
+## 5. MSP01 BLE sensor
 - [x] Read the MSP01 over Bluetooth with reelyActive barnowl/advlib and publish to MQTT (`msp01/index.js`)
 - [x] Light and motion cards and a motion-per-hour chart on Fridge 3's page (`/fridges/3`), updated every 2 seconds. Its temperature and humidity are on the same page and on the `/admin` fridge cards
 - [x] Readings saved (`RoomReading`, `MotionEvent`) with 24 h min/max and motion per hour
@@ -75,9 +75,3 @@ From the IoT Store Audit. Fixed: R1, R2, R3, R6, R7, R12, S3, S10, S11, C2, C3, 
 - [x] Broker login settings for the app, ESP32 and MSP01 bridge (Mosquitto setup in [fridges.md](fridges.md#putting-a-password-on-the-broker))
 - [x] Pinned `requirements.txt`; logging to `logs/app.log`
 - [x] Interface: fan on/off button, readable reward text, right-to-left numbers, skip link, show password, remove one item, report bar amounts
-
-
-## 6. Final Demo
-- [x] Demo script: [demo-script.md](../demo-script.md)
-- [ ] Be ready to explain design decisions, technologies and the database (`architecture.md`, `database.md`)
-

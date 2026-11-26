@@ -10,14 +10,20 @@ def is_signed_in():
     return "id" in session
 
 
-# Checks the database, so a role change works right away
-def is_admin():
+# The signed-in customer's row, or None. If their account was deleted, they are signed out
+def signed_in_customer():
     if "id" not in session:
-        return False
-    # Check the database so a role change works right away
+        return None
     customer = get_customer(session["id"])
     if customer is None:
         session.clear()
+    return customer
+
+
+# Is the signed-in person an admin? Checks the database, so a role change works right away
+def is_admin():
+    customer = signed_in_customer()
+    if customer is None:
         return False
     session["role"] = customer["role"]
     return customer["role"] == "admin"

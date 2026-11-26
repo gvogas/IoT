@@ -147,9 +147,10 @@ function showSignedOut(message) {
     setMessage(message, ["You are signed out (the app may have restarted). ", link]);
 }
 
-// Show the status with its coloured dot
+// Show the status with its coloured dot. Other classes on the element, like ms-auto, stay
 function setStatus(element, status) {
-    element.className = `fridge-status ${status}`;
+    element.classList.remove(...Object.keys(STATUS_TEXT));
+    element.classList.add(status);
     element.querySelector(".status-text").textContent = STATUS_TEXT[status];
 }
 
@@ -194,7 +195,7 @@ async function pressFanButton(button) {
         showToast(result.error || result.success, result.error ? "danger" : "success");
         return response.ok ? result.state : "UNKNOWN";
     } catch (error) {
-        showToast("Unable to reach the server. The fan change is not confirmed.", "danger");
+        showToast("Cannot reach the server. The fan may not have turned off.", "danger");
         return "UNKNOWN";
     } finally {
         button.disabled = false;

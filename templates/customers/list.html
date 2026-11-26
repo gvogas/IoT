@@ -24,7 +24,7 @@
         </div>
         <div>
             <div class="stat-label">Total spent</div>
-            <div class="stat-value notranslate" translate="no">${{ '%.2f'|format(total_spent) }}</div>
+            <div class="stat-value notranslate" translate="no">{{ total_spent|money }}</div>
         </div>
     </section>
 
@@ -76,7 +76,7 @@
                         <td data-label="Membership #"><code>{{ customer.membershipNumber }}</code></td>
                         <td class="text-end" data-label="Spent" data-sort-value="{{ customer.spent }}">
                             <div>
-                                <div class="fw-semibold notranslate" translate="no">${{ '%.2f'|format(customer.spent) }}</div>
+                                <div class="fw-semibold notranslate" translate="no">{{ customer.spent|money }}</div>
                                 <div class="small text-secondary">{{ customer.purchases }} {{ 'purchase' if customer.purchases == 1 else 'purchases' }}</div>
                             </div>
                         </td>

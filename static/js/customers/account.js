@@ -144,11 +144,6 @@ let priceChart = null;
 // Every line of every receipt. Each one has data-product-name, -date, -day, -price and -quantity
 const lines = [...document.querySelectorAll(".purchase-line[data-product-name]")];
 
-// "1 time" or "3 times"
-function plural(count, word) {
-    return count === 1 ? `1 ${word}` : `${count} ${word}s`;
-}
-
 // Show how often one product was bought, at what price, and how its price changed
 function showProduct(name, productLines) {
     // Oldest first, for the chart and the price change
